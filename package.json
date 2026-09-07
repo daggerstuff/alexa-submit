@@ -1,0 +1,11 @@
+{
+  "name": "alexa-clinical-sim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alexa+ clinical simulation node with a Python orchestration backend",
+  "scripts": {
+    "start": "uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload",
+    "test": "pytest -q",
+    "lint": "echo \"no lint configured\" && exit 0"
+  }
+}

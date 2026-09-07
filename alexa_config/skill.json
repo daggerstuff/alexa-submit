@@ -1,0 +1,31 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Clinical Simulation Node",
+          "summary": "Educational clinical interview simulation",
+          "description": "A local-development Alexa skill adapter for a clinical interview simulation backend."
+        }
+      },
+      "category": "EDUCATION_AND_REFERENCE"
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "https://YOUR_PUBLIC_TUNNEL_HOST/alexa"
+        }
+      }
+    },
+    "privacyAndCompliance": {
+      "containsHealthInfo": false,
+      "isExportCompliant": true,
+      "isChildDirected": false,
+      "usesPersonalInformation": false
+    }
+  },
+  "deployment": {
+    "skillId": "REPLACE_WITH_SKILL_ID",
+    "region": "NA"
+  }
+}

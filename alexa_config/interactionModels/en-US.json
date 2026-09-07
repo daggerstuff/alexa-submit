@@ -1,0 +1,29 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "clinical simulation",
+      "intents": [
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": ["help", "what can I do"]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": ["stop", "end simulation"]
+        },
+        {
+          "name": "ClinicalSimulationIntent",
+          "slots": [
+            { "name": "utterance", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "{utterance}",
+            "ask {utterance}",
+            "say {utterance}"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
