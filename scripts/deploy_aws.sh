@@ -39,29 +39,56 @@ echo "=== Tagging and pushing image ==="
 docker tag "$REPO_NAME:$IMAGE_TAG" "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 docker push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 
+source_config_for_host() {
+  local allowed_hosts="$1"
+  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
+}
+
+wait_for_running() {
+  local arn="$1"
+  echo "Waiting for service to reach RUNNING..."
+  for _ in $(seq 1 40); do
+    local status
+    status=$(aws apprunner describe-service --service-arn "$arn" --region "$REGION" --query Service.Status --output text)
+    echo "  status=$status"
+    case "$status" in
+      RUNNING) return 0 ;;
+      CREATE_FAILED|UPDATE_FAILED|DELETED) echo "Service entered $status" >&2; return 1 ;;
+    esac
+    sleep 30
+  done
+  echo "Timed out waiting for RUNNING" >&2
+  return 1
+}
+
 echo "=== Creating or updating App Runner service ==="
 SERVICE_ARN=$(aws apprunner list-services --region "$REGION" --query "ServiceSummaryList[?ServiceName=='clinical-conversation-coach'].ServiceArn" --output text 2>/dev/null || echo "")
 if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
   SERVICE_ARN=""
 fi
 
-SOURCE_CONFIG="ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables=[{Name=MCP_HOST,Value=0.0.0.0},{Name=MCP_ALLOWED_HOSTS,Value=*}]}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
-
 if [ -z "$SERVICE_ARN" ]; then
   echo "Creating new App Runner service..."
-  aws apprunner create-service \
+  CREATE_OUT=$(aws apprunner create-service \
     --service-name clinical-conversation-coach \
-    --source-configuration "$SOURCE_CONFIG" \
+    --source-configuration "$(source_config_for_host localhost)" \
     --instance-configuration "Cpu=1 vCPU,Memory=2 GB" \
-    --region "$REGION"
-else
-  echo "Updating existing App Runner service..."
-  aws apprunner update-service \
-    --service-arn "$SERVICE_ARN" \
-    --source-configuration "$SOURCE_CONFIG" \
-    --region "$REGION"
+    --region "$REGION")
+  SERVICE_ARN=$(echo "$CREATE_OUT" | python3 -c "import sys,json; print(json.load(sys.stdin)['Service']['ServiceArn'])")
+  wait_for_running "$SERVICE_ARN"
 fi
 
+echo "=== Pinning host allowlist to the service URL ==="
+SERVICE_URL=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --region "$REGION" --query Service.ServiceUrl --output text)
+SERVICE_HOST="${SERVICE_URL#https://}"
+SERVICE_HOST="${SERVICE_HOST#http://}"
+echo "Service host: $SERVICE_HOST"
+aws apprunner update-service \
+  --service-arn "$SERVICE_ARN" \
+  --source-configuration "$(source_config_for_host "${SERVICE_HOST}\,${SERVICE_HOST}:*")" \
+  --region "$REGION" >/dev/null
+wait_for_running "$SERVICE_ARN"
+
 echo "=== Done ==="
-echo "Service URL will be available at: https://<random>.awsapprunner.com/mcp"
+echo "MCP endpoint: https://$SERVICE_HOST/mcp"
 echo "Check status: aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION"

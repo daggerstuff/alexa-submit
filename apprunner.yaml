@@ -11,8 +11,11 @@ run:
       value: 8001
     - name: MCP_PATH
       value: /mcp
+    # Must be the exact App Runner service hostname (bare "*" does NOT
+    # match — the SDK only accepts exact host or "host:*" patterns).
+    # scripts/deploy_aws.sh pins this automatically from the ServiceUrl.
     - name: MCP_ALLOWED_HOSTS
-      value: "*"
+      value: "<service-host>,<service-host>:*"
     - name: MCP_ALLOWED_ORIGINS
       value: "*"
     - name: INFERENCE_PROVIDER
