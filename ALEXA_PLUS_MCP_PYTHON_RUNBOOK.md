@@ -22,8 +22,8 @@ uvicorn[standard]==0.34.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 httpx==0.28.1
-pytest==8.3.4
-pytest-asyncio==0.25.2
+pytest==8.4.2
+pytest-asyncio==1.4.0
 mcp==2.2.0
 ruff==0.14.0
 ```
