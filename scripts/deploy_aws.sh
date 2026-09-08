@@ -15,7 +15,7 @@ echo "=== Building Docker image ==="
 docker build -t "$REPO_NAME" .
 
 echo "=== Creating ECR repository (if needed) ==="
-aws ecr describe-repository --repository-name "$REPO_NAME" --region "$REGION" 2>/dev/null || \
+aws ecr describe-repositories --repository-names "$REPO_NAME" --region "$REGION" 2>/dev/null || \
   aws ecr create-repository --repository-name "$REPO_NAME" --region "$REGION"
 
 echo "=== Ensuring App Runner ECR access role ==="
