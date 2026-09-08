@@ -18,25 +18,28 @@ class PatientState:
 class PatientPersonaAgent:
     """Scenario-constrained persona policy; an inference adapter can implement the same contract later."""
 
-    def respond(self, state: PatientState, scenario: ScenarioDefinition, practitioner_message: str) -> PatientResponse:
+    def respond(
+        self,
+        state: PatientState,
+        scenario: ScenarioDefinition,
+        practitioner_message: str,
+    ) -> PatientResponse:
         state.turn_count += 1
         text = practitioner_message.lower()
-        selected = None
-        for rule in scenario.disclosures:
-            if any(term in text for term in rule.trigger_terms):
-                selected = rule
-                break
 
-        if selected is None and any(term in text for term in ("emergency", "911", "urgent", "help")):
-            content = "The pressure is still there. I am scared—what should we do next?"
+        matched = [rule for rule in scenario.disclosures if any(term in text for term in rule.trigger_terms)]
+
+        if not matched and any(term in text for term in ("emergency", "911", "urgent", "help")):
+            content = "The pain is still there. I am scared—what should we do next?"
             emotion = "distressed"
-        elif selected is None:
-            content = "I am not sure what else to add. The chest pressure is making me nervous."
+        elif not matched:
+            content = "I am not sure what else to add. It still does not feel right."
             emotion = state.last_emotional_state
         else:
-            state.disclosed_facts.add(selected.fact_id)
-            content = selected.response
-            emotion = selected.emotional_state
+            for rule in matched:
+                state.disclosed_facts.add(rule.fact_id)
+            content = " ".join(rule.response for rule in matched)
+            emotion = matched[-1].emotional_state
 
         state.last_emotional_state = emotion
         safety_note = None

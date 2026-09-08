@@ -10,7 +10,6 @@ from server.main import orchestrator
 from server.scenarios import SCENARIOS
 from server.schemas.validation import SimulationAction, SimulationRequest
 
-
 mcp = MCPServer(
     name="clinical-conversation-coach",
     title="Clinical Conversation Coach",
@@ -57,7 +56,11 @@ def list_simulation_scenarios() -> dict[str, Any]:
 )
 def start_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> dict[str, Any]:
     response = orchestrator.handle(
-        SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.start)
+        SimulationRequest(
+            session_id=session_id,
+            scenario_id=scenario_id,
+            action=SimulationAction.start,
+        )
     )
     return _serialize(response)
 
@@ -70,7 +73,7 @@ def send_practitioner_turn(
     session_id: str,
     practitioner_message: str,
     client_event_id: str | None = None,
-    scenario_id: str = "chest-pain-basic",
+    scenario_id: str | None = None,
 ) -> dict[str, Any]:
     response = orchestrator.handle(
         SimulationRequest(
@@ -88,9 +91,13 @@ def send_practitioner_turn(
     description="Evaluate the current session using the active scenario's versioned rubric.",
     structured_output=True,
 )
-def evaluate_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> dict[str, Any]:
+def evaluate_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
     response = orchestrator.handle(
-        SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.evaluate)
+        SimulationRequest(
+            session_id=session_id,
+            scenario_id=scenario_id,
+            action=SimulationAction.evaluate,
+        )
     )
     return _serialize(response)
 
@@ -99,7 +106,7 @@ def evaluate_simulation(session_id: str, scenario_id: str = "chest-pain-basic") 
     description="End a simulation and return its final evidence-linked evaluation.",
     structured_output=True,
 )
-def end_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> dict[str, Any]:
+def end_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
     response = orchestrator.handle(
         SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.end)
     )
@@ -110,7 +117,11 @@ if __name__ == "__main__":
     host = os.getenv("MCP_HOST", "127.0.0.1")
     port = int(os.getenv("MCP_PORT", "8001"))
     allowed_hosts = [item.strip() for item in os.getenv("MCP_ALLOWED_HOSTS", f"{host}:*").split(",") if item.strip()]
-    allowed_origins = [item.strip() for item in os.getenv("MCP_ALLOWED_ORIGINS", "http://127.0.0.1:*,http://localhost:*").split(",") if item.strip()]
+    allowed_origins = [
+        item.strip()
+        for item in os.getenv("MCP_ALLOWED_ORIGINS", "http://127.0.0.1:*,http://localhost:*").split(",")
+        if item.strip()
+    ]
     transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=allowed_hosts,

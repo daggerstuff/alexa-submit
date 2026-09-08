@@ -6,6 +6,6 @@
   "scripts": {
     "start": "uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload",
     "test": "pytest -q",
-    "lint": "echo \"no lint configured\" && exit 0"
+    "lint": "ruff check server tests && ruff format --check server tests"
   }
 }

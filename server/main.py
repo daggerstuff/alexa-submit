@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -11,12 +11,20 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
+from server.agents.llm_persona import LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.scenarios import ScenarioDefinition, get_scenario
-from server.schemas.validation import PatientResponse, Role, SimulationAction, SimulationRequest, SimulationResponse, TranscriptTurn
+from server.schemas.validation import (
+    PatientResponse,
+    Role,
+    SimulationAction,
+    SimulationRequest,
+    SimulationResponse,
+    TranscriptTurn,
+)
 
 logger = logging.getLogger("alexa_clinical_sim")
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 @dataclass
@@ -32,17 +40,22 @@ class Session:
 class SimulationOrchestrator:
     def __init__(self) -> None:
         self.sessions: dict[str, Session] = {}
-        self.patient_agent = PatientPersonaAgent()
+        provider = os.getenv("INFERENCE_PROVIDER", "mock")
+        if provider == "llm":
+            self.patient_agent = LLMPersonaAgent()
+        else:
+            self.patient_agent = PatientPersonaAgent()
         self.evaluator_agent = ClinicalEvaluatorAgent()
 
     def get_or_create(self, request: SimulationRequest) -> Session:
         session = self.sessions.get(request.session_id)
         if session is not None:
-            if session.scenario.scenario_id != request.scenario_id:
+            if request.scenario_id is not None and session.scenario.scenario_id != request.scenario_id:
                 raise HTTPException(status_code=409, detail="Session cannot switch scenarios")
             return session
+        scenario_id = request.scenario_id or "chest-pain-basic"
         try:
-            scenario = get_scenario(request.scenario_id)
+            scenario = get_scenario(scenario_id)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         session = Session(
@@ -55,7 +68,7 @@ class SimulationOrchestrator:
 
     @staticmethod
     def _turn(role: Role, content: str) -> TranscriptTurn:
-        return TranscriptTurn(role=role, content=content, timestamp=datetime.now(timezone.utc).isoformat())
+        return TranscriptTurn(role=role, content=content, timestamp=datetime.now(UTC).isoformat())
 
     def _response(self, request: SimulationRequest, session: Session, **kwargs: Any) -> SimulationResponse:
         return SimulationResponse(
@@ -92,7 +105,10 @@ class SimulationOrchestrator:
                 response = self._response(request, session, patient=patient)
         elif request.action == SimulationAction.message:
             if not request.practitioner_message or not request.practitioner_message.strip():
-                raise HTTPException(status_code=422, detail="practitioner_message is required for action=message")
+                raise HTTPException(
+                    status_code=422,
+                    detail="practitioner_message is required for action=message",
+                )
             session.transcript.append(self._turn(Role.practitioner, request.practitioner_message.strip()))
             patient = self.patient_agent.respond(session.patient_state, session.scenario, request.practitioner_message)
             session.transcript.append(self._turn(Role.patient, patient.content))
@@ -110,12 +126,23 @@ class SimulationOrchestrator:
 
         if request.client_event_id:
             session.processed_events[request.client_event_id] = response
-        logger.info("simulation_request session_id=%s action=%s status=%s", session.session_id, request.action.value, session.status)
+        logger.info(
+            "simulation_request session_id=%s action=%s status=%s",
+            session.session_id,
+            request.action.value,
+            session.status,
+        )
         return response
 
 
 app = FastAPI(title="Alexa+ Clinical Simulation Node", version="0.2.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_credentials=False, allow_methods=["GET", "POST", "DELETE"], allow_headers=["content-type", "x-api-key"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["content-type", "x-api-key"],
+)
 orchestrator = SimulationOrchestrator()
 
 
@@ -127,10 +154,19 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "alexa-clinical-sim", "active_sessions": len(orchestrator.sessions), "version": app.version}
+    return {
+        "status": "ok",
+        "service": "alexa-clinical-sim",
+        "active_sessions": len(orchestrator.sessions),
+        "version": app.version,
+    }
 
 
-@app.post("/mcp/simulate", response_model=SimulationResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/mcp/simulate",
+    response_model=SimulationResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def simulate(request: SimulationRequest) -> SimulationResponse:
     return orchestrator.handle(request)
 

@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     practitioner = "practitioner"
     patient = "patient"
     system = "system"
 
 
-class SimulationAction(str, Enum):
+class SimulationAction(StrEnum):
     start = "start"
     message = "message"
     evaluate = "evaluate"
@@ -23,7 +23,7 @@ class SimulationAction(str, Enum):
 class SimulationRequest(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid4()), min_length=1, max_length=128)
     action: SimulationAction = SimulationAction.message
-    scenario_id: str = Field(default="chest-pain-basic", min_length=1, max_length=128)
+    scenario_id: str | None = Field(default=None, max_length=128)
     practitioner_message: str | None = Field(default=None, max_length=4000)
     client_event_id: str | None = Field(default=None, max_length=128)
     metadata: dict[str, Any] = Field(default_factory=dict)
