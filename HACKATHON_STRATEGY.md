@@ -10,16 +10,16 @@ The official rules require the Alexa+ primary track to use either a working Agen
 
 ## Current alignment status
 
-| Hackathon expectation | Current status | Action |
-|---|---|---|
-| Alexa+ primary track | Strong conceptual fit | Submit under Alexa+ |
-| Self-hosted MCP server | Implemented in `server/mcp_server.py` | Demonstrate `/mcp` over Streamable HTTP |
-| MCP version target | SDK dependency is `mcp>=2.0.0`; protocol behavior is delegated to SDK | Pin and document the tested SDK/protocol version before submission |
-| Public GitHub repository | Repository code exists locally | Create a public GitHub repository with `LICENSE` and setup instructions |
-| Working demo video under three minutes | Not yet produced | Record one concise end-to-end demo |
-| Product feedback | Not yet prepared | Submit a tool-by-tool feedback section and friction log |
-| AWS Builder mini-challenge | Not yet claimed | Claim only after adding a real AWS runtime integration or qualifying development-tool usage |
-| Open Source mini-challenge | Not yet claimed | Claim only after a qualifying contribution during the hackathon window |
+| Hackathon expectation                  | Current status                                                                                                                  | Action                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Alexa+ primary track                   | Strong conceptual fit                                                                                                           | Submit under Alexa+                                                            |
+| Self-hosted MCP server                 | Implemented in `server/mcp_server.py`                                                                                           | Demonstrate `/mcp` over Streamable HTTP                                        |
+| MCP version target                     | Pinned: `mcp==2.2.0`, protocol `2025-11-25` (Python 3.13)                                                                       | Documented in `server/requirements.txt` and `ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md` |
+| Public GitHub repository               | Repository code exists locally                                                                                                  | Create a public GitHub repository with `LICENSE` and setup instructions        |
+| Working demo video under three minutes | Not yet produced                                                                                                                | Record one concise end-to-end demo                                             |
+| Product feedback                       | Prepared in `PRODUCT_FEEDBACK.md`                                                                                               | Submit with friction log for up to 10% bonus                                   |
+| AWS Builder mini-challenge             | App Runner config + ECR deploy script ready in `apprunner.yaml` and `scripts/deploy_aws.sh`; LLM adapter uses NVIDIA NIM on AWS | Claim after running `scripts/deploy_aws.sh` to deploy                          |
+| Open Source mini-challenge             | Not yet claimed                                                                                                                 | Claim only after a qualifying contribution during the hackathon window         |
 
 ## Architecture for the submission
 
@@ -50,15 +50,15 @@ The MCP tools are intentionally task-oriented. The client does not need to know 
 
 The demo should open with the problem and immediately show the Amazon-compatible integration.
 
-| Time | Demo beat | What judges should see |
-|---|---|---|
-| 0:00–0:20 | Product framing | “Clinical Conversation Coach helps learners practice structured patient interviews through Alexa+.” |
-| 0:20–0:40 | MCP connection | MCP client connects to the self-hosted `/mcp` Streamable HTTP endpoint and lists the available tools. |
-| 0:40–1:05 | Scenario discovery | The agent calls `list_simulation_scenarios` and selects the chest-pain scenario and rubric version. |
-| 1:05–1:55 | Live conversation | The agent calls `start_simulation`, then `send_practitioner_turn` several times. The patient discloses information progressively and preserves state. |
-| 1:55–2:25 | Evaluation | The agent calls `evaluate_simulation`; the result shows metric IDs, scores, evidence excerpts, and improvements. |
-| 2:25–2:45 | Safety and reliability | Show the educational disclaimer, stable scenario version, and a repeated `client_event_id` returning the same result rather than duplicating a turn. |
-| 2:45–3:00 | Impact and feedback | Explain the target users and one concrete friction point or feature request for the Alexa+/MCP developer experience. |
+| Time      | Demo beat              | What judges should see                                                                                                                                |
+| --------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00–0:20 | Product framing        | “Clinical Conversation Coach helps learners practice structured patient interviews through Alexa+.”                                                   |
+| 0:20–0:40 | MCP connection         | MCP client connects to the self-hosted `/mcp` Streamable HTTP endpoint and lists the available tools.                                                 |
+| 0:40–1:05 | Scenario discovery     | The agent calls `list_simulation_scenarios` and selects the chest-pain scenario and rubric version.                                                   |
+| 1:05–1:55 | Live conversation      | The agent calls `start_simulation`, then `send_practitioner_turn` several times. The patient discloses information progressively and preserves state. |
+| 1:55–2:25 | Evaluation             | The agent calls `evaluate_simulation`; the result shows metric IDs, scores, evidence excerpts, and improvements.                                      |
+| 2:25–2:45 | Safety and reliability | Show the educational disclaimer, stable scenario version, and a repeated `client_event_id` returning the same result rather than duplicating a turn.  |
+| 2:45–3:00 | Impact and feedback    | Explain the target users and one concrete friction point or feature request for the Alexa+/MCP developer experience.                                  |
 
 The video should avoid spending most of its time on code. The code repository can carry the implementation details; the video must prove that the product works on the intended platform and that the required MCP technology is actually used [1].
 
@@ -86,14 +86,14 @@ The current implementation includes scenario locking, session-ending controls, i
 
 The submission should include specific feedback rather than generic praise. The most useful feedback topics are:
 
-| Area | Example feedback to document |
-|---|---|
-| MCP setup | Whether the Streamable HTTP setup was easy to understand and test |
-| Alexa+ workflow | Whether tool descriptions led the agent to choose the correct sequence |
-| Session state | Whether preserving context across tool calls felt reliable |
+| Area                 | Example feedback to document                                               |
+| -------------------- | -------------------------------------------------------------------------- |
+| MCP setup            | Whether the Streamable HTTP setup was easy to understand and test          |
+| Alexa+ workflow      | Whether tool descriptions led the agent to choose the correct sequence     |
+| Session state        | Whether preserving context across tool calls felt reliable                 |
 | Developer experience | Errors, missing examples, or debugging friction encountered while building |
-| Voice UX | Whether the patient responses were concise enough for spoken interaction |
-| Evaluation output | Whether structured evidence and rubric versions were easy to consume |
+| Voice UX             | Whether the patient responses were concise enough for spoken interaction   |
+| Evaluation output    | Whether structured evidence and rubric versions were easy to consume       |
 
 The rules explicitly request what tools were used, what worked, what needs improvement, whether the entrant would build with them again, and optionally feature requests and friction logs. Friction log entries can provide a judging bonus of up to 10% during Stage One downselection [1].
 
@@ -103,19 +103,17 @@ Before submitting, complete the following items:
 
 1. Register for the hackathon and confirm entrant eligibility.
 2. Create a public GitHub repository containing the source, assets, setup instructions, and `LICENSE`.
-3. Pin and document the tested MCP SDK and protocol version.
+3. ~~Pin and document the tested MCP SDK and protocol version.~~ — Done: `mcp==2.2.0`, protocol `2025-11-25`, Python 3.13.
 4. Demonstrate the MCP endpoint and tool calls in the video.
 5. Keep the demo video under three minutes and publish it publicly on YouTube or Vimeo.
 6. Explain the meaningful update made during the hackathon period if the project existed beforehand.
-7. Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.
-8. Add a friction log with concrete reproduction steps and recommended improvements.
+7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md`.
+8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md`.
 9. Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.
 10. Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.
 
 ## References
 
 [1]: https://amazonappdev2026.devpost.com/rules "Build, Ship, Shape: Amazon Developer Hackathon Official Rules"
-
 [2]: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports "Model Context Protocol: Transports — Streamable HTTP"
-
 [3]: https://amazonappdev2026.devpost.com/resources "Build, Ship, Shape: Amazon Developer Hackathon Resources"

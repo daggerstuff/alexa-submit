@@ -10,7 +10,7 @@ This runbook describes how to expose the clinical simulation node as a self-host
 
 The Alexa+ hackathon path requires a working Agent Skill or a self-hosted MCP server using MCP version 2025-11-25 or later over Streamable HTTP [1]. Streamable HTTP uses a single MCP endpoint that supports HTTP POST and may support HTTP GET for server-sent events. Clients send JSON-RPC messages through POST and advertise support for both `application/json` and `text/event-stream` [2].
 
-The Python MCP documentation recommends Python 3.10 or newer and MCP SDK 2.0.0 or newer. It also recommends using the standard logging module and avoiding accidental protocol output, especially for stdio servers [3]. The current project uses Python 3.12, `mcp>=2.0.0`, and the HTTP transport path.
+The Python MCP documentation recommends Python 3.10 or newer and MCP SDK 2.0.0 or newer. It also recommends using the standard logging module and avoiding accidental protocol output, especially for stdio servers [3]. The current project uses Python 3.13, `mcp==2.2.0` (protocol version 2025-11-25), and the HTTP transport path.
 
 ## 2. Install the dependencies
 
@@ -19,12 +19,13 @@ The validated dependency set is in `server/requirements.txt`:
 ```text
 fastapi==0.141.1
 uvicorn[standard]==0.34.0
-pydantic==2.10.5
-pydantic-settings==2.7.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
 httpx==0.28.1
 pytest==8.3.4
 pytest-asyncio==0.25.2
-mcp>=2.0.0
+mcp==2.2.0
+ruff==0.14.0
 ```
 
 Initialize the repository with:
@@ -90,13 +91,13 @@ This separation prevents transport-specific behavior from leaking into the clini
 
 Expose a small set of meaningful tools rather than internal CRUD operations. The current tool surface is:
 
-| Tool | Inputs | Result |
-|---|---|---|
-| `list_simulation_scenarios` | None | Scenario IDs, versions, titles, and metric IDs |
-| `start_simulation` | `session_id`, `scenario_id` | Patient opening response and session state |
-| `send_practitioner_turn` | `session_id`, `practitioner_message`, optional `client_event_id`, `scenario_id` | Next patient response and transcript |
-| `evaluate_simulation` | `session_id`, `scenario_id` | Current evidence-linked evaluation |
-| `end_simulation` | `session_id`, `scenario_id` | Final evaluation and locked session |
+| Tool                        | Inputs                                                                          | Result                                         |
+| --------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `list_simulation_scenarios` | None                                                                            | Scenario IDs, versions, titles, and metric IDs |
+| `start_simulation`          | `session_id`, `scenario_id`                                                     | Patient opening response and session state     |
+| `send_practitioner_turn`    | `session_id`, `practitioner_message`, optional `client_event_id`, `scenario_id` | Next patient response and transcript           |
+| `evaluate_simulation`       | `session_id`, `scenario_id`                                                     | Current evidence-linked evaluation             |
+| `end_simulation`            | `session_id`, `scenario_id`                                                     | Final evaluation and locked session            |
 
 A discovery tool makes the integration self-describing. A start tool makes the session boundary explicit. A turn tool represents the core interaction. Separate evaluate and end tools support both intermediate review and finalization.
 
@@ -201,15 +202,15 @@ The official transport specification calls out three important controls: validat
 
 The current implementation already defaults to `127.0.0.1`. Before exposing the MCP server through a tunnel or hosted URL, add the following controls:
 
-| Control | Development behavior | Hosted behavior |
-|---|---|---|
-| Binding | `127.0.0.1` | Private service behind a reverse proxy |
-| Origin | Allow local development origin | Explicit allowlist; reject invalid origins with 403 |
-| Authentication | Optional REST `DEV_API_KEY` | MCP-layer authentication or authenticated proxy |
-| TLS | Not required on localhost | HTTPS required |
-| Rate limiting | Not yet required for local demo | Per-client and per-session limits |
-| Secrets | `.env`, never committed | Secret manager or deployment secret store |
-| Transcript data | Synthetic only | Encrypted storage and retention policy |
+| Control         | Development behavior            | Hosted behavior                                     |
+| --------------- | ------------------------------- | --------------------------------------------------- |
+| Binding         | `127.0.0.1`                     | Private service behind a reverse proxy              |
+| Origin          | Allow local development origin  | Explicit allowlist; reject invalid origins with 403 |
+| Authentication  | Optional REST `DEV_API_KEY`     | MCP-layer authentication or authenticated proxy     |
+| TLS             | Not required on localhost       | HTTPS required                                      |
+| Rate limiting   | Not yet required for local demo | Per-client and per-session limits                   |
+| Secrets         | `.env`, never committed         | Secret manager or deployment secret store           |
+| Transcript data | Synthetic only                  | Encrypted storage and retention policy              |
 
 Do not send real protected health information through a local tunnel or hackathon demo endpoint.
 
@@ -233,10 +234,10 @@ uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload
 
 Use it to test the domain layer independently from MCP transport. This gives the project two validation levels:
 
-| Level | Endpoint/process | Purpose |
-|---|---|---|
-| Domain/API | FastAPI on port 8000 | Test validation, state transitions, and evaluation |
-| Protocol | MCP server on port 8001 | Test tool discovery, JSON-RPC, and Streamable HTTP |
+| Level      | Endpoint/process        | Purpose                                            |
+| ---------- | ----------------------- | -------------------------------------------------- |
+| Domain/API | FastAPI on port 8000    | Test validation, state transitions, and evaluation |
+| Protocol   | MCP server on port 8001 | Test tool discovery, JSON-RPC, and Streamable HTTP |
 
 This separation makes failures easier to diagnose. A failed REST test usually indicates domain logic. A failed MCP client test usually indicates tool registration, transport, serialization, or session negotiation.
 
@@ -326,25 +327,22 @@ Do not treat the local tunnel helper as a production deployment. It is only a de
 
 ## 16. Final Alexa+ readiness checklist
 
-| Area | Ready when |
-|---|---|
-| Protocol | MCP SDK and protocol version are documented and tested |
-| Runtime hook | `mcp_server.py` imports the SDK and calls the server at runtime |
-| Tools | Tool names, descriptions, inputs, and outputs are stable |
-| State | MCP session and application simulation session are clearly separated |
-| Safety | Synthetic-only demo, disclaimer, and no clinical decision claims |
-| Security | Origin validation, HTTPS, authentication, and rate limiting are in place for hosted access |
-| Tests | Domain, tool discovery, and end-to-end MCP paths pass |
-| Demo | Three-minute video visibly shows MCP tool use and the working simulation |
-| Repository | Public repository contains setup instructions and an open-source license |
-| Feedback | Product feedback and a concrete friction log are ready for submission |
+| Area         | Ready when                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| Protocol     | MCP SDK and protocol version are documented and tested                                     |
+| Runtime hook | `mcp_server.py` imports the SDK and calls the server at runtime                            |
+| Tools        | Tool names, descriptions, inputs, and outputs are stable                                   |
+| State        | MCP session and application simulation session are clearly separated                       |
+| Safety       | Synthetic-only demo, disclaimer, and no clinical decision claims                           |
+| Security     | Origin validation, HTTPS, authentication, and rate limiting are in place for hosted access |
+| Tests        | Domain, tool discovery, and end-to-end MCP paths pass                                      |
+| Demo         | Three-minute video visibly shows MCP tool use and the working simulation                   |
+| Repository   | Public repository contains setup instructions and an open-source license                   |
+| Feedback     | Product feedback and a concrete friction log are ready for submission                      |
 
 ## References
 
 [1]: https://amazonappdev2026.devpost.com/rules "Build, Ship, Shape: Amazon Developer Hackathon Official Rules"
-
 [2]: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports "Model Context Protocol: Transports — Streamable HTTP"
-
 [3]: https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server "Model Context Protocol: Build an MCP Server"
-
 [4]: https://amazonappdev2026.devpost.com/resources "Build, Ship, Shape: Amazon Developer Hackathon Resources"
