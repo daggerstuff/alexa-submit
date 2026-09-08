@@ -9,3 +9,4 @@ __pycache__/
 .ngrok/
 node_modules/
 .omo/
+pnpm-lock.yaml
