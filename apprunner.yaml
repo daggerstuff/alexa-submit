@@ -1,0 +1,20 @@
+version: 1.0
+runtime: docker
+build:
+  dockerfile: Dockerfile
+run:
+  command: python -m server.mcp_server
+  environment:
+    - name: MCP_HOST
+      value: 0.0.0.0
+    - name: MCP_PORT
+      value: 8001
+    - name: MCP_PATH
+      value: /mcp
+    - name: MCP_ALLOWED_HOSTS
+      value: "*"
+    - name: MCP_ALLOWED_ORIGINS
+      value: "*"
+    - name: INFERENCE_PROVIDER
+      value: mock
+  port: 8001
