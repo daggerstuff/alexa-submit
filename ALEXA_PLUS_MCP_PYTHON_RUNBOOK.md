@@ -18,14 +18,14 @@ The validated dependency set is in `server/requirements.txt`:
 
 ```text
 fastapi==0.141.1
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.52.4
 pydantic==2.13.5
 pydantic-settings==2.15.0
 httpx==0.28.1
-pytest==8.4.2
+pytest==9.1.1
 pytest-asyncio==1.4.0
 mcp==2.2.0
-ruff==0.14.0
+ruff==0.16.6
 ```
 
 Initialize the repository with:
