@@ -25,5 +25,11 @@ run:
     - name: MCP_RATE_LIMIT_WINDOW_SECONDS
       value: "60"
     - name: INFERENCE_PROVIDER
-      value: mock
+      value: llm
+    - name: INFERENCE_BASE_URL
+      value: https://api.featherless.ai/v1
+    - name: INFERENCE_MODEL
+      value: Qwen/Qwen2.5-14B-Instruct
+    - name: INFERENCE_API_KEY
+      value: "" # deploy_aws.sh injects $INFERENCE_API_KEY.
   port: 8001

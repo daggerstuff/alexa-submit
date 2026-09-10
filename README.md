@@ -95,14 +95,14 @@ curl -s http://127.0.0.1:8000/mcp/simulate \
 
 `PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints and falls back to the deterministic agent when the LLM is unavailable or returns invalid output.
 
-To enable the LLM adapter, set these environment variables:
+To enable the LLM adapter, set these environment variables (Featherless example, any OpenAI-compatible API works):
 
 ```bash
 INFERENCE_PROVIDER=llm
-INFERENCE_BASE_URL=https://integrate.api.nvidia.com/v1
-INFERENCE_API_KEY=your-key
-INFERENCE_MODEL=mistralai/mistral-nemotron
-INFERENCE_TIMEOUT=60
+INFERENCE_BASE_URL=https://api.featherless.ai/v1
+INFERENCE_API_KEY=your-featherless-key
+INFERENCE_MODEL=Qwen/Qwen2.5-14B-Instruct
+INFERENCE_TIMEOUT=15
 ```
 
 `ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, and educational disclaimer.

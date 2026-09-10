@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Load .env if present so inference and API-key settings apply locally.
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 HOST="${MCP_HOST:-127.0.0.1}"
 PORT="${MCP_PORT:-8001}"
 PATH_VALUE="${MCP_PATH:-/mcp}"

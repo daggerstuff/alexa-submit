@@ -57,7 +57,11 @@ source_config_for_host() {
   local api_key="${MCP_API_KEY:-}"
   local rate_limit="${MCP_RATE_LIMIT_REQUESTS:-60}"
   local rate_window="${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}"
-  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
+  local inference_provider="${INFERENCE_PROVIDER:-mock}"
+  local inference_base_url="${INFERENCE_BASE_URL:-}"
+  local inference_api_key="${INFERENCE_API_KEY:-}"
+  local inference_model="${INFERENCE_MODEL:-Qwen/Qwen2.5-14B-Instruct}"
+  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window,INFERENCE_PROVIDER=$inference_provider,INFERENCE_BASE_URL=\"$inference_base_url\",INFERENCE_API_KEY=\"$inference_api_key\",INFERENCE_MODEL=\"$inference_model\"}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
 }
 
 wait_for_running() {
