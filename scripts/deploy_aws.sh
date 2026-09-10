@@ -7,7 +7,9 @@ set -euo pipefail
 REGION="${AWS_REGION:-us-east-2}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REPO_NAME="clinical-conversation-coach"
-IMAGE_TAG="latest"
+# Unique tag per deploy so App Runner re-pulls the new image (a constant
+# ":latest" reference does not trigger a new image pull).
+IMAGE_TAG="${DEPLOY_TAG:-$(date +%Y%m%d%H%M%S)}"
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 ACCESS_ROLE_NAME="apprunner-ecr-access-role"
 
@@ -16,8 +18,14 @@ if [[ -z "${MCP_API_KEY:-}" ]]; then
   echo "         Set MCP_API_KEY to a strong secret before deploying publicly."
 fi
 
+# Use sudo for the Docker daemon when the current user can't reach the socket.
+DOCKER="docker"
+if ! docker info >/dev/null 2>&1; then
+  DOCKER="sudo docker"
+fi
+
 echo "=== Building Docker image ==="
-docker build -t "$REPO_NAME" .
+$DOCKER build -t "$REPO_NAME" .
 
 echo "=== Creating ECR repository (if needed) ==="
 aws ecr describe-repositories --repository-names "$REPO_NAME" --region "$REGION" 2>/dev/null || \
@@ -38,11 +46,11 @@ fi
 ACCESS_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ACCESS_ROLE_NAME}"
 
 echo "=== Authenticating Docker to ECR ==="
-aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_URI"
+aws ecr get-login-password --region "$REGION" | $DOCKER login --username AWS --password-stdin "$ECR_URI"
 
 echo "=== Tagging and pushing image ==="
-docker tag "$REPO_NAME:$IMAGE_TAG" "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
-docker push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
+$DOCKER tag "$REPO_NAME:$IMAGE_TAG" "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
+$DOCKER push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 
 source_config_for_host() {
   local allowed_hosts="$1"
