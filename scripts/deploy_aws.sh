@@ -25,7 +25,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 echo "=== Building Docker image ==="
-$DOCKER build -t "$REPO_NAME" .
+$DOCKER build -t "$REPO_NAME:$IMAGE_TAG" .
 
 echo "=== Creating ECR repository (if needed) ==="
 aws ecr describe-repositories --repository-names "$REPO_NAME" --region "$REGION" 2>/dev/null || \
