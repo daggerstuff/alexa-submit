@@ -18,6 +18,12 @@ run:
       value: "<service-host>,<service-host>:*"
     - name: MCP_ALLOWED_ORIGINS
       value: "*"
+    - name: MCP_API_KEY
+      value: "" # Set a strong secret for public deployments; deploy_aws.sh injects $MCP_API_KEY.
+    - name: MCP_RATE_LIMIT_REQUESTS
+      value: "60"
+    - name: MCP_RATE_LIMIT_WINDOW_SECONDS
+      value: "60"
     - name: INFERENCE_PROVIDER
       value: mock
   port: 8001

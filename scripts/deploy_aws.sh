@@ -11,6 +11,11 @@ IMAGE_TAG="latest"
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 ACCESS_ROLE_NAME="apprunner-ecr-access-role"
 
+if [[ -z "${MCP_API_KEY:-}" ]]; then
+  echo "WARNING: MCP_API_KEY is not set. The public /mcp endpoint will be unauthenticated."
+  echo "         Set MCP_API_KEY to a strong secret before deploying publicly."
+fi
+
 echo "=== Building Docker image ==="
 docker build -t "$REPO_NAME" .
 
@@ -41,7 +46,10 @@ docker push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 
 source_config_for_host() {
   local allowed_hosts="$1"
-  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
+  local api_key="${MCP_API_KEY:-}"
+  local rate_limit="${MCP_RATE_LIMIT_REQUESTS:-60}"
+  local rate_window="${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}"
+  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
 }
 
 wait_for_running() {

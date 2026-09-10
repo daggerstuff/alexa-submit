@@ -80,7 +80,7 @@ The product must clearly state that it is an educational simulator and must not 
 
 The MCP transport should be bound to localhost during development, validate origins, and use authentication before any hosted demonstration. The official Streamable HTTP specification warns about DNS rebinding, recommends validating `Origin`, recommends binding local servers to `127.0.0.1`, and recommends authentication [2].
 
-The current implementation includes scenario locking, session-ending controls, idempotent client event IDs, optional development API-key protection on the REST surface, restricted local CORS, request logging, and explicit disclaimers. Before a public hosted demo, add MCP-layer authentication, origin allowlisting, HTTPS, rate limiting, and secret management.
+The current implementation includes scenario locking, session-ending controls, idempotent client event IDs, optional development API-key protection on the REST surface, optional `MCP_API_KEY` authentication on the MCP endpoint, per-client rate limiting, restricted local CORS, request logging, and explicit disclaimers. A public hosted demo should still add HTTPS, an authenticated reverse proxy, and secret management; the AWS App Runner deployment enables rate limiting by default and injects `MCP_API_KEY` when set.
 
 ## Product feedback to prepare
 

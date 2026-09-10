@@ -135,7 +135,7 @@ class SimulationOrchestrator:
         return response
 
 
-app = FastAPI(title="Alexa+ Clinical Simulation Node", version="0.2.0")
+app = FastAPI(title="Alexa+ Clinical Simulation Node", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],

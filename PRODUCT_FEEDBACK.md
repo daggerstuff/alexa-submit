@@ -14,11 +14,11 @@ This document satisfies the product-feedback and friction-log submission require
 | MCP protocol           | 2025-11-25 | Transport specification version               |
 | FastAPI                | 0.141.1    | Development REST API and test surface         |
 | Pydantic               | 2.13.5     | Request/response validation and serialization |
-| Uvicorn                | 0.34.0     | ASGI server for MCP and REST                  |
-| pytest                 | 8.3.4      | Test suite                                    |
-| Ruff                   | 0.14.0     | Linting and formatting                        |
+| Uvicorn                | 0.52.4     | ASGI server for MCP and REST                  |
+| pytest                 | 9.1.1      | Test suite                                    |
+| Ruff                   | 0.16.6     | Linting and formatting                        |
 | Docker                 | —          | Containerized deployment for judges           |
-| Python                 | 3.13.14    | Runtime                                       |
+| Python                 | 3.13.15    | Runtime                                       |
 
 ---
 

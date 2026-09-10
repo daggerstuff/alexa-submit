@@ -109,7 +109,7 @@ INFERENCE_TIMEOUT=60
 
 ## Security boundaries
 
-The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. Before public hosting, add HTTPS, strict origin validation, authentication, rate limiting, and a secure reverse proxy.
+The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
 
 The REST API supports an optional `DEV_API_KEY` environment variable. When set, `/alexa`, `/mcp/simulate`, and session deletion require the `X-API-Key` header. CORS is restricted to local development origins. Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
 
@@ -121,7 +121,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the five-metric rubric, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), and all three scenarios. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, the five-metric rubric, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all three scenarios, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 
@@ -191,5 +191,6 @@ alexa-clinical-sim/
 └── tests/
     ├── test_simulation.py
     ├── test_mcp_protocol.py
+    ├── test_mcp_security.py
     └── test_llm_persona.py
 ```

@@ -2,6 +2,8 @@
 
 ## Presentation Script, Live-Agent Walkthrough, and Metric Extension Guide
 
+> **Note:** This guide originally documented the four-layer concept. The current implementation separates five concerns and makes the scenario registry the policy center. See [`REDESIGN.md`](REDESIGN.md) and [`REDESIGNED_ARCHITECTURE_PRESENTATION.md`](REDESIGNED_ARCHITECTURE_PRESENTATION.md) for the current architecture. The metric-extension instructions in Part III have been updated to match the current data-driven model in `server/scenarios.py`.
+
 > **Educational safety boundary:** This starter is a simulation scaffold. It is not a medical device, diagnostic service, triage system, or substitute for supervised clinical education. Do not use it with real patient data or for real-time clinical decision-making.
 
 ---
@@ -64,11 +66,11 @@ The agent also returns an emotional state and may return a safety note when the 
 
 **Speaker script:**
 
-“The evaluator agent is also intentionally transparent. It extracts practitioner turns from the transcript, joins them into a searchable string, and checks four starter criteria: introduction and consent, symptom characterization, associated symptoms and risk, and safety escalation.
+“The evaluator agent is also intentionally transparent. It extracts practitioner turns from the transcript and, for each metric registered in the active scenario, collects the turns whose text matches that metric's trigger terms as evidence.
 
-Each criterion produces a `MetricScore` with a metric name, score, maximum score, and rationale. The overall score is the sum of metric scores, and the maximum score is calculated from the metrics currently registered in the rubric.
+Each criterion produces a `MetricScore` with a stable `metric_id`, a human-readable metric name, score, maximum score, evidence excerpts, and a rationale. The overall score is the sum of metric scores, and the maximum score is calculated from the metrics registered in the scenario's rubric. For `chest-pain-basic` that is five metrics: introduction and consent, symptom characterization, associated symptoms and risk, safety escalation, and shared next-step confirmation.
 
-This design is useful for a starter because a reviewer can explain exactly why a score was produced. A future model-assisted evaluator can be introduced behind the same schema, but its output should remain validated and its rubric version should be recorded.”
+This design is useful because a reviewer can explain exactly why a score was produced and see which practitioner turns supported it. A future model-assisted evaluator can be introduced behind the same schema, but its output should remain validated and its rubric version should be recorded.”
 
 ### Slide 7 — Deployment Sequence
 
@@ -137,12 +139,14 @@ The current starter response is:
 {
   "content": "It feels like pressure right in the middle of my chest. It started about 30 minutes ago.",
   "emotional_state": "anxious",
-  "disclosed_facts": ["substernal chest pressure"],
-  "safety_note": null
+  "disclosed_facts": ["chest-pressure"],
+  "safety_note": null,
+  "scenario_id": "chest-pain-basic",
+  "scenario_version": "1.1.0"
 }
 ```
 
-The `disclosed_facts` list is rebuilt from the state set and sorted before returning. Therefore, later turns can expose additional facts while retaining the facts already disclosed.
+The `disclosed_facts` list holds stable fact identifiers (such as `chest-pressure`) and is rebuilt from the state set and sorted before returning. Therefore, later turns can expose additional facts while retaining the facts already disclosed.
 
 ### 5. The patient response is added to the transcript
 
@@ -168,111 +172,72 @@ The starter is deterministic: keyword groups select predefined response branches
 
 ## Part III — Adding a New Clinical Evaluation Metric
 
-The cleanest starter change is to add a new criterion tuple to `ClinicalEvaluatorAgent.evaluate()`. For example, suppose the new metric is **Medication and allergy confirmation**. It should receive full credit when the practitioner asks about medication use or allergies.
+Metrics are now data, not code: each scenario in `server/scenarios.py` carries a tuple of `MetricDefinition` objects, and `ClinicalEvaluatorAgent` scores every registered metric uniformly. To add a metric, extend the scenario's `metrics` tuple — no evaluator or schema change is required.
+
+For example, suppose the new metric is **Medication and allergy confirmation**. It should receive full credit when the practitioner asks about medication use or allergies.
 
 ### Minimal code change
 
-Open `server/agents/clinical_evaluator.py` and extend the `criteria` list:
+Open `server/scenarios.py` and append a `MetricDefinition` to the `chest-pain-basic` scenario's `metrics` tuple:
 
 ```python
-criteria = [
-    (
+metrics=(
+    MetricDefinition(
+        "rapport",
         "Introduction and consent",
-        any(x in combined for x in ("name", "consent", "permission")),
+        ("name", "consent", "permission"),
         "Introduces self and establishes permission or rapport.",
     ),
-    (
-        "Symptom characterization",
-        any(x in combined for x in ("where", "when", "started", "pressure", "radiat", "severity", "scale")),
-        "Explores onset, location, character, or severity.",
-    ),
-    (
-        "Associated symptoms and risk",
-        any(x in combined for x in ("breath", "history", "medication", "allerg", "smok", "risk")),
-        "Checks associated symptoms, history, medications, or risk factors.",
-    ),
-    (
-        "Safety escalation",
-        any(x in combined for x in ("emergency", "911", "urgent", "help", "ecg", "monitor")),
-        "Recognizes the need for urgent escalation in a concerning presentation.",
-    ),
-    (
+    # ... existing metrics ...
+    MetricDefinition(
+        "medications",
         "Medication and allergy confirmation",
-        any(x in combined for x in ("medication", "medicine", "allerg")),
+        ("medication", "medicine", "allerg"),
         "Explicitly checks current medications and medication allergies.",
     ),
-]
+),
 ```
 
-The existing scoring loop already handles the new tuple:
+`ClinicalEvaluatorAgent.evaluate()` already iterates `scenario.metrics`, gathers evidence turns, and scores each metric, so the new metric is picked up automatically. Because `max_score` is computed with `sum(item.max_score for item in metrics)`, the maximum score for `chest-pain-basic` increases from 20 to 24. The `list_simulation_scenarios` tool also reports the new `metric_id`, since it reads the same registry.
+
+> **Note:** `medication` and `allerg` already appear in the existing `risk` metric's trigger terms, so this illustrative metric would overlap with it. In practice, choose trigger terms that target behavior not already covered, or split an existing metric rather than duplicating it.
+
+### Better maintainability: the data-driven model
+
+The current code already represents metrics as data. `MetricDefinition` lives in `server/scenarios.py` and carries `metric_id`, `name`, `trigger_terms`, `rationale`, and `max_score`:
 
 ```python
-metrics: list[MetricScore] = []
-for name, met, rationale in criteria:
-    metrics.append(
-        MetricScore(
-            metric=name,
-            score=4 if met else 1,
-            max_score=4,
-            rationale=rationale if met else f"Not clearly demonstrated. {rationale}",
-        )
-    )
-```
-
-Because `maximum` is computed dynamically with `sum(item.max_score for item in metrics)`, the maximum score automatically increases from 16 to 20. No change to `EvaluationResult` is required.
-
-### Better maintainability: represent metrics as data
-
-As the rubric grows, replace tuples with a small metric definition model or dataclass:
-
-```python
-from dataclasses import dataclass
-from collections.abc import Callable
-
-
 @dataclass(frozen=True)
 class MetricDefinition:
+    metric_id: str
     name: str
+    trigger_terms: tuple[str, ...]
     rationale: str
-    matcher: Callable[[str], bool]
     max_score: int = 4
-
-
-METRICS = [
-    MetricDefinition(
-        name="Introduction and consent",
-        rationale="Introduces self and establishes permission or rapport.",
-        matcher=lambda text: any(x in text for x in ("name", "consent", "permission")),
-    ),
-    MetricDefinition(
-        name="Medication and allergy confirmation",
-        rationale="Explicitly checks current medications and medication allergies.",
-        matcher=lambda text: any(x in text for x in ("medication", "medicine", "allerg")),
-    ),
-]
 ```
 
-Then evaluate the registry uniformly:
+The evaluator then matches trigger terms against practitioner turns and records evidence:
 
 ```python
-metrics = []
-for definition in METRICS:
-    met = definition.matcher(combined)
+for definition in scenario.metrics:
+    evidence = [
+        turn.content
+        for turn in practitioner_turns
+        if any(term in turn.content.lower() for term in definition.trigger_terms)
+    ]
     metrics.append(
         MetricScore(
+            metric_id=definition.metric_id,
             metric=definition.name,
-            score=definition.max_score if met else 1,
+            score=definition.max_score if evidence else 1,
             max_score=definition.max_score,
-            rationale=(
-                definition.rationale
-                if met
-                else f"Not clearly demonstrated. {definition.rationale}"
-            ),
+            evidence=evidence[:3],
+            rationale=definition.rationale if evidence else f"Not clearly demonstrated. {definition.rationale}",
         )
     )
 ```
 
-This approach makes the rubric easier to version, review, and eventually load from a scenario configuration file.
+This keeps the rubric versionable and reviewable, and makes it possible to load scenario and rubric definitions from a configuration file later.
 
 ### Add a regression test
 
@@ -301,12 +266,12 @@ def test_medication_allergy_metric() -> None:
 
     assert response.status_code == 200
     evaluation = response.json()["evaluation"]
-    assert evaluation["max_score"] == 20
+    assert evaluation["max_score"] == 24
 
     metric = next(
         item
         for item in evaluation["metrics"]
-        if item["metric"] == "Medication and allergy confirmation"
+        if item["metric_id"] == "medications"
     )
     assert metric["score"] == 4
 ```

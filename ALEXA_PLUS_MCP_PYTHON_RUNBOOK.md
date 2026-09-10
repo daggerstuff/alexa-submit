@@ -167,17 +167,15 @@ The spoken adapter should use `patient.content`. The remaining fields are useful
 
 ## 8. Run Streamable HTTP on a single MCP endpoint
 
-Use the SDK’s built-in Streamable HTTP runner:
+Build the Streamable HTTP app with `create_app()`, which wraps the SDK's `streamable_http_app()` with optional `MCP_API_KEY` authentication and per-client rate limiting, then serve it with uvicorn:
 
 ```python
 if __name__ == "__main__":
-    mcp.run(
-        transport="streamable-http",
+    uvicorn.run(
+        create_app(),
         host=os.getenv("MCP_HOST", "127.0.0.1"),
         port=int(os.getenv("MCP_PORT", "8001")),
-        streamable_http_path=os.getenv("MCP_PATH", "/mcp"),
-        json_response=True,
-        stateless_http=False,
+        log_level=os.getenv("LOG_LEVEL", "INFO").lower(),
     )
 ```
 
@@ -200,17 +198,17 @@ The MCP transport owns the JSON-RPC and Streamable HTTP details. Do not manually
 
 The official transport specification calls out three important controls: validate the `Origin` header to prevent DNS rebinding, bind local servers to `127.0.0.1` rather than `0.0.0.0`, and implement authentication for connections [2].
 
-The current implementation already defaults to `127.0.0.1`. Before exposing the MCP server through a tunnel or hosted URL, add the following controls:
+The current implementation already defaults to `127.0.0.1` and supports optional `MCP_API_KEY` authentication and per-client rate limiting. Before exposing the MCP server through a tunnel or hosted URL, apply the following controls:
 
-| Control         | Development behavior            | Hosted behavior                                     |
-| --------------- | ------------------------------- | --------------------------------------------------- |
-| Binding         | `127.0.0.1`                     | Private service behind a reverse proxy              |
-| Origin          | Allow local development origin  | Explicit allowlist; reject invalid origins with 403 |
-| Authentication  | Optional REST `DEV_API_KEY`     | MCP-layer authentication or authenticated proxy     |
-| TLS             | Not required on localhost       | HTTPS required                                      |
-| Rate limiting   | Not yet required for local demo | Per-client and per-session limits                   |
-| Secrets         | `.env`, never committed         | Secret manager or deployment secret store           |
-| Transcript data | Synthetic only                  | Encrypted storage and retention policy              |
+| Control         | Development behavior               | Hosted behavior                                       |
+| --------------- | ---------------------------------- | ----------------------------------------------------- |
+| Binding         | `127.0.0.1`                        | Private service behind a reverse proxy                |
+| Origin          | Allow local development origin     | Explicit allowlist; reject invalid origins with 403   |
+| Authentication  | Optional `MCP_API_KEY` on `/mcp`   | Require `MCP_API_KEY`; add an authenticated proxy     |
+| TLS             | Not required on localhost          | HTTPS required                                        |
+| Rate limiting   | Optional `MCP_RATE_LIMIT_REQUESTS` | Per-client limits enabled (default 60/min)            |
+| Secrets         | `.env`, never committed            | Secret manager or deployment secret store             |
+| Transcript data | Synthetic only                     | Encrypted storage and retention policy                |
 
 Do not send real protected health information through a local tunnel or hackathon demo endpoint.
 
@@ -334,7 +332,7 @@ Do not treat the local tunnel helper as a production deployment. It is only a de
 | Tools        | Tool names, descriptions, inputs, and outputs are stable                                   |
 | State        | MCP session and application simulation session are clearly separated                       |
 | Safety       | Synthetic-only demo, disclaimer, and no clinical decision claims                           |
-| Security     | Origin validation, HTTPS, authentication, and rate limiting are in place for hosted access |
+| Security     | Origin validation, HTTPS, and (for hosted) `MCP_API_KEY` auth plus rate limiting are enabled |
 | Tests        | Domain, tool discovery, and end-to-end MCP paths pass                                      |
 | Demo         | Three-minute video visibly shows MCP tool use and the working simulation                   |
 | Repository   | Public repository contains setup instructions and an open-source license                   |
