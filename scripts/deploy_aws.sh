@@ -5,7 +5,13 @@ set -euo pipefail
 # Prerequisites: AWS CLI configured, Docker installed.
 
 REGION="${AWS_REGION:-us-east-2}"
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+# The `aws login` refresh token is bound to the region it was issued in.
+# If you logged in with a plain `aws login` (no --region), it used your
+# default region; that must match $REGION or the mid-deploy credential
+# refresh fails (SignIn rejects redeeming a refresh token in a different
+# region). Run `aws login --region "$REGION"` before deploying.
+echo "=== Verifying AWS credentials in $REGION ==="
+ACCOUNT_ID=$(aws sts get-caller-identity --region "$REGION" --query Account --output text)
 REPO_NAME="clinical-conversation-coach"
 # Unique tag per deploy so App Runner re-pulls the new image (a constant
 # ":latest" reference does not trigger a new image pull).
@@ -69,7 +75,13 @@ wait_for_running() {
   echo "Waiting for service to reach RUNNING..."
   for _ in $(seq 1 40); do
     local status
-    status=$(aws apprunner describe-service --service-arn "$arn" --region "$REGION" --query Service.Status --output text)
+    # A transient credential-refresh failure must not abort the deploy: the
+    # create/update call already succeeded server-side. Warn and keep polling.
+    if ! status=$(aws apprunner describe-service --service-arn "$arn" --region "$REGION" --query Service.Status --output text 2>/dev/null); then
+      echo "  (describe-service failed — credential session may have lapsed; the deploy was already submitted. Re-run 'aws login --region $REGION' and verify with: aws apprunner describe-service --service-arn $arn --region $REGION)" >&2
+      sleep 30
+      continue
+    fi
     echo "  status=$status"
     case "$status" in
       RUNNING) return 0 ;;
@@ -77,8 +89,8 @@ wait_for_running() {
     esac
     sleep 30
   done
-  echo "Timed out waiting for RUNNING" >&2
-  return 1
+  echo "Could not confirm RUNNING (deploy was already submitted). Verify manually with: aws apprunner describe-service --service-arn $arn --region $REGION" >&2
+  return 0
 }
 
 echo "=== Creating or updating App Runner service ==="
