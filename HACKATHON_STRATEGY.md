@@ -64,7 +64,7 @@ The video should avoid spending most of its time on code. The code repository ca
 
 ## Judging strategy
 
-The official judging criteria are equally weighted across tech implementation, design, potential impact, and quality of idea [1]. The project should therefore optimize for more than protocol compliance.
+The official judging criteria are equally weighted across tech implementation, design, potential impact, and quality of idea [1]. The project should therefore aim for more than protocol compliance.
 
 **Tech implementation** is addressed by exposing a real MCP server over Streamable HTTP, using the official Python MCP SDK, and providing typed, scenario-aware tools. The repository should include a reproducible setup command and a smoke test.
 
@@ -72,7 +72,7 @@ The official judging criteria are equally weighted across tech implementation, d
 
 **Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product can eventually support scenario libraries, educator-authored rubrics, cohort reporting, and accessibility-oriented voice practice without changing the core MCP contract.
 
-**Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, and safe educational boundaries. This is materially stronger than a single-turn health-information bot or a basic MCP wrapper.
+**Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, and safe educational boundaries. This goes beyond a single-turn health-information bot or a basic MCP wrapper.
 
 ## Security and trust positioning
 
@@ -102,15 +102,28 @@ The rules explicitly request what tools were used, what worked, what needs impro
 Before submitting, complete the following items:
 
 1. Register for the hackathon and confirm entrant eligibility.
-2. Create a public GitHub repository containing the source, assets, setup instructions, and `LICENSE`.
+2. ~~Create a public GitHub repository containing the source, assets, setup instructions, and `LICENSE`.~~ — Done: `https://github.com/daggerstuff/alexa-submit` (public, MIT).
 3. ~~Pin and document the tested MCP SDK and protocol version.~~ — Done: `mcp==2.2.0`, protocol `2025-11-25`, Python 3.13.
 4. Demonstrate the MCP endpoint and tool calls in the video.
 5. Keep the demo video under three minutes and publish it publicly on YouTube or Vimeo.
-6. Explain the meaningful update made during the hackathon period if the project existed beforehand.
+6. ~~Explain the meaningful update made during the hackathon period if the project existed beforehand.~~ — Done: see the "Meaningful update statement" section below.
 7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md`.
 8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md`.
 9. Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.
 10. Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.
+
+## Meaningful update statement
+
+This repository existed before the hackathon window as a local FastAPI clinical-simulation prototype: a mock `/alexa` passthrough and a deterministic patient Q&A, with no MCP surface and no deployment. The meaningful update made during the hackathon window is the Alexa+ integration itself, built from that prototype:
+
+- A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing five tools.
+- A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation.
+- An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with a deterministic fallback.
+- Bearer/API-key auth and per-IP rate limiting on the public endpoint.
+- A public AWS deployment (ECR + App Runner, us-east-2).
+- A full test suite and the submission documents (`README.md`, `PRODUCT_FEEDBACK.md`, demo materials).
+
+The pre-existing mock `/alexa` endpoint was the only overlap; the MCP server, evaluation rubric, security layer, LLM persona, deployment, and documentation were added during the hackathon window.
 
 ## References
 

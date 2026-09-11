@@ -17,7 +17,7 @@ Rules page: https://amazonappdev2026.devpost.com/rules
 
 ## Immediate implication for this project
 
-The current project is conceptually aligned with Alexa+ but is not yet hackathon-compliant because its `/alexa` endpoint is only a mock passthrough and the repository does not yet expose a self-hosted MCP server implementing the required MCP version. The highest-leverage pivot is to retain the clinical communication simulation but add a real MCP server/tool surface, a clear Alexa+ agent workflow, and a demo path that visibly uses Amazon’s target integration rather than only a generic FastAPI API.
+The current project is conceptually aligned with Alexa+ but is not yet hackathon-compliant because its `/alexa` endpoint is only a mock passthrough and the repository does not yet expose a self-hosted MCP server implementing the required MCP version. The best move is to retain the clinical communication simulation but add a real MCP server/tool surface, a clear Alexa+ agent workflow, and a demo path that visibly uses Amazon’s target integration rather than only a generic FastAPI API.
 
 ## Additional official findings from the full rules
 
@@ -31,8 +31,8 @@ Stage One is a pass/fail viability check: the project must fit the theme and rea
 
 | Criterion | Implication for this project |
 |---|---|
-| Tech Implementation | A real MCP/Streamable HTTP path must be visible and working; the clinical simulation must be robust enough to demo. |
-| Design | The voice interaction must be concise, intuitive, and coherent for Alexa+; the learner should know what to say and what feedback means. |
+| Tech Implementation | A real MCP/Streamable HTTP path must be visible and working; the clinical simulation must be reliable enough to demo. |
+| Design | The voice interaction must be concise and coherent for Alexa+; the learner should know what to say and what feedback means. |
 | Potential Impact | The project needs a specific customer: clinical learners, educators, or simulation programs, with a credible workflow beyond the hackathon. |
 | Quality of Idea | A generic symptom chatbot is weak. The differentiated idea should be a stateful, scenario-constrained communication simulator with explainable feedback and safe boundaries. |
 
