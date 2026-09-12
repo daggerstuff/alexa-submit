@@ -110,7 +110,7 @@ Before submitting, complete the following items:
 7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md`.
 8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md`.
 9. Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.
-10. Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.
+10. ~~Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.~~ — Done: claimed via this submission as a new open-source project; see the "Open Source mini-challenge" section below.
 
 ## Meaningful update statement
 
@@ -124,6 +124,17 @@ This repository existed before the hackathon window as a local FastAPI clinical-
 - A full test suite and the submission documents (`README.md`, `PRODUCT_FEEDBACK.md`, demo materials).
 
 The pre-existing mock `/alexa` endpoint was the only overlap; the MCP server, evaluation rubric, security layer, LLM persona, deployment, and documentation were added during the hackathon window.
+
+## Open Source mini-challenge
+
+This submission also claims the Open Source mini-challenge through the "create a new open-source project" path: the project repository is a new public, MIT-licensed project built during the hackathon window.
+
+- **Contribution URL:** https://github.com/daggerstuff/alexa-submit
+- **Project repository URL:** https://github.com/daggerstuff/alexa-submit
+- **GitHub username:** daggerstuff
+- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator, an optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with deterministic fallback, and bearer/API-key auth plus per-IP rate limiting.
+- **How it works:** `list_simulation_scenarios`, `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, and `end_simulation` run over `/mcp`; each session holds scenario state and a transcript; patient turns are scenario-constrained; evaluation returns rubric scores with transcript evidence.
+- **Why it matters:** It gives clinical learners a repeatable, safe, evidence-linked surface for practicing patient interviews, and it demonstrates a stateful multi-tool Alexa+ workflow rather than a single-turn Q&A bot.
 
 ## References
 

@@ -2,7 +2,8 @@
   "name": "alexa-clinical-sim",
   "version": "0.3.0",
   "private": true,
-  "description": "Alexa+ clinical simulation node with a Python orchestration backend",
+  "license": "MIT",
+  "description": "Clinical Conversation Coach for Alexa+ — scenario-based clinical communication simulator as a self-hosted MCP server",
   "scripts": {
     "start": "uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload",
     "test": "pytest -q",
