@@ -173,6 +173,7 @@ alexa-clinical-sim/
 ├── apprunner.yaml
 ├── package.json
 ├── pyproject.toml
+├── uv.lock
 ├── pytest.ini
 ├── server/
 │   ├── requirements.txt
