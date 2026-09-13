@@ -102,7 +102,7 @@ Alexa+ agent
 
 **Speaker script — 35 seconds:**
 
-“Here is the live workflow. The agent first discovers the available scenario and its rubric version. It starts a chest-pressure simulation. The learner says, ‘My name is Alex. Where is the pain, and are you short of breath?’ The server returns a patient response about substernal pressure and mild shortness of breath. The learner follows up about medications and allergies, and the patient discloses the next approved facts. At the end, the agent calls the evaluator and receives structured feedback instead of a vague statement like ‘good job.’”
+“Here is the live workflow. The agent discovers the scenario and starts a chest-pressure simulation. The learner asks where the pain is and whether they are short of breath, then when it started, then about any other symptoms. Each turn returns a scenario-constrained patient response that preserves emotional state and disclosed facts. At the end, the agent calls the evaluator and receives structured, partially-credited feedback instead of a vague statement like ‘good job.’”
 
 **Demo cue:** Show the actual sequence of MCP calls and responses. Keep the spoken interaction audible and concise.
 
@@ -133,16 +133,17 @@ Alexa+ agent
 
 **Slide content:**
 
-| Metric | Score | Evidence |
+| Metric | Score | Matched terms |
 |---|---:|---|
-| Symptom characterization | 4 / 4 | “Where is the pain, and when did it start?” |
-| Associated symptoms and risk | 4 / 4 | “Are you short of breath, and what medications do you take?” |
-| Safety escalation | 1 / 4 | No urgent escalation language detected |
-| Shared next-step confirmation | 1 / 4 | No plan or understanding check detected |
+| Introduction and consent | 1 / 4 | — |
+| Symptom characterization | 3 / 4 | where, when |
+| Associated symptoms and risk | 2 / 4 | breath |
+| Safety escalation | 1 / 4 | — |
+| Shared next-step confirmation | 1 / 4 | — |
 
 **Speaker script — 25 seconds:**
 
-“The evaluator is designed for explanation. Every metric has a stable ID, a score, a maximum, a rationale, and evidence from the practitioner transcript. In this example, the learner receives full credit for characterizing symptoms and checking associated risks, but sees that escalation and shared next-step confirmation were not demonstrated. The result is actionable: it tells the learner what to practice next and shows why the system reached that conclusion.”
+“The evaluator is designed for explanation. Every metric has a stable ID, a score, a maximum, a rationale, and the exact trigger terms the learner matched. In this example, symptom characterization earns partial credit for `where` and `when`, associated symptoms and risk earns partial credit for `breath`, and the untouched dimensions stay at the floor. The result is actionable: it tells the learner what to practice next and shows why the system reached that conclusion.”
 
 **Demo cue:** Show the `evaluate_simulation` response with `rubric_version`, metric IDs, evidence excerpts, strengths, and improvements.
 

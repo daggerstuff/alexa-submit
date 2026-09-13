@@ -164,10 +164,12 @@ alexa-clinical-sim/
 ├── Dockerfile
 ├── LICENSE
 ├── README.md
-├── REDESIGN.md
 ├── HACKATHON_STRATEGY.md
 ├── PRODUCT_FEEDBACK.md
-├── hackathon_research_notes.md
+├── DEMO_TRANSCRIPT.md
+├── ALEXA_PLUS_3_MINUTE_PITCH.md
+├── ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md
+├── UPGRADE_PLAN.md
 ├── apprunner.yaml
 ├── package.json
 ├── pyproject.toml
