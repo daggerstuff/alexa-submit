@@ -55,7 +55,6 @@ class LLMPersonaAgent:
         scenario: ScenarioDefinition,
         practitioner_message: str,
     ) -> PatientResponse:
-        state.turn_count += 1
         system_prompt = self._build_system_prompt(state, scenario)
         user_prompt = f"Practitioner says: {practitioner_message}"
 

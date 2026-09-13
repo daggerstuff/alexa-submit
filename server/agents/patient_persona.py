@@ -24,7 +24,6 @@ class PatientPersonaAgent:
         scenario: ScenarioDefinition,
         practitioner_message: str,
     ) -> PatientResponse:
-        state.turn_count += 1
         text = practitioner_message.lower()
 
         matched = [rule for rule in scenario.disclosures if any(term in text for term in rule.trigger_terms)]

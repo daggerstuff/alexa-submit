@@ -110,6 +110,7 @@ class SimulationOrchestrator:
                     detail="practitioner_message is required for action=message",
                 )
             session.transcript.append(self._turn(Role.practitioner, request.practitioner_message.strip()))
+            session.patient_state.turn_count += 1
             patient = self.patient_agent.respond(session.patient_state, session.scenario, request.practitioner_message)
             session.transcript.append(self._turn(Role.patient, patient.content))
             response = self._response(request, session, patient=patient)

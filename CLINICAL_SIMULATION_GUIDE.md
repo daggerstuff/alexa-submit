@@ -131,7 +131,7 @@ This is important because the evaluator later scores the practitioner’s behavi
 
 ### 4. The patient agent updates its state
 
-`PatientPersonaAgent.respond()` increments `state.turn_count`, lowercases the utterance, and evaluates the keyword groups in order. For the example above, the first matching branch is the location/pain branch because the utterance contains “Where” and “pain.” The agent adds `substernal chest pressure` to `state.disclosed_facts` and returns a structured response.
+`SimulationOrchestrator.handle()` increments `state.turn_count` for each practitioner message; `PatientPersonaAgent.respond()` lowercases the utterance and evaluates the keyword groups in order. For the example above, the first matching branch is the location/pain branch because the utterance contains “Where” and “pain.” The agent adds `substernal chest pressure` to `state.disclosed_facts` and returns a structured response.
 
 The current starter response is:
 
