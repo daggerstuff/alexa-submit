@@ -1,0 +1,76 @@
+{
+  "scenario_id": "chest-pain-basic",
+  "version": "1.1.0",
+  "title": "Adult with acute chest pressure",
+  "opening": "Hello. I have been having pressure in my chest and I am worried.",
+  "safety_terms": ["collapse", "unresponsive", "severe", "can't breathe", "cannot breathe"],
+  "disclosures": [
+    {
+      "fact_id": "chest-pressure",
+      "trigger_terms": ["where", "location", "pain", "pressure"],
+      "response": "It feels like pressure right in the middle of my chest. It started about 30 minutes ago.",
+      "emotional_state": "anxious"
+    },
+    {
+      "fact_id": "radiation",
+      "trigger_terms": ["radiat", "arm", "jaw", "back"],
+      "response": "It seems to move into my left arm, especially when the pressure gets worse.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "dyspnea",
+      "trigger_terms": ["breath", "shortness", "dyspnea"],
+      "response": "I am a little short of breath, but I can still speak in full sentences.",
+      "emotional_state": "concerned"
+    },
+    {
+      "fact_id": "history-medications",
+      "trigger_terms": ["medication", "medicine", "history", "medical", "allerg"],
+      "response": "I take a blood-pressure medicine. I have high blood pressure, but no known medication allergies.",
+      "emotional_state": "calm"
+    },
+    {
+      "fact_id": "smoking-history",
+      "trigger_terms": ["smoke", "smoking", "tobacco"],
+      "response": "I used to smoke, but I quit around five years ago.",
+      "emotional_state": "reflective"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "symptoms",
+      "name": "Symptom characterization",
+      "trigger_terms": ["where", "when", "started", "pressure", "radiat", "severity", "scale"],
+      "rationale": "Explores onset, location, character, or severity.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "risk",
+      "name": "Associated symptoms and risk",
+      "trigger_terms": ["breath", "history", "medication", "allerg", "smok", "risk"],
+      "rationale": "Checks associated symptoms, history, medications, or risk factors.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Safety escalation",
+      "trigger_terms": ["emergency", "911", "urgent", "help", "ecg", "monitor"],
+      "rationale": "Recognizes the need for urgent escalation in a concerning presentation.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4
+    }
+  ]
+}

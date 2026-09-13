@@ -1,0 +1,95 @@
+{
+  "scenario_id": "depression-screening-basic",
+  "version": "1.0.0",
+  "title": "Adult with low mood and fatigue",
+  "opening": "I have just been feeling really tired and down lately. I do not know what is wrong with me.",
+  "safety_terms": ["kill", "suicide", "end it", "hurt myself", "not worth", "die", "death", "plan"],
+  "disclosures": [
+    {
+      "fact_id": "mood-duration",
+      "trigger_terms": ["how long", "when", "started", "long", "weeks", "months"],
+      "response": "It has been going on for about two months now. It just keeps getting harder to get through the day.",
+      "emotional_state": "down"
+    },
+    {
+      "fact_id": "mood-quality",
+      "trigger_terms": ["feel", "sad", "down", "depress", "mood", "hopeless"],
+      "response": "I feel sad most of the time. Nothing seems to make me happy anymore. Sometimes I wonder if things will ever get better.",
+      "emotional_state": "despondent"
+    },
+    {
+      "fact_id": "sleep",
+      "trigger_terms": ["sleep", "tired", "fatigue", "energy", "exhaust"],
+      "response": "I have trouble falling asleep and then I wake up at four in the morning and cannot get back to sleep. I am exhausted all day.",
+      "emotional_state": "exhausted"
+    },
+    {
+      "fact_id": "appetite",
+      "trigger_terms": ["eat", "food", "appetite", "weight", "hungry"],
+      "response": "I have lost my appetite. My clothes are looser, maybe ten pounds in the last month.",
+      "emotional_state": "flat"
+    },
+    {
+      "fact_id": "interest",
+      "trigger_terms": ["interest", "enjoy", "hobby", "fun", "activity", "social"],
+      "response": "I used to love gardening and seeing my friends, but I just do not have the energy or interest for any of it anymore.",
+      "emotional_state": "withdrawn"
+    },
+    {
+      "fact_id": "substance",
+      "trigger_terms": ["alcohol", "drink", "drug", "substance", "smoke", "caffeine"],
+      "response": "I have been having a glass of wine most evenings, maybe two. It helps me relax. I do not use any other substances.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "support",
+      "trigger_terms": ["support", "family", "friend", "alone", "live", "help"],
+      "response": "I live alone. My daughter calls sometimes, but I do not want to burden her with this.",
+      "emotional_state": "lonely"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "mood",
+      "name": "Mood assessment",
+      "trigger_terms": ["sad", "down", "depress", "mood", "feel", "hopeless", "happy"],
+      "rationale": "Explores the quality, duration, and severity of the mood disturbance.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "somatic",
+      "name": "Somatic symptoms",
+      "trigger_terms": ["sleep", "tired", "fatigue", "energy", "appetite", "weight", "eat"],
+      "rationale": "Screens for sleep disturbance, fatigue, and appetite or weight changes.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "risk",
+      "name": "Risk and safety assessment",
+      "trigger_terms": ["harm", "suicide", "kill", "hurt", "die", "death", "plan", "thought"],
+      "rationale": "Assesses suicidal ideation, intent, plan, and access to means.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "function",
+      "name": "Functional impact and support",
+      "trigger_terms": ["interest", "enjoy", "work", "social", "support", "family", "alone", "live"],
+      "rationale": "Evaluates impact on daily functioning, interests, and social support.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree", "help", "resource"],
+      "rationale": "Checks understanding and confirms the immediate next step or referral.",
+      "max_score": 4
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "scenario_id": "abdominal-pain-basic",
+  "version": "1.0.0",
+  "title": "Adult with acute abdominal pain",
+  "opening": "Hi. My stomach has been hurting since last night and I cannot sleep.",
+  "safety_terms": ["collapse", "unresponsive", "severe", "blood", "fainting", "cannot move"],
+  "disclosures": [
+    {
+      "fact_id": "pain-location",
+      "trigger_terms": ["where", "location", "pain", "hurt", "stomach"],
+      "response": "The pain is mostly in the lower right side of my abdomen. It has been aching for about twelve hours.",
+      "emotional_state": "uncomfortable"
+    },
+    {
+      "fact_id": "pain-quality",
+      "trigger_terms": ["describe", "feel", "sharp", "dull", "aching", "type"],
+      "response": "It started as a dull ache but has gotten sharper over the last few hours.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "appetite",
+      "trigger_terms": ["eat", "food", "appetite", "hungry", "nausea", "sick"],
+      "response": "I have not eaten since yesterday afternoon. I feel nauseous but have not vomited.",
+      "emotional_state": "uncomfortable"
+    },
+    {
+      "fact_id": "fever",
+      "trigger_terms": ["fever", "temperature", "hot", "chills", "sweat"],
+      "response": "I felt a little warm this morning but I do not have a thermometer to check.",
+      "emotional_state": "concerned"
+    },
+    {
+      "fact_id": "bowel",
+      "trigger_terms": ["bowel", "stool", "diarrhea", "constipation", "bathroom", "toilet"],
+      "response": "My bowel movements have been normal. No diarrhea or blood.",
+      "emotional_state": "calm"
+    },
+    {
+      "fact_id": "medical-history",
+      "trigger_terms": ["history", "medical", "surgery", "appendix", "medication", "allerg"],
+      "response": "I had my appendix removed when I was fifteen. I take no regular medications and have no drug allergies.",
+      "emotional_state": "calm"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "symptoms",
+      "name": "Symptom characterization",
+      "trigger_terms": ["where", "when", "started", "right", "left", "sharp", "dull", "describe"],
+      "rationale": "Explores onset, location, character, or severity.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "associated",
+      "name": "Associated symptoms",
+      "trigger_terms": ["nausea", "vomit", "fever", "appetite", "bowel", "eat", "chills"],
+      "rationale": "Checks for nausea, vomiting, fever, appetite changes, and bowel changes.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "history",
+      "name": "Medical and surgical history",
+      "trigger_terms": ["history", "surgery", "appendix", "medication", "allerg"],
+      "rationale": "Checks prior surgical history, medications, and allergies.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Safety escalation",
+      "trigger_terms": ["emergency", "hospital", "urgent", "help", "surgery", "appendicitis"],
+      "rationale": "Recognizes the possibility of a surgical abdomen and the need for urgent evaluation.",
+      "max_score": 4
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4
+    }
+  ]
+}
