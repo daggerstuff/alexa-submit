@@ -56,20 +56,22 @@ start_simulation(session_id="demo-1", scenario_id="chest-pain-basic")
 ## 5. Evaluate
 
 ```
-evaluate_simulation(session_id="demo-1") → rubric v1.1.0, 11/20
+evaluate_simulation(session_id="demo-1") → rubric v1.1.0, 8/20
 ```
 
-| Metric | Score | Evidence |
-|---|---|---|
-| Introduction and consent | 1/4 | — |
-| Symptom characterization | 4/4 | turn 1, turn 2 |
-| Associated symptoms and risk | 4/4 | turn 1 |
-| Safety escalation | 1/4 | — |
-| Shared next-step confirmation | 1/4 | — |
+| Metric | Score | Matched terms | Evidence |
+|---|---|---|---|
+| Introduction and consent | 1/4 | — | — |
+| Symptom characterization | 3/4 | where, when | turn 1, turn 2 |
+| Associated symptoms and risk | 2/4 | breath | turn 1 |
+| Safety escalation | 1/4 | — | — |
+| Shared next-step confirmation | 1/4 | — | — |
 
-The low "safety escalation" score is intentional: the transcript demonstrates
-that the evaluator flags what the learner did *not* say (urgent escalation for a
-concerning chest-pain presentation), which is the evidence-linked feedback loop.
+Scoring is graded partial credit: zero signals → 1, then +1 per distinct matched
+trigger term, capped at the metric maximum. The partial scores are the point —
+the evaluator flags what the learner did *not* explicitly cover (onset phrasing,
+associated symptoms, escalation, next-step confirmation), with the matched terms
+as evidence. This is the evidence-linked feedback loop.
 
 ## 6. End
 
