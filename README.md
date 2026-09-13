@@ -111,7 +111,7 @@ INFERENCE_TIMEOUT=15
 
 The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
 
-The REST API supports an optional `DEV_API_KEY` environment variable. When set, `/alexa`, `/mcp/simulate`, and session deletion require the `X-API-Key` header. CORS is restricted to local development origins. Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
+The REST API supports an optional `DEV_API_KEY` environment variable. When set, `/mcp/simulate` and session deletion require the `X-API-Key` header. CORS is restricted to local development origins. Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
 
 ## Testing
 
@@ -177,16 +177,16 @@ alexa-clinical-sim/
 │   ├── main.py
 │   ├── mcp_server.py
 │   ├── scenarios.py
+│   ├── scenarios_data/
+│   ├── _version.py
 │   ├── agents/
 │   │   ├── patient_persona.py
 │   │   ├── llm_persona.py
 │   │   └── clinical_evaluator.py
 │   └── schemas/
-├── alexa_config/
 ├── scripts/
 │   ├── initialize.sh
 │   ├── start_mcp_server.sh
-│   ├── start_local_tunnel.sh
 │   └── deploy_aws.sh
 └── tests/
     ├── test_simulation.py

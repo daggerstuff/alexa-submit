@@ -117,13 +117,15 @@ Before submitting, complete the following items:
 This repository existed before the hackathon window as a local FastAPI clinical-simulation prototype: a mock `/alexa` passthrough and a deterministic patient Q&A, with no MCP surface and no deployment. The meaningful update made during the hackathon window is the Alexa+ integration itself, built from that prototype:
 
 - A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing five tools.
-- A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation.
-- An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with a deterministic fallback.
-- Bearer/API-key auth and per-IP rate limiting on the public endpoint.
+- A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation — graded with partial credit and per-metric matched-term evidence.
+- An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with JSON-mode responses, tolerant parsing, automatic retry, and a deterministic fallback.
+- Bearer/API-key auth (constant-time comparison) and proxy-safe per-IP rate limiting on the public endpoint.
+- Session lifecycle controls: idle TTL and a bounded in-memory session cache with LRU eviction.
+- Scenario and rubric definitions as validated JSON data, authorable without code changes.
 - A public AWS deployment (ECR + App Runner, us-east-2).
-- A full test suite and the submission documents (`README.md`, `PRODUCT_FEEDBACK.md`, demo materials).
+- A CI workflow and a full test suite, plus the submission documents (`README.md`, `PRODUCT_FEEDBACK.md`, demo materials).
 
-The pre-existing mock `/alexa` endpoint was the only overlap; the MCP server, evaluation rubric, security layer, LLM persona, deployment, and documentation were added during the hackathon window.
+The pre-existing mock `/alexa` passthrough and its placeholder skill config were removed during the hackathon window; the MCP server, evaluation rubric, security layer, LLM persona, deployment, and documentation were added.
 
 ## Open Source mini-challenge
 

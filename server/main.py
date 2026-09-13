@@ -200,12 +200,6 @@ def simulate(request: SimulationRequest) -> SimulationResponse:
     return orchestrator.handle(request)
 
 
-@app.post("/alexa", response_model=SimulationResponse, dependencies=[Depends(require_api_key)])
-def alexa_passthrough(request: SimulationRequest) -> SimulationResponse:
-    """Development passthrough endpoint for an Alexa/MCP adapter."""
-    return orchestrator.handle(request)
-
-
 @app.delete("/sessions/{session_id}", dependencies=[Depends(require_api_key)])
 def delete_session(session_id: str) -> dict[str, str]:
     if session_id not in orchestrator.sessions:
