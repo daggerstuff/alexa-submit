@@ -24,6 +24,10 @@ run:
       value: "60"
     - name: MCP_RATE_LIMIT_WINDOW_SECONDS
       value: "60"
+    - name: SESSION_TTL_SECONDS
+      value: "1800"
+    - name: SESSION_MAX_SESSIONS
+      value: "1000"
     - name: INFERENCE_PROVIDER
       value: llm
     - name: INFERENCE_BASE_URL

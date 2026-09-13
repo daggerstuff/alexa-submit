@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -35,11 +36,14 @@ class Session:
     transcript: list[TranscriptTurn] = field(default_factory=list)
     processed_events: dict[str, SimulationResponse] = field(default_factory=dict)
     status: str = "active"
+    last_accessed: float = field(default_factory=time.monotonic)
 
 
 class SimulationOrchestrator:
     def __init__(self) -> None:
         self.sessions: dict[str, Session] = {}
+        self.session_ttl = float(os.getenv("SESSION_TTL_SECONDS", "1800"))
+        self.max_sessions = int(os.getenv("SESSION_MAX_SESSIONS", "1000"))
         provider = os.getenv("INFERENCE_PROVIDER", "mock")
         if provider == "llm":
             self.patient_agent = LLMPersonaAgent()
@@ -47,12 +51,35 @@ class SimulationOrchestrator:
             self.patient_agent = PatientPersonaAgent()
         self.evaluator_agent = ClinicalEvaluatorAgent()
 
+    def _is_expired(self, session: Session) -> bool:
+        return self.session_ttl > 0 and (time.monotonic() - session.last_accessed) > self.session_ttl
+
+    def _evict_expired(self) -> None:
+        if self.session_ttl <= 0:
+            return
+        now = time.monotonic()
+        expired = [sid for sid, sess in self.sessions.items() if now - sess.last_accessed > self.session_ttl]
+        for sid in expired:
+            del self.sessions[sid]
+
+    def _evict_lru(self) -> None:
+        oldest = min(self.sessions, key=lambda sid: self.sessions[sid].last_accessed)
+        del self.sessions[oldest]
+
     def get_or_create(self, request: SimulationRequest) -> Session:
         session = self.sessions.get(request.session_id)
+        if session is not None and self._is_expired(session):
+            del self.sessions[request.session_id]
+            session = None
         if session is not None:
             if request.scenario_id is not None and session.scenario.scenario_id != request.scenario_id:
                 raise HTTPException(status_code=409, detail="Session cannot switch scenarios")
+            session.last_accessed = time.monotonic()
             return session
+
+        self._evict_expired()
+        if self.max_sessions > 0 and len(self.sessions) >= self.max_sessions:
+            self._evict_lru()
         scenario_id = request.scenario_id or "chest-pain-basic"
         try:
             scenario = get_scenario(scenario_id)
