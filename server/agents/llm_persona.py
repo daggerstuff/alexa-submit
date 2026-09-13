@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
+from server.observability import registry
 from server.scenarios import ScenarioDefinition
 from server.schemas.validation import PatientResponse
 
@@ -47,6 +48,7 @@ class LLMPersonaAgent:
             return self._llm_respond(state, scenario, practitioner_message)
         except Exception as exc:
             logger.warning("LLM persona failed, falling back to deterministic: %s", exc)
+            registry.incr("llm_fallbacks_total")
             return self.fallback.respond(state, scenario, practitioner_message)
 
     def _llm_respond(

@@ -179,6 +179,7 @@ alexa-clinical-sim/
 │   ├── requirements.txt
 │   ├── main.py
 │   ├── mcp_server.py
+│   ├── observability.py
 │   ├── scenarios.py
 │   ├── scenarios_data/
 │   ├── _version.py

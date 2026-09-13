@@ -8,14 +8,16 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from server._version import __version__
 from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
 from server.agents.llm_persona import LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
-from server.scenarios import ScenarioDefinition, get_scenario
+from server.observability import JsonFormatter, registry, render_prometheus, request_id_var
+from server.scenarios import SCENARIOS, ScenarioDefinition, get_scenario
 from server.schemas.validation import (
     PatientResponse,
     Role,
@@ -26,7 +28,11 @@ from server.schemas.validation import (
 )
 
 logger = logging.getLogger("alexa_clinical_sim")
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(JsonFormatter())
+    logger.addHandler(_handler)
+logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 @dataclass
@@ -92,6 +98,7 @@ class SimulationOrchestrator:
             patient_state=PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version),
         )
         self.sessions[request.session_id] = session
+        registry.incr("sessions_created_total")
         return session
 
     @staticmethod
@@ -175,6 +182,18 @@ app.add_middleware(
 orchestrator = SimulationOrchestrator()
 
 
+@app.middleware("http")
+async def add_request_id(request: Request, call_next: Any) -> Any:
+    request_id = request.headers.get("x-request-id") or str(uuid4())
+    token = request_id_var.set(request_id)
+    try:
+        response = await call_next(request)
+        response.headers["x-request-id"] = request_id
+        return response
+    finally:
+        request_id_var.reset(token)
+
+
 def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
     expected = os.getenv("DEV_API_KEY")
     if expected and x_api_key != expected:
@@ -189,6 +208,18 @@ def health() -> dict[str, Any]:
         "active_sessions": len(orchestrator.sessions),
         "version": app.version,
     }
+
+
+@app.get("/ready")
+def ready() -> dict[str, Any]:
+    if not SCENARIOS:
+        raise HTTPException(status_code=503, detail="No scenarios loaded")
+    return {"status": "ready", "version": app.version}
+
+
+@app.get("/metrics")
+def metrics() -> PlainTextResponse:
+    return PlainTextResponse(render_prometheus(len(orchestrator.sessions)), media_type="text/plain; version=0.0.4")
 
 
 @app.post(

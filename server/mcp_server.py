@@ -1,21 +1,26 @@
 from __future__ import annotations
 
+import logging
 import os
 import threading
 import time
 from secrets import compare_digest
 from typing import Any
+from uuid import uuid4
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, PlainTextResponse
 
 from server._version import __version__
 from server.main import orchestrator
+from server.observability import registry, render_prometheus, request_id_var
 from server.scenarios import SCENARIOS
 from server.schemas.validation import SimulationAction, SimulationRequest
+
+logger = logging.getLogger("alexa_clinical_sim")
 
 mcp = MCPServer(
     name="clinical-conversation-coach",
@@ -144,6 +149,7 @@ class RateLimiter:
             recent = [t for t in self._hits.get(client, []) if t > window_start]
             if len(recent) >= self.max_requests:
                 self._hits[client] = recent
+                registry.incr("rate_limited_total")
                 return False
             recent.append(now)
             self._hits[client] = recent
@@ -164,18 +170,39 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.limiter = limiter
 
     async def dispatch(self, request: Request, call_next: Any) -> Any:
-        if self.api_key:
-            auth = request.headers.get("authorization", "")
-            bearer = auth[7:] if auth.lower().startswith("bearer ") else ""
-            header_key = request.headers.get("x-api-key", "")
-            key = self.api_key.encode()
-            if not compare_digest(bearer.encode(), key) and not compare_digest(header_key.encode(), key):
-                return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        request_id = request.headers.get("x-request-id") or uuid4().hex
+        token = request_id_var.set(request_id)
+        registry.incr("requests_total")
+        try:
+            if self.api_key:
+                auth = request.headers.get("authorization", "")
+                bearer = auth[7:] if auth.lower().startswith("bearer ") else ""
+                header_key = request.headers.get("x-api-key", "")
+                key = self.api_key.encode()
+                if not compare_digest(bearer.encode(), key) and not compare_digest(header_key.encode(), key):
+                    return self._reject(401, "unauthorized", request_id)
 
-        if self.limiter is not None and not self.limiter.allow(_client_ip(request)):
-            return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+            if self.limiter is not None and not self.limiter.allow(_client_ip(request)):
+                return self._reject(429, "rate limit exceeded", request_id)
 
-        return await call_next(request)
+            response = await call_next(request)
+            response.headers["x-request-id"] = request_id
+            logger.info(
+                "request method=%s path=%s status=%s client=%s",
+                request.method,
+                request.url.path,
+                response.status_code,
+                _client_ip(request),
+            )
+            return response
+        finally:
+            request_id_var.reset(token)
+
+    @staticmethod
+    def _reject(status: int, detail: str, request_id: str) -> JSONResponse:
+        response = JSONResponse({"detail": detail}, status_code=status)
+        response.headers["x-request-id"] = request_id
+        return response
 
 
 def _client_ip(request: Request) -> str:
@@ -198,6 +225,42 @@ def _transport_security(allowed_hosts: str, allowed_origins: str) -> TransportSe
         allowed_hosts=[item.strip() for item in allowed_hosts.split(",") if item.strip()],
         allowed_origins=[item.strip() for item in allowed_origins.split(",") if item.strip()],
     )
+
+
+def _observability_response(path: str) -> JSONResponse | PlainTextResponse | None:
+    if path == "/health":
+        return JSONResponse(
+            {
+                "status": "ok",
+                "service": "clinical-conversation-coach",
+                "active_sessions": len(orchestrator.sessions),
+                "version": __version__,
+            }
+        )
+    if path == "/ready":
+        if not SCENARIOS:
+            return JSONResponse({"detail": "no scenarios loaded"}, status_code=503)
+        return JSONResponse({"status": "ready", "version": __version__})
+    if path == "/metrics":
+        return PlainTextResponse(
+            render_prometheus(len(orchestrator.sessions)),
+            media_type="text/plain; version=0.0.4",
+        )
+    return None
+
+
+def _with_observability(app: Any) -> Any:
+    """Serve unauthenticated GET /health, /ready, /metrics around the MCP app."""
+
+    async def wrapper(scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] == "http" and scope["method"].upper() == "GET":
+            response = _observability_response(scope.get("path", ""))
+            if response is not None:
+                await response(scope, receive, send)
+                return
+        await app(scope, receive, send)
+
+    return wrapper
 
 
 def create_app(
@@ -231,9 +294,8 @@ def create_app(
     )
 
     limiter = RateLimiter(limit, window) if limit > 0 else None
-    if key or limiter is not None:
-        app.add_middleware(SecurityMiddleware, api_key=key, limiter=limiter)
-    return app
+    app.add_middleware(SecurityMiddleware, api_key=key, limiter=limiter)
+    return _with_observability(app)
 
 
 if __name__ == "__main__":
