@@ -11,7 +11,7 @@ def test_expired_session_is_recreated() -> None:
 
     req = SimulationRequest(session_id="s1", action="start")
     first = orch.get_or_create(req)
-    first.last_accessed = time.monotonic() - 10
+    first.last_accessed = time.time() - 10
 
     second = orch.get_or_create(req)
     assert second is not first
@@ -24,7 +24,7 @@ def test_ttl_zero_disables_expiry() -> None:
     orch.session_ttl = 0
     req = SimulationRequest(session_id="s1", action="start")
     first = orch.get_or_create(req)
-    first.last_accessed = time.monotonic() - 1000
+    first.last_accessed = time.time() - 1000
     assert orch.get_or_create(req) is first
 
 
@@ -35,7 +35,7 @@ def test_lru_eviction_enforces_cap() -> None:
 
     a = orch.get_or_create(SimulationRequest(session_id="a", action="start"))
     orch.get_or_create(SimulationRequest(session_id="b", action="start"))
-    a.last_accessed = time.monotonic()  # touch a so b becomes least-recently-used
+    a.last_accessed = time.time()  # touch a so b becomes least-recently-used
 
     orch.get_or_create(SimulationRequest(session_id="c", action="start"))
     assert "a" in orch.sessions

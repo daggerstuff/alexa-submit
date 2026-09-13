@@ -28,6 +28,10 @@ run:
       value: "1800"
     - name: SESSION_MAX_SESSIONS
       value: "1000"
+    # SQLite session store. Survives process restarts within the container;
+    # for cross-redeploy persistence mount EFS here via a VPC connector.
+    - name: SESSION_DB_PATH
+      value: "/tmp/sessions.db"
     - name: INFERENCE_PROVIDER
       value: llm
     - name: INFERENCE_BASE_URL

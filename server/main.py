@@ -26,6 +26,7 @@ from server.schemas.validation import (
     SimulationResponse,
     TranscriptTurn,
 )
+from server.storage import SessionStore
 
 logger = logging.getLogger("alexa_clinical_sim")
 if not logger.handlers:
@@ -43,14 +44,63 @@ class Session:
     transcript: list[TranscriptTurn] = field(default_factory=list)
     processed_events: dict[str, SimulationResponse] = field(default_factory=dict)
     status: str = "active"
-    last_accessed: float = field(default_factory=time.monotonic)
+    last_accessed: float = field(default_factory=time.time)
+
+
+def _state_to_dict(state: PatientState) -> dict[str, Any]:
+    return {
+        "scenario_id": state.scenario_id,
+        "scenario_version": state.scenario_version,
+        "turn_count": state.turn_count,
+        "disclosed_facts": sorted(state.disclosed_facts),
+        "last_emotional_state": state.last_emotional_state,
+    }
+
+
+def _state_from_dict(data: dict[str, Any]) -> PatientState:
+    return PatientState(
+        scenario_id=data["scenario_id"],
+        scenario_version=data["scenario_version"],
+        turn_count=int(data["turn_count"]),
+        disclosed_facts=set(data["disclosed_facts"]),
+        last_emotional_state=data["last_emotional_state"],
+    )
+
+
+def _session_to_record(session: Session) -> dict[str, Any]:
+    return {
+        "session_id": session.session_id,
+        "scenario_id": session.scenario.scenario_id,
+        "patient_state": _state_to_dict(session.patient_state),
+        "transcript": [turn.model_dump(mode="json") for turn in session.transcript],
+        "processed_events": {key: value.model_dump(mode="json") for key, value in session.processed_events.items()},
+        "status": session.status,
+        "last_accessed": session.last_accessed,
+    }
+
+
+def _record_to_session(record: dict[str, Any]) -> Session:
+    scenario = get_scenario(record["scenario_id"])
+    return Session(
+        session_id=record["session_id"],
+        scenario=scenario,
+        patient_state=_state_from_dict(record["patient_state"]),
+        transcript=[TranscriptTurn.model_validate(turn) for turn in record["transcript"]],
+        processed_events={
+            key: SimulationResponse.model_validate(value) for key, value in record["processed_events"].items()
+        },
+        status=record["status"],
+        last_accessed=float(record["last_accessed"]),
+    )
 
 
 class SimulationOrchestrator:
-    def __init__(self) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         self.sessions: dict[str, Session] = {}
         self.session_ttl = float(os.getenv("SESSION_TTL_SECONDS", "1800"))
         self.max_sessions = int(os.getenv("SESSION_MAX_SESSIONS", "1000"))
+        path = db_path if db_path is not None else os.getenv("SESSION_DB_PATH", "")
+        self.store = SessionStore(path) if path else None
         provider = os.getenv("INFERENCE_PROVIDER", "mock")
         if provider == "llm":
             self.patient_agent = LLMPersonaAgent()
@@ -59,29 +109,63 @@ class SimulationOrchestrator:
         self.evaluator_agent = ClinicalEvaluatorAgent()
 
     def _is_expired(self, session: Session) -> bool:
-        return self.session_ttl > 0 and (time.monotonic() - session.last_accessed) > self.session_ttl
+        return self.session_ttl > 0 and (time.time() - session.last_accessed) > self.session_ttl
 
     def _evict_expired(self) -> None:
         if self.session_ttl <= 0:
             return
-        now = time.monotonic()
+        now = time.time()
         expired = [sid for sid, sess in self.sessions.items() if now - sess.last_accessed > self.session_ttl]
         for sid in expired:
-            del self.sessions[sid]
+            self._delete_session(sid)
 
     def _evict_lru(self) -> None:
         oldest = min(self.sessions, key=lambda sid: self.sessions[sid].last_accessed)
-        del self.sessions[oldest]
+        self._delete_session(oldest)
+
+    def _load_session(self, session_id: str) -> Session | None:
+        if self.store is None:
+            return None
+        record = self.store.get(session_id)
+        if record is None:
+            return None
+        try:
+            session = _record_to_session(record)
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.warning("Dropping unreadable persisted session %s: %s", session_id, exc)
+            self.store.delete(session_id)
+            return None
+        self.sessions[session_id] = session
+        return session
+
+    def _persist(self, session: Session) -> None:
+        if self.store is not None:
+            self.store.upsert(_session_to_record(session))
+
+    def _delete_session(self, session_id: str) -> None:
+        self.sessions.pop(session_id, None)
+        if self.store is not None:
+            self.store.delete(session_id)
+
+    def remove_session(self, session_id: str) -> bool:
+        present = session_id in self.sessions
+        if not present and self.store is not None:
+            present = self.store.get(session_id) is not None
+        self._delete_session(session_id)
+        return present
 
     def get_or_create(self, request: SimulationRequest) -> Session:
         session = self.sessions.get(request.session_id)
         if session is not None and self._is_expired(session):
-            del self.sessions[request.session_id]
+            self._delete_session(request.session_id)
             session = None
+        if session is None:
+            session = self._load_session(request.session_id)
         if session is not None:
             if request.scenario_id is not None and session.scenario.scenario_id != request.scenario_id:
                 raise HTTPException(status_code=409, detail="Session cannot switch scenarios")
-            session.last_accessed = time.monotonic()
+            session.last_accessed = time.time()
+            self._persist(session)
             return session
 
         self._evict_expired()
@@ -99,6 +183,7 @@ class SimulationOrchestrator:
         )
         self.sessions[request.session_id] = session
         registry.incr("sessions_created_total")
+        self._persist(session)
         return session
 
     @staticmethod
@@ -162,6 +247,7 @@ class SimulationOrchestrator:
 
         if request.client_event_id:
             session.processed_events[request.client_event_id] = response
+        self._persist(session)
         logger.info(
             "simulation_request session_id=%s action=%s status=%s",
             session.session_id,
@@ -233,7 +319,6 @@ def simulate(request: SimulationRequest) -> SimulationResponse:
 
 @app.delete("/sessions/{session_id}", dependencies=[Depends(require_api_key)])
 def delete_session(session_id: str) -> dict[str, str]:
-    if session_id not in orchestrator.sessions:
+    if not orchestrator.remove_session(session_id):
         raise HTTPException(status_code=404, detail="Session not found")
-    del orchestrator.sessions[session_id]
     return {"status": "deleted", "session_id": session_id}
