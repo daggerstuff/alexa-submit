@@ -51,6 +51,7 @@ class MetricScore(BaseModel):
     score: int = Field(ge=0)
     max_score: int = Field(ge=1)
     evidence: list[str] = Field(default_factory=list)
+    matched_terms: list[str] = Field(default_factory=list)
     rationale: str
 
 
