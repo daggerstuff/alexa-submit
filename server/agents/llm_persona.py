@@ -56,24 +56,11 @@ class LLMPersonaAgent:
         practitioner_message: str,
     ) -> PatientResponse:
         system_prompt = self._build_system_prompt(state, scenario)
-        user_prompt = f"Practitioner says: {practitioner_message}"
-
-        response = httpx.post(
-            f"{self.base_url}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": 0.7,
-                "max_tokens": 300,
-            },
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-        raw = response.json()["choices"][0]["message"]["content"]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Practitioner says: {practitioner_message}"},
+        ]
+        raw = self._complete(messages)
 
         parsed = self._parse_response(raw)
 
@@ -107,6 +94,31 @@ class LLMPersonaAgent:
             scenario_version=scenario.version,
         )
 
+    def _complete(self, messages: list[dict[str, str]]) -> str:
+        last_exc: Exception | None = None
+        for json_mode in (True, False):
+            body: dict[str, Any] = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 300,
+            }
+            if json_mode:
+                body["response_format"] = {"type": "json_object"}
+            try:
+                response = httpx.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    json=body,
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("LLM call failed (json_mode=%s): %s", json_mode, exc)
+        raise last_exc if last_exc is not None else RuntimeError("LLM completion produced no response")
+
     def _build_system_prompt(self, state: PatientState, scenario: ScenarioDefinition) -> str:
         disclosure_lines = []
         for rule in scenario.disclosures:
@@ -135,8 +147,40 @@ class LLMPersonaAgent:
 
     @staticmethod
     def _parse_response(raw: str) -> dict[str, Any]:
-        raw = raw.strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1] if "\n" in raw else raw
-            raw = raw.rsplit("```", 1)[0]
-        return json.loads(raw)
+        text = raw.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text
+            text = text.rsplit("```", 1)[0].strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return LLMPersonaAgent._extract_json_object(text)
+
+    @staticmethod
+    def _extract_json_object(text: str) -> dict[str, Any]:
+        """Extract the first balanced JSON object from prose, else raise."""
+        start = text.find("{")
+        if start == -1:
+            raise ValueError("No JSON object found in LLM response")
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return json.loads(text[start : i + 1])
+        raise ValueError("Unbalanced JSON object in LLM response")

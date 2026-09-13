@@ -94,3 +94,45 @@ def test_llm_safety_note_on_severe_language() -> None:
         response = agent.respond(state, CHEST_PAIN_BASIC, "Are you going to collapse?")
 
     assert response.safety_note is not None
+
+
+def test_parse_extracts_json_object_from_prose() -> None:
+    raw = 'Sure, here you go:\n{"content": "It hurts.", "emotional_state": "anxious", "disclosed_facts": []}\nHope that helps.'
+    parsed = LLMPersonaAgent._parse_response(raw)
+    assert parsed["content"] == "It hurts."
+    assert parsed["disclosed_facts"] == []
+
+
+def test_llm_retries_without_json_mode_on_failure() -> None:
+    agent = LLMPersonaAgent()
+    agent.base_url = "http://fake"
+    agent.api_key = "fake"
+
+    calls: list[dict] = []
+
+    def fake_post(url, **kwargs):  # noqa: ANN001, ANN003
+        calls.append(kwargs["json"])
+        response = MagicMock()
+        if kwargs["json"].get("response_format"):
+            response.raise_for_status.side_effect = Exception("json mode unsupported")
+        else:
+            response.raise_for_status = MagicMock()
+            response.json.return_value = {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"content": "It hurts in my chest.", "emotional_state": "anxious", "disclosed_facts": ["chest-pressure"]}'
+                        }
+                    }
+                ]
+            }
+        return response
+
+    with patch("server.agents.llm_persona.httpx.post", side_effect=fake_post):
+        state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
+        response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
+
+    assert len(calls) == 2
+    assert calls[0]["response_format"] == {"type": "json_object"}
+    assert "response_format" not in calls[1]
+    assert "chest" in response.content.lower()
