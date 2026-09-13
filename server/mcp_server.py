@@ -125,6 +125,37 @@ def end_simulation(session_id: str, scenario_id: str | None = None) -> dict[str,
     return _serialize(response)
 
 
+if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):
+
+    @mcp.tool(
+        description=(
+            "List active simulation sessions. Registered only when MCP_EXPOSE_SESSION_TOOLS "
+            "is enabled, because session IDs are sensitive."
+        ),
+        structured_output=True,
+    )
+    def list_sessions() -> dict[str, Any]:
+        return {
+            "sessions": [
+                {
+                    "session_id": sid,
+                    "scenario_id": sess.scenario.scenario_id,
+                    "status": sess.status,
+                    "turn_count": sess.patient_state.turn_count,
+                }
+                for sid, sess in orchestrator.sessions.items()
+            ]
+        }
+
+    @mcp.tool(
+        description="Delete a simulation session. Registered only when MCP_EXPOSE_SESSION_TOOLS is enabled.",
+        structured_output=True,
+    )
+    def delete_session(session_id: str) -> dict[str, Any]:
+        removed = orchestrator.remove_session(session_id)
+        return {"status": "deleted" if removed else "not_found", "session_id": session_id}
+
+
 class RateLimiter:
     """Thread-safe sliding-window rate limiter keyed by client address.
 

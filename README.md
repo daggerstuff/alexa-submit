@@ -23,6 +23,8 @@ See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy
 | Patient policy       | Stateful, scenario-constrained responses                 | `PatientPersonaAgent`                          |
 | Evaluation policy    | Versioned scoring with transcript evidence               | `ClinicalEvaluatorAgent`                       |
 
+The MCP server is **text-in/text-out**. Voice is supplied by the Alexa+ agent, which provides automatic speech recognition (ASR) and text-to-speech (TTS) natively; this project does not reimplement a speech stack. The "voice-first" framing refers to the Alexa+ surface, not to embedded TTS/ASR here.
+
 ## Quick start
 
 ```bash
@@ -62,6 +64,8 @@ The MCP server exposes five agent-callable tools:
 | `end_simulation`            | Returns the final evaluation and locks the session                  |
 
 These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching.
+
+See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; they are off by default because they reveal session IDs to any API-key holder.
 
 ## Local REST flow
 
@@ -193,16 +197,22 @@ alexa-clinical-sim/
 ├── ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md
 ├── UPGRADE_PLAN.md
 ├── SCENARIOS.md
+├── TOOLS.md
 ├── apprunner.yaml
 ├── package.json
 ├── pyproject.toml
 ├── uv.lock
 ├── pytest.ini
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── deploy.yml
 ├── server/
 │   ├── requirements.txt
 │   ├── main.py
 │   ├── mcp_server.py
 │   ├── observability.py
+│   ├── storage.py
 │   ├── scenarios.py
 │   ├── scenarios_data/
 │   ├── _version.py
@@ -214,10 +224,16 @@ alexa-clinical-sim/
 ├── scripts/
 │   ├── initialize.sh
 │   ├── start_mcp_server.sh
-│   └── deploy_aws.sh
+│   ├── deploy_aws.sh
+│   └── gen_tool_reference.py
 └── tests/
     ├── test_simulation.py
     ├── test_mcp_protocol.py
     ├── test_mcp_security.py
-    └── test_llm_persona.py
+    ├── test_llm_persona.py
+    ├── test_evaluator.py
+    ├── test_session_lifecycle.py
+    ├── test_observability.py
+    ├── test_persistence.py
+    └── test_session_tools.py
 ```
