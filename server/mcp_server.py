@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from collections import defaultdict
+from secrets import compare_digest
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
@@ -120,12 +120,16 @@ def end_simulation(session_id: str, scenario_id: str | None = None) -> dict[str,
 
 
 class RateLimiter:
-    """Thread-safe sliding-window rate limiter keyed by client address."""
+    """Thread-safe sliding-window rate limiter keyed by client address.
+
+    In-memory and per-process: run a single worker, or move to a shared store
+    if the limit must be global across instances.
+    """
 
     def __init__(self, max_requests: int, window_seconds: float) -> None:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._hits: dict[str, list[float]] = defaultdict(list)
+        self._hits: dict[str, list[float]] = {}
         self._lock = threading.Lock()
 
     def allow(self, client: str) -> bool:
@@ -134,13 +138,20 @@ class RateLimiter:
         now = time.monotonic()
         with self._lock:
             window_start = now - self.window_seconds
-            recent = [t for t in self._hits[client] if t > window_start]
+            if len(self._hits) > 4096:
+                self._prune(window_start)
+            recent = [t for t in self._hits.get(client, []) if t > window_start]
             if len(recent) >= self.max_requests:
                 self._hits[client] = recent
                 return False
             recent.append(now)
             self._hits[client] = recent
             return True
+
+    def _prune(self, window_start: float) -> None:
+        stale = [client for client, hits in self._hits.items() if not hits or hits[-1] <= window_start]
+        for client in stale:
+            del self._hits[client]
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -156,7 +167,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             auth = request.headers.get("authorization", "")
             bearer = auth[7:] if auth.lower().startswith("bearer ") else ""
             header_key = request.headers.get("x-api-key", "")
-            if bearer != self.api_key and header_key != self.api_key:
+            key = self.api_key.encode()
+            if not compare_digest(bearer.encode(), key) and not compare_digest(header_key.encode(), key):
                 return JSONResponse({"detail": "unauthorized"}, status_code=401)
 
         if self.limiter is not None and not self.limiter.allow(_client_ip(request)):
@@ -166,9 +178,16 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
 
 def _client_ip(request: Request) -> str:
+    """Return the client address, trusting only the rightmost X-Forwarded-For hop.
+
+    Behind App Runner's load balancer, the last XFF entry is the address the
+    proxy recorded for the client; earlier entries may be client-supplied and
+    spoofable, so they are ignored.
+    """
     forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+    if hops:
+        return hops[-1]
     return request.client.host if request.client is not None else "unknown"
 
 
