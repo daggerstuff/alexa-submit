@@ -54,42 +54,48 @@
       "name": "Introduction and consent",
       "trigger_terms": ["name", "consent", "permission"],
       "rationale": "Introduces self and establishes permission or rapport.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before exploring sensitive topics."
     },
     {
       "metric_id": "mood",
       "name": "Mood assessment",
       "trigger_terms": ["sad", "down", "depress", "mood", "feel", "hopeless", "happy"],
       "rationale": "Explores the quality, duration, and severity of the mood disturbance.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Explore the mood: 'How long have you felt this way, and how low does it get?'"
     },
     {
       "metric_id": "somatic",
       "name": "Somatic symptoms",
       "trigger_terms": ["sleep", "tired", "fatigue", "energy", "appetite", "weight", "eat"],
       "rationale": "Screens for sleep disturbance, fatigue, and appetite or weight changes.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Ask about somatic symptoms: 'How are your sleep, energy, and appetite?'"
     },
     {
       "metric_id": "risk",
       "name": "Risk and safety assessment",
       "trigger_terms": ["harm", "suicide", "kill", "hurt", "die", "death", "plan", "thought"],
       "rationale": "Assesses suicidal ideation, intent, plan, and access to means.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Assess safety directly: 'Have you had any thoughts of harming yourself?'"
     },
     {
       "metric_id": "function",
       "name": "Functional impact and support",
       "trigger_terms": ["interest", "enjoy", "work", "social", "support", "family", "alone", "live"],
       "rationale": "Evaluates impact on daily functioning, interests, and social support.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Ask about function and support: 'How is this affecting your daily life, and who supports you?'"
     },
     {
       "metric_id": "closed_loop",
       "name": "Shared next-step confirmation",
       "trigger_terms": ["understand", "questions", "next step", "plan", "agree", "help", "resource"],
       "rationale": "Checks understanding and confirms the immediate next step or referral.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Confirm next steps and check understanding, including follow-up or resources."
     }
   ]
 }

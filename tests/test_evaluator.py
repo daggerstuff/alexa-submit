@@ -31,3 +31,18 @@ def test_full_coverage_scores_max() -> None:
     # "where", "when", "scale" -> 3 distinct -> capped at max.
     assert symptoms.score == 4
     assert symptoms.matched_terms == ["where", "when", "scale"]
+
+
+def test_coaching_suggestions_only_for_unmet_metrics() -> None:
+    evaluator = ClinicalEvaluatorAgent()
+    result = evaluator.evaluate([_turn("Where is the pain?")], CHEST_PAIN_BASIC)
+    coached = {c.metric_id: c for c in result.coaching}
+    assert "rapport" in coached  # floor score -> coached
+    assert "symptoms" in coached  # partial score -> coached
+    assert coached["rapport"].suggestion
+
+    full = evaluator.evaluate(
+        [_turn("Where is the pain, when did it start, and how severe is it on a scale?")],
+        CHEST_PAIN_BASIC,
+    )
+    assert "symptoms" not in {c.metric_id for c in full.coaching}  # max score -> no coaching

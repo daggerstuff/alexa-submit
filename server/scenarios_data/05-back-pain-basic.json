@@ -1,0 +1,95 @@
+{
+  "scenario_id": "back-pain-basic",
+  "version": "1.0.0",
+  "title": "Adult with acute low back pain",
+  "opening": "I hurt my back lifting boxes yesterday and now I can barely stand up straight.",
+  "safety_terms": ["numbness", "numb", "can't feel", "bladder", "bowel control", "incontinence", "weakness", "fall", "collapse", "saddle", "unresponsive"],
+  "disclosures": [
+    {
+      "fact_id": "onset",
+      "trigger_terms": ["when", "how", "started", "lift", "happen", "did you"],
+      "response": "Yesterday afternoon I was lifting moving boxes and felt something pop in my lower back.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "location-quality",
+      "trigger_terms": ["where", "location", "pain", "sharp", "dull", "low back", "lower"],
+      "response": "It is in my lower back. It is a sharp pain when I twist or bend.",
+      "emotional_state": "in pain"
+    },
+    {
+      "fact_id": "radiation",
+      "trigger_terms": ["leg", "radiat", "shoot", "down the", "tingl", "foot", "thigh", "sciatica"],
+      "response": "The pain shoots down the back of my right thigh, and my foot tingles sometimes.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "red-flags",
+      "trigger_terms": ["bladder", "bowel", "numb", "incontinence", "control", "groin", "saddle", "urination"],
+      "response": "My bladder and bowels are fine, and I have no numbness around my groin — just the tingling in my foot.",
+      "emotional_state": "reassured"
+    },
+    {
+      "fact_id": "home-care",
+      "trigger_terms": ["try", "done", "ice", "heat", "rest", "medication", "ibuprofen", "painkiller", "help"],
+      "response": "I have tried ibuprofen and a heating pad. It takes the edge off but the shooting pain keeps coming back.",
+      "emotional_state": "frustrated"
+    },
+    {
+      "fact_id": "history",
+      "trigger_terms": ["history", "before", "surgery", "medication", "allerg", "physical therapy", "work", "previous"],
+      "response": "I had a flare-up like this two years ago that settled with physical therapy. I take no regular medications.",
+      "emotional_state": "hopeful"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before proceeding."
+    },
+    {
+      "metric_id": "symptoms",
+      "name": "Symptom characterization",
+      "trigger_terms": ["where", "when", "started", "sharp", "dull", "describe", "lift", "lower"],
+      "rationale": "Explores onset, location, quality, and aggravating factors of the pain.",
+      "max_score": 4,
+      "coaching_hint": "Characterize the pain: 'Where is it, and what were you doing when it started?'"
+    },
+    {
+      "metric_id": "neuro",
+      "name": "Neurologic symptoms",
+      "trigger_terms": ["leg", "radiat", "shoot", "tingl", "numb", "foot", "thigh", "weakness"],
+      "rationale": "Checks for radicular pain, paresthesias, or weakness suggesting nerve involvement.",
+      "max_score": 4,
+      "coaching_hint": "Ask about neurologic symptoms: 'Does the pain travel down your leg, with any numbness, tingling, or weakness?'"
+    },
+    {
+      "metric_id": "red_flags",
+      "name": "Red-flag screening",
+      "trigger_terms": ["bladder", "bowel", "incontinence", "numb", "control", "groin", "saddle", "urination"],
+      "rationale": "Screens for cauda equina red flags: bladder/bowel changes and saddle anesthesia.",
+      "max_score": 4,
+      "coaching_hint": "Screen red flags: 'Any changes in bladder or bowel control, or numbness around your groin?'"
+    },
+    {
+      "metric_id": "history",
+      "name": "History and prior episodes",
+      "trigger_terms": ["history", "before", "surgery", "medication", "allerg", "physical therapy", "previous", "flare"],
+      "rationale": "Explores prior episodes, medications, and relevant history.",
+      "max_score": 4,
+      "coaching_hint": "Ask about history: 'Have you had back problems before, and do you take any medications?'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding before ending."
+    }
+  ]
+}

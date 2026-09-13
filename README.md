@@ -91,7 +91,7 @@ curl -s http://127.0.0.1:8000/mcp/simulate \
 
 ## Scenario and evaluator model
 
-`server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics.
+`server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
 
 `PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints and falls back to the deterministic agent when the LLM is unavailable or returns invalid output.
 
@@ -105,7 +105,7 @@ INFERENCE_MODEL=Qwen/Qwen2.5-14B-Instruct
 INFERENCE_TIMEOUT=15
 ```
 
-`ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, and educational disclaimer.
+`ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, matched terms, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, concrete coaching suggestions, and an educational disclaimer.
 
 ## Security boundaries
 
@@ -121,7 +121,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the five-metric rubric, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all three scenarios, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all five scenarios, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 
@@ -170,6 +170,7 @@ alexa-clinical-sim/
 ├── ALEXA_PLUS_3_MINUTE_PITCH.md
 ├── ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md
 ├── UPGRADE_PLAN.md
+├── SCENARIOS.md
 ├── apprunner.yaml
 ├── package.json
 ├── pyproject.toml

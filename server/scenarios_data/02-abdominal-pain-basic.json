@@ -48,42 +48,48 @@
       "name": "Introduction and consent",
       "trigger_terms": ["name", "consent", "permission"],
       "rationale": "Introduces self and establishes permission or rapport.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before proceeding."
     },
     {
       "metric_id": "symptoms",
       "name": "Symptom characterization",
       "trigger_terms": ["where", "when", "started", "right", "left", "sharp", "dull", "describe"],
       "rationale": "Explores onset, location, character, or severity.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Characterize the pain: 'Where does it hurt, and when did it start?'"
     },
     {
       "metric_id": "associated",
       "name": "Associated symptoms",
       "trigger_terms": ["nausea", "vomit", "fever", "appetite", "bowel", "eat", "chills"],
       "rationale": "Checks for nausea, vomiting, fever, appetite changes, and bowel changes.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Ask about associated symptoms: 'Any nausea, vomiting, fever, or changes in appetite or bowels?'"
     },
     {
       "metric_id": "history",
       "name": "Medical and surgical history",
       "trigger_terms": ["history", "surgery", "appendix", "medication", "allerg"],
       "rationale": "Checks prior surgical history, medications, and allergies.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Ask about history: 'Have you had any surgeries, and do you take any medications?'"
     },
     {
       "metric_id": "escalation",
       "name": "Safety escalation",
       "trigger_terms": ["emergency", "hospital", "urgent", "help", "surgery", "appendicitis"],
       "rationale": "Recognizes the possibility of a surgical abdomen and the need for urgent evaluation.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Address urgency: 'Could this be a surgical abdomen — should we arrange urgent evaluation now?'"
     },
     {
       "metric_id": "closed_loop",
       "name": "Shared next-step confirmation",
       "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
       "rationale": "Checks understanding and confirms the immediate next step.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding before ending."
     }
   ]
 }

@@ -55,6 +55,12 @@ class MetricScore(BaseModel):
     rationale: str
 
 
+class CoachingSuggestion(BaseModel):
+    metric_id: str
+    metric: str
+    suggestion: str
+
+
 class EvaluationResult(BaseModel):
     rubric_version: str
     overall_score: int = Field(ge=0)
@@ -62,6 +68,7 @@ class EvaluationResult(BaseModel):
     metrics: list[MetricScore]
     strengths: list[str] = Field(default_factory=list)
     improvements: list[str] = Field(default_factory=list)
+    coaching: list[CoachingSuggestion] = Field(default_factory=list)
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 
 

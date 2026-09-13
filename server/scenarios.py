@@ -31,6 +31,7 @@ class MetricDefinition(BaseModel):
     trigger_terms: tuple[str, ...]
     rationale: str
     max_score: int = 4
+    coaching_hint: str | None = None
 
 
 class ScenarioDefinition(BaseModel):

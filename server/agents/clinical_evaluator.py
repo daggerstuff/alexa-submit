@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from server.scenarios import ScenarioDefinition
-from server.schemas.validation import EvaluationResult, MetricScore, Role, TranscriptTurn
+from server.schemas.validation import CoachingSuggestion, EvaluationResult, MetricScore, Role, TranscriptTurn
 
 
 class ClinicalEvaluatorAgent:
@@ -16,6 +16,7 @@ class ClinicalEvaluatorAgent:
         practitioner_turns = [t for t in transcript if t.role == Role.practitioner]
         joined = " ".join(turn.content.lower() for turn in practitioner_turns)
         metrics: list[MetricScore] = []
+        coaching: list[CoachingSuggestion] = []
         for definition in scenario.metrics:
             matched_terms = [term for term in definition.trigger_terms if term in joined]
             evidence = [
@@ -35,6 +36,14 @@ class ClinicalEvaluatorAgent:
                     rationale=self._rationale(definition.rationale, len(matched_terms), score, definition.max_score),
                 )
             )
+            if score < definition.max_score and definition.coaching_hint:
+                coaching.append(
+                    CoachingSuggestion(
+                        metric_id=definition.metric_id,
+                        metric=definition.name,
+                        suggestion=definition.coaching_hint,
+                    )
+                )
 
         total = sum(item.score for item in metrics)
         maximum = sum(item.max_score for item in metrics)
@@ -47,6 +56,7 @@ class ClinicalEvaluatorAgent:
             metrics=metrics,
             strengths=strengths,
             improvements=improvements,
+            coaching=coaching,
         )
 
     @staticmethod

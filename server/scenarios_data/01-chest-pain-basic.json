@@ -42,35 +42,40 @@
       "name": "Introduction and consent",
       "trigger_terms": ["name", "consent", "permission"],
       "rationale": "Introduces self and establishes permission or rapport.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission: 'Hi, I'm [your name]. Is it okay if I ask a few questions?'"
     },
     {
       "metric_id": "symptoms",
       "name": "Symptom characterization",
       "trigger_terms": ["where", "when", "started", "pressure", "radiat", "severity", "scale"],
       "rationale": "Explores onset, location, character, or severity.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Characterize the pain: 'Where exactly is the pressure, and when did it start?'"
     },
     {
       "metric_id": "risk",
       "name": "Associated symptoms and risk",
       "trigger_terms": ["breath", "history", "medication", "allerg", "smok", "risk"],
       "rationale": "Checks associated symptoms, history, medications, or risk factors.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Ask about associated symptoms and risk factors: 'Are you short of breath, and do you have any heart or blood-pressure history?'"
     },
     {
       "metric_id": "escalation",
       "name": "Safety escalation",
       "trigger_terms": ["emergency", "911", "urgent", "help", "ecg", "monitor"],
       "rationale": "Recognizes the need for urgent escalation in a concerning presentation.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Address urgency: 'Given the chest pressure, should we call 911 or arrange an ECG right now?'"
     },
     {
       "metric_id": "closed_loop",
       "name": "Shared next-step confirmation",
       "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
       "rationale": "Checks understanding and confirms the immediate next step.",
-      "max_score": 4
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding: 'Do you have any questions about what happens next?'"
     }
   ]
 }

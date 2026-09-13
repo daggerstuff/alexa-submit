@@ -1,0 +1,101 @@
+{
+  "scenario_id": "migraine-basic",
+  "version": "1.0.0",
+  "title": "Adult with severe unilateral headache",
+  "opening": "I have this pounding headache on one side and it is making me sick to my stomach.",
+  "safety_terms": ["worst headache", "thunderclap", "stiff neck", "fever", "collapse", "unresponsive", "weakness", "seizure", "blurred vision"],
+  "disclosures": [
+    {
+      "fact_id": "headache-location",
+      "trigger_terms": ["where", "location", "side", "temple", "behind my eye"],
+      "response": "It is on the right side, around my temple and behind my eye. It throbs.",
+      "emotional_state": "in pain"
+    },
+    {
+      "fact_id": "headache-onset",
+      "trigger_terms": ["when", "started", "how long", "onset", "this morning"],
+      "response": "It started this morning and has been building all day, maybe eight hours now.",
+      "emotional_state": "miserable"
+    },
+    {
+      "fact_id": "headache-quality",
+      "trigger_terms": ["describe", "throb", "pound", "sharp", "dull", "quality", "feel"],
+      "response": "It throbs and pounds, and it gets worse when I move around or bend over.",
+      "emotional_state": "in pain"
+    },
+    {
+      "fact_id": "aura",
+      "trigger_terms": ["aura", "vision", "zigzag", "wavy", "warning"],
+      "response": "About twenty minutes before it got bad, I saw wavy lines and lights bothered me.",
+      "emotional_state": "unsettled"
+    },
+    {
+      "fact_id": "nausea",
+      "trigger_terms": ["nausea", "sick", "vomit", "stomach", "throw", "queasy"],
+      "response": "I feel nauseous and I threw up once about an hour ago.",
+      "emotional_state": "nauseated"
+    },
+    {
+      "fact_id": "light-sound",
+      "trigger_terms": ["light", "bright", "sound", "noise", "sensitivity", "photophobia"],
+      "response": "Light and noise make it much worse. I have been lying in a dark room.",
+      "emotional_state": "sensitive"
+    },
+    {
+      "fact_id": "history",
+      "trigger_terms": ["history", "before", "migraine", "medication", "allerg", "family", "ibuprofen"],
+      "response": "I have had headaches like this a few times a year since college. My mother gets migraines too, and ibuprofen usually helps.",
+      "emotional_state": "familiar"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before proceeding."
+    },
+    {
+      "metric_id": "symptoms",
+      "name": "Symptom characterization",
+      "trigger_terms": ["where", "when", "started", "throb", "pound", "describe", "scale", "severity", "side"],
+      "rationale": "Explores onset, location, quality, and severity of the headache.",
+      "max_score": 4,
+      "coaching_hint": "Characterize the headache: 'Where is it, and when did it start?'"
+    },
+    {
+      "metric_id": "associated",
+      "name": "Associated symptoms",
+      "trigger_terms": ["aura", "vision", "nausea", "vomit", "sick", "light", "sound", "sensitivity", "photophobia"],
+      "rationale": "Checks for aura, nausea, vomiting, and photo/phonophobia.",
+      "max_score": 4,
+      "coaching_hint": "Ask about associated symptoms: 'Any aura, nausea, or sensitivity to light and sound?'"
+    },
+    {
+      "metric_id": "history",
+      "name": "Headache history and triggers",
+      "trigger_terms": ["history", "before", "migraine", "medication", "allerg", "family", "ibuprofen", "trigger"],
+      "rationale": "Explores prior headache history, triggers, medications, and family history.",
+      "max_score": 4,
+      "coaching_hint": "Ask about history: 'Have you had headaches like this before, and do you take anything for them?'"
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Red-flag assessment",
+      "trigger_terms": ["worst", "stiff neck", "fever", "emergency", "urgent", "hospital", "911", "weakness", "seizure", "thunderclap"],
+      "rationale": "Screens for red flags such as thunderclap onset, fever, stiff neck, or focal deficit.",
+      "max_score": 4,
+      "coaching_hint": "Screen red flags: 'Is this your worst headache ever, with any fever, stiff neck, or weakness?'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding before ending."
+    }
+  ]
+}
