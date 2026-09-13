@@ -161,6 +161,18 @@ For the AWS Builder mini-challenge, the project includes an App Runner deploymen
 
 The script builds the Docker image, pushes it to ECR, and creates or updates an App Runner service with HTTPS, auto-scaling, and a public MCP endpoint at `https://<random>.awsapprunner.com/mcp`.
 
+## CI/CD
+
+`.github/workflows/ci.yml` runs `ruff check` and `pytest` on every push to `master` and every pull request.
+
+`.github/workflows/deploy.yml` gates on the same tests, then builds and redeploys to App Runner on a `v*` tag (or manual dispatch). It authenticates with GitHub OIDC into AWS:
+
+1. Create an IAM role whose trust policy allows the GitHub repo (via an OIDC identity provider), and attach permissions for ECR push plus App Runner create/update.
+2. Store the role ARN in the `AWS_DEPLOY_ROLE_ARN` repository secret.
+3. Add `MCP_API_KEY`, `INFERENCE_BASE_URL`, and `INFERENCE_API_KEY` as repository secrets.
+
+The deploy workflow runs the same `scripts/deploy_aws.sh` used for manual deploys, tagged with the commit SHA.
+
 ## Hackathon submission requirements
 
 The Alexa+ submission should include a public GitHub repository with this source, assets, setup instructions, and `LICENSE`; a public demo video shorter than three minutes showing the MCP tools and end-to-end simulation; a concise project description; product feedback for the MCP/Alexa+ developer experience; and a friction log with concrete setup or integration issues.

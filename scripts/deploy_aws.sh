@@ -67,7 +67,10 @@ source_config_for_host() {
   local inference_base_url="${INFERENCE_BASE_URL:-}"
   local inference_api_key="${INFERENCE_API_KEY:-}"
   local inference_model="${INFERENCE_MODEL:-Qwen/Qwen2.5-14B-Instruct}"
-  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window,INFERENCE_PROVIDER=$inference_provider,INFERENCE_BASE_URL=\"$inference_base_url\",INFERENCE_API_KEY=\"$inference_api_key\",INFERENCE_MODEL=\"$inference_model\"}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
+  local session_ttl="${SESSION_TTL_SECONDS:-1800}"
+  local session_max="${SESSION_MAX_SESSIONS:-1000}"
+  local session_db_path="${SESSION_DB_PATH:-/tmp/sessions.db}"
+  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window,INFERENCE_PROVIDER=$inference_provider,INFERENCE_BASE_URL=\"$inference_base_url\",INFERENCE_API_KEY=\"$inference_api_key\",INFERENCE_MODEL=\"$inference_model\",SESSION_TTL_SECONDS=$session_ttl,SESSION_MAX_SESSIONS=$session_max,SESSION_DB_PATH=\"$session_db_path\"}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
 }
 
 wait_for_running() {
