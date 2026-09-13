@@ -118,12 +118,14 @@ This repository existed before the hackathon window as a local FastAPI clinical-
 
 - A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing five tools.
 - A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation — graded with partial credit and per-metric matched-term evidence.
+- A coaching loop: every evaluation returns concrete next-step questions for metrics not yet demonstrated.
 - An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with JSON-mode responses, tolerant parsing, automatic retry, and a deterministic fallback.
 - Bearer/API-key auth (constant-time comparison) and proxy-safe per-IP rate limiting on the public endpoint.
-- Session lifecycle controls: idle TTL and a bounded in-memory session cache with LRU eviction.
-- Scenario and rubric definitions as validated JSON data, authorable without code changes.
+- Session lifecycle controls: idle TTL, a bounded session cache with LRU eviction, and optional SQLite persistence (WAL) so state survives process restarts.
+- Five authorable scenarios (chest pain, abdominal pain, depression screening, migraine, back pain) defined as validated JSON data, with an authoring guide (`SCENARIOS.md`).
+- Observability: structured JSON request logs, per-request IDs, and unauthenticated `/health`, `/ready`, and `/metrics` (Prometheus) endpoints.
 - A public AWS deployment (ECR + App Runner, us-east-2).
-- A CI workflow and a full test suite, plus the submission documents (`README.md`, `PRODUCT_FEEDBACK.md`, demo materials).
+- CI (lint + test) and an automated deploy pipeline (GitHub Actions → ECR → App Runner), a full test suite, and the submission documents (`README.md`, `TOOLS.md`, `PRODUCT_FEEDBACK.md`, demo materials).
 
 The pre-existing mock `/alexa` passthrough and its placeholder skill config were removed during the hackathon window; the MCP server, evaluation rubric, security layer, LLM persona, deployment, and documentation were added.
 
@@ -134,7 +136,7 @@ This submission also claims the Open Source mini-challenge through the "create a
 - **Contribution URL:** https://github.com/daggerstuff/alexa-submit
 - **Project repository URL:** https://github.com/daggerstuff/alexa-submit
 - **GitHub username:** daggerstuff
-- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator, an optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with deterministic fallback, and bearer/API-key auth plus per-IP rate limiting.
+- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator that returns coaching suggestions, five authorable scenarios, an optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with deterministic fallback, bearer/API-key auth plus per-IP rate limiting, and optional SQLite session persistence.
 - **How it works:** `list_simulation_scenarios`, `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, and `end_simulation` run over `/mcp`; each session holds scenario state and a transcript; patient turns are scenario-constrained; evaluation returns rubric scores with transcript evidence.
 - **Why it matters:** It gives clinical learners a repeatable, safe, evidence-linked surface for practicing patient interviews, and it demonstrates a stateful multi-tool Alexa+ workflow rather than a single-turn Q&A bot.
 
