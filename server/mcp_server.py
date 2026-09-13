@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from server._version import __version__
 from server.main import orchestrator
 from server.scenarios import SCENARIOS
 from server.schemas.validation import SimulationAction, SimulationRequest
@@ -19,7 +20,7 @@ from server.schemas.validation import SimulationAction, SimulationRequest
 mcp = MCPServer(
     name="clinical-conversation-coach",
     title="Clinical Conversation Coach",
-    version="0.3.0",
+    version=__version__,
     description=(
         "A scenario-based clinical communication simulator for educational practice. "
         "It returns simulated patient turns and evidence-linked rubric feedback."

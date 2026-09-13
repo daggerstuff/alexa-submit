@@ -11,6 +11,7 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from server._version import __version__
 from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
 from server.agents.llm_persona import LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
@@ -163,7 +164,7 @@ class SimulationOrchestrator:
         return response
 
 
-app = FastAPI(title="Alexa+ Clinical Simulation Node", version="0.3.0")
+app = FastAPI(title="Clinical Conversation Coach", version=__version__)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
