@@ -63,3 +63,19 @@ def test_evaluator_stem_still_matches() -> None:
     result = evaluator.evaluate(turns, chest)
     risk = next(m for m in result.metrics if m.metric_id == "risk")
     assert "medication" in risk.matched_terms
+
+
+def test_persona_dismissal_triggers_pitfall_note() -> None:
+    agent = PatientPersonaAgent()
+    chest = get_scenario("chest-pain-basic")
+    state = PatientState(scenario_id=chest.scenario_id, scenario_version=chest.version)
+    resp = agent.respond(state, chest, "I would tell you to go home and sleep it off")
+    assert resp.safety_note == "Reconsider: dismissing this presentation may delay needed care."
+
+
+def test_persona_normal_question_has_no_pitfall_note() -> None:
+    agent = PatientPersonaAgent()
+    chest = get_scenario("chest-pain-basic")
+    state = PatientState(scenario_id=chest.scenario_id, scenario_version=chest.version)
+    resp = agent.respond(state, chest, "Where is the pain, and are you short of breath?")
+    assert resp.safety_note is None

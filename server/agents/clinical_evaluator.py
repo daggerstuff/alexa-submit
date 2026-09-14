@@ -52,6 +52,11 @@ class ClinicalEvaluatorAgent:
         maximum = sum(item.max_score for item in metrics)
         strengths = [item.metric for item in metrics if item.score == item.max_score]
         improvements = [item.metric for item in metrics if item.score < item.max_score]
+        safety_flags = [
+            term
+            for term in scenario.pitfalls
+            if any(matches_term(term, turn.content.lower()) for turn in practitioner_turns)
+        ]
         return EvaluationResult(
             rubric_version=scenario.version,
             overall_score=total,
@@ -60,7 +65,8 @@ class ClinicalEvaluatorAgent:
             strengths=strengths,
             improvements=improvements,
             coaching=coaching,
-            summary=self._summary(metrics, coaching),
+            safety_flags=safety_flags,
+            summary=self._summary(metrics, coaching, safety_flags),
         )
 
     @staticmethod
@@ -70,10 +76,12 @@ class ClinicalEvaluatorAgent:
         return min(max_score, distinct_matches + 1)
 
     @staticmethod
-    def _summary(metrics: list[MetricScore], coaching: list[CoachingSuggestion]) -> str:
+    def _summary(metrics: list[MetricScore], coaching: list[CoachingSuggestion], safety_flags: list[str]) -> str:
         """A spoken-friendly coaching takeaway for the learner."""
         strong = [item.metric for item in metrics if item.score == item.max_score]
         pieces: list[str] = []
+        if safety_flags:
+            pieces.append(f"Safety: avoid dismissing this presentation (e.g. \"{safety_flags[0]}\").")
         if strong:
             pieces.append(f"Strong: {', '.join(strong)}.")
         else:

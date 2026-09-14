@@ -5,6 +5,7 @@
   "goal": "You are the clinician. Assess a patient with acute low back pain: cover onset, quality, neurologic symptoms, and red flags.",
   "opening": "I hurt my back lifting boxes yesterday and now I can barely stand up straight.",
   "safety_terms": ["numbness", "numb", "can't feel", "bladder", "bowel control", "incontinence", "weakness", "fall", "collapse", "saddle", "unresponsive"],
+  "pitfalls": ["go home", "just a muscle", "walk it off", "nothing serious"],
   "disclosures": [
     {
       "fact_id": "onset",

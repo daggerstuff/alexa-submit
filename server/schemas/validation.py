@@ -68,6 +68,7 @@ class EvaluationResult(BaseModel):
     strengths: list[str] = Field(default_factory=list)
     improvements: list[str] = Field(default_factory=list)
     coaching: list[CoachingSuggestion] = Field(default_factory=list)
+    safety_flags: list[str] = Field(default_factory=list)
     summary: str = ""
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 

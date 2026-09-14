@@ -59,3 +59,10 @@ def test_evaluation_summary_is_spoken_coaching() -> None:
         CHEST_PAIN_BASIC,
     )
     assert "Strong: Symptom characterization" in full.summary
+
+
+def test_safety_flags_detect_dismissal() -> None:
+    evaluator = ClinicalEvaluatorAgent()
+    result = evaluator.evaluate([_turn("I would tell you to go home and rest")], CHEST_PAIN_BASIC)
+    assert "go home" in result.safety_flags
+    assert result.summary.startswith("Safety: avoid dismissing this presentation")

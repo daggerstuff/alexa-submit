@@ -44,6 +44,8 @@ class PatientPersonaAgent:
         safety_note = None
         if any(matches_term(term, text) for term in scenario.safety_terms):
             safety_note = "If this represented a real patient, follow local emergency protocols immediately."
+        elif any(matches_term(term, text) for term in scenario.pitfalls):
+            safety_note = "Reconsider: dismissing this presentation may delay needed care."
 
         return PatientResponse(
             content=content,

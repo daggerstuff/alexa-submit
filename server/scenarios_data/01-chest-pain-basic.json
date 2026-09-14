@@ -5,6 +5,7 @@
   "goal": "You are the clinician. Assess a patient with acute chest pressure: ask about location, onset, associated symptoms, medications, and safety, then confirm next steps.",
   "opening": "Hello. I have been having pressure in my chest and I am worried.",
   "safety_terms": ["collapse", "unresponsive", "severe", "can't breathe", "cannot breathe"],
+  "pitfalls": ["go home", "nothing serious", "just stress", "just anxiety", "just heartburn", "sleep it off", "take it easy"],
   "disclosures": [
     {
       "fact_id": "chest-pressure",
