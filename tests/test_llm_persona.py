@@ -136,3 +136,48 @@ def test_llm_retries_without_json_mode_on_failure() -> None:
     assert calls[0]["response_format"] == {"type": "json_object"}
     assert "response_format" not in calls[1]
     assert "chest" in response.content.lower()
+
+
+def test_llm_rejects_claimed_disallowed_fact() -> None:
+    agent = LLMPersonaAgent()
+    agent.base_url = "http://fake"
+    agent.api_key = "fake"
+
+    # Practitioner asks about pain only; the model claims a fact it may not disclose.
+    llm_output = (
+        '{"content": "It hurts in my chest.", "emotional_state": "anxious", '
+        '"disclosed_facts": ["chest-pressure", "history-medications"]}'
+    )
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+
+    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+        state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
+        response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
+
+    assert "chest-pressure" in response.disclosed_facts
+    assert "history-medications" not in response.disclosed_facts
+
+
+def test_llm_rejects_disallowed_content_leak() -> None:
+    agent = LLMPersonaAgent()
+    agent.base_url = "http://fake"
+    agent.api_key = "fake"
+
+    # Metadata is honest, but the prose repeats a disallowed disclosure verbatim.
+    llm_output = (
+        '{"content": "It hurts, and I take a blood-pressure medicine. I have high blood pressure, '
+        'but no known medication allergies.", "emotional_state": "anxious", '
+        '"disclosed_facts": ["chest-pressure"]}'
+    )
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+
+    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+        state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
+        response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
+
+    assert "chest-pressure" in response.disclosed_facts
+    assert "blood-pressure" not in response.content.lower()

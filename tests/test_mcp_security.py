@@ -68,8 +68,16 @@ def test_rate_limit_disabled_by_default() -> None:
         assert _initialize(client).status_code == 200
 
 
-def test_rate_limit_uses_rightmost_forwarded_hop() -> None:
+def test_rate_limit_ignores_spoofed_xff_by_default() -> None:
+    # Without MCP_TRUST_PROXY, X-Forwarded-For is ignored and the direct peer is
+    # used, so spoofing XFF cannot rotate past the rate limit.
     with _secured_client(max_requests=1, window_seconds=60) as client:
+        assert _initialize(client, **{"x-forwarded-for": "1.1.1.1"}).status_code == 200
+        assert _initialize(client, **{"x-forwarded-for": "9.9.9.9"}).status_code == 429
+
+
+def test_rate_limit_uses_rightmost_forwarded_hop_when_trusted() -> None:
+    with _secured_client(max_requests=1, window_seconds=60, trust_proxy=True) as client:
         assert _initialize(client, **{"x-forwarded-for": "1.1.1.1, 2.2.2.2"}).status_code == 200
         # Same rightmost hop, different (spoofable) first hop -> still rate-limited.
         assert _initialize(client, **{"x-forwarded-for": "9.9.9.9, 2.2.2.2"}).status_code == 429

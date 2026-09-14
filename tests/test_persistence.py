@@ -72,3 +72,51 @@ def test_store_only_expired_rows_are_swept(tmp_path, monkeypatch) -> None:
     second.get_or_create(SimulationRequest(session_id="new", action=SimulationAction.start))
     assert second.store.get("old") is None  # swept even though never loaded into memory
     second.store.close()
+
+
+def test_processed_events_cache_is_bounded(monkeypatch) -> None:
+    monkeypatch.setattr("server.main._MAX_PROCESSED_EVENTS", 3)
+    orch = SimulationOrchestrator()
+    orch.handle(SimulationRequest(session_id="s1", action=SimulationAction.start))
+    for i in range(5):
+        orch.handle(
+            SimulationRequest(
+                session_id="s1",
+                action=SimulationAction.message,
+                practitioner_message=f"Where is the pain {i}?",
+                client_event_id=f"evt-{i}",
+            )
+        )
+    session = orch.sessions["s1"]
+    assert len(session.processed_events) == 3
+    assert "evt-0" not in session.processed_events
+    assert "evt-4" in session.processed_events
+
+
+def test_version_mismatch_drops_persisted_session(tmp_path) -> None:
+    import json
+    import sqlite3
+
+    db = str(tmp_path / "sessions.db")
+    first = SimulationOrchestrator(db_path=db)
+    first.handle(SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic"))
+    first.handle(
+        SimulationRequest(session_id="s1", action=SimulationAction.message, practitioner_message="Where is the pain?")
+    )
+    first.store.close()
+
+    conn = sqlite3.connect(db)
+    row = conn.execute("SELECT patient_state FROM sessions WHERE session_id = 's1'").fetchone()
+    state = json.loads(row[0])
+    state["scenario_version"] = "9.9.9"
+    conn.execute("UPDATE sessions SET patient_state = ? WHERE session_id = 's1'", (json.dumps(state),))
+    conn.commit()
+    conn.close()
+
+    second = SimulationOrchestrator(db_path=db)
+    resp = second.handle(SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic"))
+    session = second.sessions["s1"]
+    assert resp.status == "active"
+    assert session.patient_state.turn_count == 0
+    assert len(session.transcript) == 1  # fresh opening turn, not the stale 3-turn transcript
+    second.store.close()

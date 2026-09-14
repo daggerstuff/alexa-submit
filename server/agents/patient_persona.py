@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from server.scenarios import ScenarioDefinition
+from server.scenarios import ScenarioDefinition, matches_term
 from server.schemas.validation import PatientResponse
 
 
@@ -26,9 +26,9 @@ class PatientPersonaAgent:
     ) -> PatientResponse:
         text = practitioner_message.lower()
 
-        matched = [rule for rule in scenario.disclosures if any(term in text for term in rule.trigger_terms)]
+        matched = [rule for rule in scenario.disclosures if any(matches_term(term, text) for term in rule.trigger_terms)]
 
-        if not matched and any(term in text for term in ("emergency", "911", "urgent", "help")):
+        if not matched and any(matches_term(term, text) for term in ("emergency", "911", "urgent", "help")):
             content = "The pain is still there. I am scared—what should we do next?"
             emotion = "distressed"
         elif not matched:
@@ -42,7 +42,7 @@ class PatientPersonaAgent:
 
         state.last_emotional_state = emotion
         safety_note = None
-        if any(term in text for term in scenario.safety_terms):
+        if any(matches_term(term, text) for term in scenario.safety_terms):
             safety_note = "If this represented a real patient, follow local emergency protocols immediately."
 
         return PatientResponse(

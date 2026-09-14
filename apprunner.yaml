@@ -21,6 +21,10 @@ run:
       value: "<service-host>,<service-host>:*"
     - name: MCP_ALLOWED_ORIGINS
       value: http://127.0.0.1:*,http://localhost:*
+    # App Runner terminates TLS at its load balancer and appends the real client
+    # IP as the rightmost X-Forwarded-For hop; trust it for rate limiting.
+    - name: MCP_TRUST_PROXY
+      value: "true"
     - name: MCP_API_KEY
       value: "" # Set a strong secret for public deployments; deploy_aws.sh injects $MCP_API_KEY.
     - name: MCP_RATE_LIMIT_REQUESTS

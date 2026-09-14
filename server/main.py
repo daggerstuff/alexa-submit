@@ -33,6 +33,12 @@ if not logger.handlers:
     logger.addHandler(_handler)
 logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
+# Bound the per-session idempotency cache so memory grows linearly with session
+# length, not quadratically. Each cached response snapshots the transcript at
+# that point; keeping only the most recent events caps the duplicate transcript
+# copies while still covering realistic retries (which arrive within seconds).
+_MAX_PROCESSED_EVENTS = 64
+
 
 @dataclass
 class Session:
@@ -79,10 +85,16 @@ def _session_to_record(session: Session) -> dict[str, Any]:
 
 def _record_to_session(record: dict[str, Any]) -> Session:
     scenario = get_scenario(record["scenario_id"])
+    patient_state = _state_from_dict(record["patient_state"])
+    if patient_state.scenario_version != scenario.version:
+        raise ValueError(
+            f"Persisted session scenario version {patient_state.scenario_version} does not match "
+            f"loaded version {scenario.version}; refusing to continue under a different rubric"
+        )
     return Session(
         session_id=record["session_id"],
         scenario=scenario,
-        patient_state=_state_from_dict(record["patient_state"]),
+        patient_state=patient_state,
         transcript=[TranscriptTurn.model_validate(turn) for turn in record["transcript"]],
         processed_events={
             key: SimulationResponse.model_validate(value) for key, value in record["processed_events"].items()
@@ -295,6 +307,8 @@ class SimulationOrchestrator:
 
         if request.client_event_id:
             session.processed_events[request.client_event_id] = response
+            while len(session.processed_events) > _MAX_PROCESSED_EVENTS:
+                session.processed_events.pop(next(iter(session.processed_events)))
         self._persist(session)
         logger.info(
             "simulation_request session_id=%s action=%s status=%s",

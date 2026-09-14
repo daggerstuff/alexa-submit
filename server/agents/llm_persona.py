@@ -9,7 +9,7 @@ import httpx
 
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import registry
-from server.scenarios import ScenarioDefinition
+from server.scenarios import ScenarioDefinition, matches_term
 from server.schemas.validation import PatientResponse
 
 logger = logging.getLogger("alexa_clinical_sim")
@@ -74,37 +74,45 @@ class LLMPersonaAgent:
         # Enforce scenario constraints: only allow disclosure of facts whose
         # trigger terms appear in the practitioner message.
         text = practitioner_message.lower()
-        allowed_facts: set[str] = set()
-        for rule in scenario.disclosures:
-            if any(term in text for term in rule.trigger_terms):
-                allowed_facts.add(rule.fact_id)
+        allowed_facts = {
+            rule.fact_id
+            for rule in scenario.disclosures
+            if any(matches_term(term, text) for term in rule.trigger_terms)
+        }
 
         raw_disclosed = parsed.get("disclosed_facts", [])
         if not isinstance(raw_disclosed, list):
             raw_disclosed = []
-        disclosed = {fact for fact in raw_disclosed if isinstance(fact, str)}
-        # Drop any facts the model claims to have disclosed but the scenario
-        # doesn't permit for this utterance. Keep previously disclosed facts.
-        disclosed = (disclosed & allowed_facts) | state.disclosed_facts
-        state.disclosed_facts = disclosed
+        claimed = {fact for fact in raw_disclosed if isinstance(fact, str)}
+
+        content = parsed.get("content", "I am not sure what to say.")
+        if not isinstance(content, str) or not content.strip():
+            content = "I am not sure what to say."
+
+        # If the model claimed or repeated a fact the scenario does not permit
+        # for this utterance, reject the whole response and use the deterministic
+        # persona, which is the authority on what may be disclosed.
+        permitted = allowed_facts | state.disclosed_facts
+        if (claimed - permitted) or self._leaked(content, scenario, permitted):
+            logger.warning("LLM persona violated disclosure constraints; falling back to deterministic")
+            registry.incr("llm_leak_fallbacks_total")
+            return self.fallback.respond(state, scenario, practitioner_message)
+
+        state.disclosed_facts = (claimed & allowed_facts) | state.disclosed_facts
 
         emotion = parsed.get("emotional_state", state.last_emotional_state)
         if not isinstance(emotion, str) or not emotion.strip():
             emotion = state.last_emotional_state
         state.last_emotional_state = emotion
 
-        content = parsed.get("content", "I am not sure what to say.")
-        if not isinstance(content, str) or not content.strip():
-            content = "I am not sure what to say."
-
         safety_note = None
-        if any(term in text for term in scenario.safety_terms):
+        if any(matches_term(term, text) for term in scenario.safety_terms):
             safety_note = "If this represented a real patient, follow local emergency protocols immediately."
 
         return PatientResponse(
             content=content,
             emotional_state=emotion,
-            disclosed_facts=sorted(disclosed),
+            disclosed_facts=sorted(state.disclosed_facts),
             safety_note=safety_note,
             scenario_id=scenario.scenario_id,
             scenario_version=scenario.version,
@@ -162,6 +170,19 @@ class LLMPersonaAgent:
             f"Return JSON only:\n"
             f'{{"content": "...", "emotional_state": "...", "disclosed_facts": ["fact-id", ...]}}'
         )
+
+    @staticmethod
+    def _leaked(content: str, scenario: ScenarioDefinition, permitted: set[str]) -> bool:
+        """Detect a disallowed disclosure repeated verbatim in the model's prose."""
+        text = content.lower()
+        for rule in scenario.disclosures:
+            if rule.fact_id in permitted:
+                continue
+            words = [w for w in rule.response.lower().split() if w]
+            for i in range(len(words) - 3):
+                if " ".join(words[i : i + 4]) in text:
+                    return True
+        return False
 
     @staticmethod
     def _parse_response(raw: str) -> dict[str, Any]:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from functools import cache
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,6 +10,23 @@ from pydantic import BaseModel, ConfigDict, Field
 # non-engineers can author and version them independently of code. Files are
 # loaded in filename order; the numeric prefix controls listing order.
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios_data"
+
+
+@cache
+def _term_pattern(term: str) -> re.Pattern[str]:
+    """Compile a trigger term into a word-start prefix regex.
+
+    Each whitespace-separated word must begin at a word boundary and the final
+    word may be a prefix, so 'medication' matches 'medications' while 'eat' does
+    not match inside 'breath'. Multi-word terms must be adjacent words.
+    """
+    words = term.split()
+    return re.compile(r"\s+".join(rf"\b{re.escape(word)}" for word in words), re.IGNORECASE)
+
+
+def matches_term(term: str, text: str) -> bool:
+    """Return True if `term` matches `text` as a word-start prefix sequence."""
+    return _term_pattern(term).search(text) is not None
 
 
 class DisclosureRule(BaseModel):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from server.scenarios import ScenarioDefinition
+from server.scenarios import ScenarioDefinition, matches_term
 from server.schemas.validation import CoachingSuggestion, EvaluationResult, MetricScore, Role, TranscriptTurn
 
 
@@ -14,15 +14,18 @@ class ClinicalEvaluatorAgent:
 
     def evaluate(self, transcript: list[TranscriptTurn], scenario: ScenarioDefinition) -> EvaluationResult:
         practitioner_turns = [t for t in transcript if t.role == Role.practitioner]
-        joined = " ".join(turn.content.lower() for turn in practitioner_turns)
         metrics: list[MetricScore] = []
         coaching: list[CoachingSuggestion] = []
         for definition in scenario.metrics:
-            matched_terms = [term for term in definition.trigger_terms if term in joined]
+            matched_terms = [
+                term
+                for term in definition.trigger_terms
+                if any(matches_term(term, turn.content.lower()) for turn in practitioner_turns)
+            ]
             evidence = [
                 turn.content
                 for turn in practitioner_turns
-                if any(term in turn.content.lower() for term in definition.trigger_terms)
+                if any(matches_term(term, turn.content.lower()) for term in definition.trigger_terms)
             ]
             score = self._grade(len(matched_terms), definition.max_score)
             metrics.append(

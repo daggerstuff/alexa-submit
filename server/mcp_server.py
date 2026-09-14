@@ -5,12 +5,13 @@ import os
 import threading
 import time
 from secrets import compare_digest
-from typing import Any
+from typing import Annotated, Any
 from uuid import uuid4
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -20,7 +21,7 @@ from server._version import __version__
 from server.main import orchestrator
 from server.observability import registry, render_prometheus, request_id_var
 from server.scenarios import SCENARIOS
-from server.schemas.validation import SimulationAction, SimulationRequest
+from server.schemas.validation import SimulationAction, SimulationRequest, SimulationResponse
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -39,44 +40,69 @@ mcp = MCPServer(
 )
 
 
-def _serialize(response: Any) -> dict[str, Any]:
-    if hasattr(response, "model_dump"):
-        return response.model_dump(mode="json")
-    return response
-
-
-def _handle(request: SimulationRequest) -> dict[str, Any]:
+def _handle(request: SimulationRequest) -> SimulationResponse:
     """Run an orchestrator request, surfacing anticipated domain errors to the client."""
     try:
-        return _serialize(orchestrator.handle(request))
+        return orchestrator.handle(request)
     except HTTPException as exc:
         raise ToolError(str(exc.detail)) from exc
+
+
+class ScenarioListItem(BaseModel):
+    scenario_id: str
+    version: str
+    title: str
+    metric_ids: list[str]
+
+
+class ScenarioListResult(BaseModel):
+    scenarios: list[ScenarioListItem]
+    disclaimer: str
+
+
+class SessionListItem(BaseModel):
+    session_id: str
+    scenario_id: str
+    status: str
+    turn_count: int
+
+
+class SessionListResult(BaseModel):
+    sessions: list[SessionListItem]
+
+
+class DeleteSessionResult(BaseModel):
+    status: str
+    session_id: str
 
 
 @mcp.tool(
     description="List the available educational simulation scenarios and their rubric versions.",
     structured_output=True,
 )
-def list_simulation_scenarios() -> dict[str, Any]:
-    return {
-        "scenarios": [
-            {
-                "scenario_id": scenario.scenario_id,
-                "version": scenario.version,
-                "title": scenario.title,
-                "metric_ids": [metric.metric_id for metric in scenario.metrics],
-            }
+def list_simulation_scenarios() -> ScenarioListResult:
+    return ScenarioListResult(
+        scenarios=[
+            ScenarioListItem(
+                scenario_id=scenario.scenario_id,
+                version=scenario.version,
+                title=scenario.title,
+                metric_ids=[metric.metric_id for metric in scenario.metrics],
+            )
             for scenario in SCENARIOS.values()
         ],
-        "disclaimer": "Educational simulation only; do not use for real patient care.",
-    }
+        disclaimer="Educational simulation only; do not use for real patient care.",
+    )
 
 
 @mcp.tool(
     description="Start an educational patient communication simulation session.",
     structured_output=True,
 )
-def start_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> dict[str, Any]:
+def start_simulation(
+    session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
+    scenario_id: Annotated[str, Field(description="Scenario id to start; defaults to chest-pain-basic.", max_length=128)] = "chest-pain-basic",
+) -> SimulationResponse:
     return _handle(
         SimulationRequest(
             session_id=session_id,
@@ -91,11 +117,11 @@ def start_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> 
     structured_output=True,
 )
 def send_practitioner_turn(
-    session_id: str,
-    practitioner_message: str,
-    client_event_id: str | None = None,
-    scenario_id: str | None = None,
-) -> dict[str, Any]:
+    session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
+    practitioner_message: Annotated[str, Field(description="The learner's next utterance.", max_length=4000)],
+    client_event_id: Annotated[str | None, Field(description="Idempotency key; a retried key is not reprocessed.", max_length=128)] = None,
+    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+) -> SimulationResponse:
     return _handle(
         SimulationRequest(
             session_id=session_id,
@@ -111,7 +137,10 @@ def send_practitioner_turn(
     description="Evaluate the current session using the active scenario's versioned rubric.",
     structured_output=True,
 )
-def evaluate_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
+def evaluate_simulation(
+    session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
+    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+) -> SimulationResponse:
     return _handle(
         SimulationRequest(
             session_id=session_id,
@@ -125,7 +154,10 @@ def evaluate_simulation(session_id: str, scenario_id: str | None = None) -> dict
     description="End a simulation and return its final evidence-linked evaluation.",
     structured_output=True,
 )
-def end_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
+def end_simulation(
+    session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
+    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+) -> SimulationResponse:
     return _handle(SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.end))
 
 
@@ -138,16 +170,18 @@ if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):
         ),
         structured_output=True,
     )
-    def list_sessions() -> dict[str, Any]:
-        return {"sessions": orchestrator.list_sessions()}
+    def list_sessions() -> SessionListResult:
+        return SessionListResult(sessions=[SessionListItem(**item) for item in orchestrator.list_sessions()])
 
     @mcp.tool(
         description="Delete a simulation session. Registered only when MCP_EXPOSE_SESSION_TOOLS is enabled.",
         structured_output=True,
     )
-    def delete_session(session_id: str) -> dict[str, Any]:
+    def delete_session(
+        session_id: Annotated[str, Field(description="Session identifier to delete.", max_length=128)],
+    ) -> DeleteSessionResult:
         removed = orchestrator.remove_session(session_id)
-        return {"status": "deleted" if removed else "not_found", "session_id": session_id}
+        return DeleteSessionResult(status="deleted" if removed else "not_found", session_id=session_id)
 
 
 class RateLimiter:
@@ -189,10 +223,11 @@ class RateLimiter:
 class SecurityMiddleware(BaseHTTPMiddleware):
     """Gate the MCP endpoint with an optional API key and an optional rate limit."""
 
-    def __init__(self, app: Any, api_key: str, limiter: RateLimiter | None) -> None:
+    def __init__(self, app: Any, api_key: str, limiter: RateLimiter | None, trust_proxy: bool = False) -> None:
         super().__init__(app)
         self.api_key = api_key
         self.limiter = limiter
+        self.trust_proxy = trust_proxy
 
     async def dispatch(self, request: Request, call_next: Any) -> Any:
         request_id = request.headers.get("x-request-id") or uuid4().hex
@@ -207,7 +242,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 if not compare_digest(bearer.encode(), key) and not compare_digest(header_key.encode(), key):
                     return self._reject(401, "unauthorized", request_id)
 
-            if self.limiter is not None and not self.limiter.allow(_client_ip(request)):
+            if self.limiter is not None and not self.limiter.allow(_client_ip(request, self.trust_proxy)):
                 return self._reject(429, "rate limit exceeded", request_id)
 
             response = await call_next(request)
@@ -217,7 +252,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 request.method,
                 request.url.path,
                 response.status_code,
-                _client_ip(request),
+                _client_ip(request, self.trust_proxy),
             )
             return response
         finally:
@@ -230,17 +265,19 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def _client_ip(request: Request) -> str:
-    """Return the client address, trusting only the rightmost X-Forwarded-For hop.
+def _client_ip(request: Request, trust_proxy: bool) -> str:
+    """Return the client address for rate limiting.
 
-    Behind App Runner's load balancer, the last XFF entry is the address the
-    proxy recorded for the client; earlier entries may be client-supplied and
-    spoofable, so they are ignored.
+    Only consult X-Forwarded-For when MCP_TRUST_PROXY is enabled (the server is
+    behind a trusted proxy such as App Runner that appends the real client IP as
+    the rightmost hop). Otherwise use the direct peer so a client cannot spoof
+    X-Forwarded-For to rotate past the rate limit.
     """
-    forwarded = request.headers.get("x-forwarded-for", "")
-    hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
-    if hops:
-        return hops[-1]
+    if trust_proxy:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+        if hops:
+            return hops[-1]
     return request.client.host if request.client is not None else "unknown"
 
 
@@ -295,6 +332,7 @@ def create_app(
     window_seconds: float | None = None,
     allowed_hosts: str | None = None,
     allowed_origins: str | None = None,
+    trust_proxy: bool | None = None,
 ) -> Any:
     """Build the Streamable HTTP app wrapped with auth and rate-limiting middleware."""
     host = os.getenv("MCP_HOST", "127.0.0.1")
@@ -318,8 +356,11 @@ def create_app(
         transport_security=_transport_security(hosts, origins),
     )
 
+    trust_proxy = (
+        os.getenv("MCP_TRUST_PROXY", "").lower() in ("1", "true", "yes") if trust_proxy is None else trust_proxy
+    )
     limiter = RateLimiter(limit, window) if limit > 0 else None
-    app.add_middleware(SecurityMiddleware, api_key=key, limiter=limiter)
+    app.add_middleware(SecurityMiddleware, api_key=key, limiter=limiter, trust_proxy=trust_proxy)
     return _with_observability(app)
 
 

@@ -87,6 +87,7 @@ config = {
                 "MCP_HOST": "0.0.0.0",
                 "MCP_ALLOWED_HOSTS": allowed_hosts,
                 "MCP_ALLOWED_ORIGINS": allowed_origins,
+                "MCP_TRUST_PROXY": "true",
                 "MCP_API_KEY": api_key,
                 "MCP_RATE_LIMIT_REQUESTS": rate_limit,
                 "MCP_RATE_LIMIT_WINDOW_SECONDS": rate_window,
