@@ -62,6 +62,7 @@ class ScenarioDefinition(BaseModel):
     version: str
     title: str
     opening: str
+    goal: str = ""
     disclosures: tuple[DisclosureRule, ...]
     metrics: tuple[MetricDefinition, ...]
     safety_terms: tuple[str, ...]

@@ -243,6 +243,7 @@ class SimulationOrchestrator:
             session_id=session.session_id,
             scenario_id=session.scenario.scenario_id,
             scenario_version=session.scenario.version,
+            goal=session.scenario.goal,
             action=request.action.value,
             transcript=session.transcript,
             status=session.status,

@@ -46,3 +46,16 @@ def test_coaching_suggestions_only_for_unmet_metrics() -> None:
         CHEST_PAIN_BASIC,
     )
     assert "symptoms" not in {c.metric_id for c in full.coaching}  # max score -> no coaching
+
+
+def test_evaluation_summary_is_spoken_coaching() -> None:
+    evaluator = ClinicalEvaluatorAgent()
+    empty = evaluator.evaluate([_turn("Hello.")], CHEST_PAIN_BASIC)
+    assert empty.summary.startswith("No dimension is fully demonstrated yet.")
+    assert "Introduce yourself and ask permission" in empty.summary
+
+    full = evaluator.evaluate(
+        [_turn("Where is the pain, when did it start, and how severe is it on a scale?")],
+        CHEST_PAIN_BASIC,
+    )
+    assert "Strong: Symptom characterization" in full.summary

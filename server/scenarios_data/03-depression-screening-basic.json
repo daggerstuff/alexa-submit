@@ -2,6 +2,7 @@
   "scenario_id": "depression-screening-basic",
   "version": "1.0.0",
   "title": "Adult with low mood and fatigue",
+  "goal": "You are the clinician. Screen a patient with low mood and fatigue: cover mood, sleep, appetite, safety, and support.",
   "opening": "I have just been feeling really tired and down lately. I do not know what is wrong with me.",
   "safety_terms": ["kill", "suicide", "end it", "hurt myself", "not worth", "die", "death", "plan"],
   "disclosures": [

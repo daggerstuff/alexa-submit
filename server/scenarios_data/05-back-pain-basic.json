@@ -2,6 +2,7 @@
   "scenario_id": "back-pain-basic",
   "version": "1.0.0",
   "title": "Adult with acute low back pain",
+  "goal": "You are the clinician. Assess a patient with acute low back pain: cover onset, quality, neurologic symptoms, and red flags.",
   "opening": "I hurt my back lifting boxes yesterday and now I can barely stand up straight.",
   "safety_terms": ["numbness", "numb", "can't feel", "bladder", "bowel control", "incontinence", "weakness", "fall", "collapse", "saddle", "unresponsive"],
   "disclosures": [

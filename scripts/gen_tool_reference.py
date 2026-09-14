@@ -17,6 +17,15 @@ def _type_str(schema: dict[str, Any]) -> str:
     return str(schema.get("type", "object"))
 
 
+def _constraints(prop: dict[str, Any]) -> str:
+    limits = []
+    if prop.get("maxLength") is not None:
+        limits.append(f"maxLength={prop['maxLength']}")
+    if prop.get("minLength") is not None:
+        limits.append(f"minLength={prop['minLength']}")
+    return ", ".join(limits)
+
+
 async def _render() -> str:
     tools = await mcp.list_tools()
     lines: list[str] = [
@@ -35,16 +44,23 @@ async def _render() -> str:
         lines.append(tool.description)
         lines.append("")
         if properties:
-            lines.append("| Parameter | Type | Required | Default |")
-            lines.append("| --- | --- | --- | --- |")
+            lines.append("| Parameter | Type | Required | Default | Description |")
+            lines.append("| --- | --- | --- | --- | --- |")
             for name, prop in properties.items():
                 typ = _type_str(prop)
+                constraints = _constraints(prop)
+                if constraints:
+                    typ += f" ({constraints})"
                 req = "yes" if name in required else "no"
                 default = prop.get("default")
                 default_str = "—" if default is None else f"`{default}`"
-                lines.append(f"| `{name}` | {typ} | {req} | {default_str} |")
+                lines.append(f"| `{name}` | {typ} | {req} | {default_str} | {prop.get('description', '')} |")
         else:
             lines.append("No input parameters.")
+        lines.append("")
+        out = tool.output_schema or {}
+        title = out.get("title", out.get("type", "object"))
+        lines.append(f"Output: structured `{title}`.")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 

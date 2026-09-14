@@ -68,6 +68,7 @@ class EvaluationResult(BaseModel):
     strengths: list[str] = Field(default_factory=list)
     improvements: list[str] = Field(default_factory=list)
     coaching: list[CoachingSuggestion] = Field(default_factory=list)
+    summary: str = ""
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 
 
@@ -76,6 +77,7 @@ class SimulationResponse(BaseModel):
     session_id: str
     scenario_id: str
     scenario_version: str
+    goal: str = ""
     action: str
     patient: PatientResponse | None = None
     evaluation: EvaluationResult | None = None

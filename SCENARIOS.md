@@ -21,9 +21,11 @@ first** (tests and the demo depend on it).
 
 ### Disclosure rule
 
-A patient fact is disclosed only when one of its `trigger_terms` appears as a
-substring in the practitioner's utterance (matching is case-insensitive and exact:
-`"started"` does **not** match `"start"`).
+A patient fact is disclosed only when one of its `trigger_terms` matches the
+practitioner's utterance at a word boundary. Matching is case-insensitive and
+allows a trailing suffix, so `"medication"` matches `"medications"` and
+`"radiat"` matches `"radiating"`, but `"eat"` does **not** match inside
+`"breath"` or `"treatment"`, and `"started"` does **not** match `"start"`.
 
 ```jsonc
 {
@@ -47,8 +49,9 @@ substring in the practitioner's utterance (matching is case-insensitive and exac
 }
 ```
 
-- `trigger_terms` are the substring signals the grader looks for in the joined
-  practitioner transcript.
+- `trigger_terms` are the word-start signals the grader looks for across the
+  practitioner's individual turns (multi-word terms must appear within a single
+  turn).
 - `max_score` defaults to 4.
 - `coaching_hint` (optional) is the concrete next-step suggestion returned in the
   evaluation's `coaching` list when the metric is not fully demonstrated.

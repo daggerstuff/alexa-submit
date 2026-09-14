@@ -60,6 +60,7 @@ class ClinicalEvaluatorAgent:
             strengths=strengths,
             improvements=improvements,
             coaching=coaching,
+            summary=self._summary(metrics, coaching),
         )
 
     @staticmethod
@@ -67,6 +68,19 @@ class ClinicalEvaluatorAgent:
         if distinct_matches == 0:
             return 1
         return min(max_score, distinct_matches + 1)
+
+    @staticmethod
+    def _summary(metrics: list[MetricScore], coaching: list[CoachingSuggestion]) -> str:
+        """A spoken-friendly coaching takeaway for the learner."""
+        strong = [item.metric for item in metrics if item.score == item.max_score]
+        pieces: list[str] = []
+        if strong:
+            pieces.append(f"Strong: {', '.join(strong)}.")
+        else:
+            pieces.append("No dimension is fully demonstrated yet.")
+        if coaching:
+            pieces.append(f"Next: {coaching[0].suggestion}")
+        return " ".join(pieces)
 
     @staticmethod
     def _rationale(base: str, distinct_matches: int, score: int, max_score: int) -> str:
