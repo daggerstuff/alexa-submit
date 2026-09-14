@@ -27,7 +27,7 @@ The pitch is designed around the official Alexa+ judging dimensions: **technical
 | 1:30–1:55 | 4 | Prove stateful, constrained patient behavior | Progressive disclosure and preserved patient state |
 | 1:55–2:20 | 5 | Prove explainable evaluation | Metric scores with transcript evidence |
 | 2:20–2:45 | 6 | Explain trust and reliability | Versioning, idempotency, session locking, disclaimer |
-| 2:45–3:00 | 7 | Close on impact and next step | Target users, hackathon fit, and product feedback |
+| 2:45–3:00 | 7 | Close on impact and next step | Target users, difficulty progression, hackathon fit, and product feedback |
 
 ---
 
@@ -143,7 +143,7 @@ Alexa+ agent
 
 **Speaker script — 25 seconds:**
 
-“The evaluator is designed for explanation. Every metric has a stable ID, a score, a maximum, a rationale, and the exact trigger terms the learner matched. In this example, symptom characterization earns partial credit for `where` and `when`, associated symptoms and risk earns partial credit for `breath`, and the untouched dimensions stay at the floor. The result is actionable: it tells the learner what to practice next and shows why the system reached that conclusion.”
+“The evaluator is designed for explanation. Every metric has a stable ID, a score, a maximum, a rationale, and the exact trigger terms the learner matched. In this example, symptom characterization earns partial credit for `where` and `when`, associated symptoms and risk earns partial credit for `breath`, and the untouched dimensions stay at the floor. The evaluation also returns a spoken `summary` the agent reads aloud — the concrete next question — so feedback is a coaching sentence, not just a table.”
 
 **Demo cue:** Show the `evaluate_simulation` response with `rubric_version`, metric IDs, evidence excerpts, strengths, and improvements.
 
@@ -160,11 +160,12 @@ Alexa+ agent
 - Scenario locking prevents rubric mismatch.
 - Idempotent event IDs prevent duplicate turns.
 - Ended sessions reject further messages.
+- Dismissal pitfalls (e.g. "go home") trigger a reconsideration note.
 - Local MCP binding by default; production requires HTTPS, origin validation, and authentication.
 
 **Speaker script — 25 seconds:**
 
-“This is an educational simulator, not a clinical decision-maker, and the runtime makes that boundary visible. Responses carry an educational disclaimer. A session cannot silently switch scenarios or be evaluated against the wrong rubric version. Retry-safe event IDs prevent duplicate turns, and an ended session is locked. The local MCP server binds to localhost by default. Before public hosting, we add HTTPS, origin validation, authentication, rate limiting, and protected durable storage, following the Streamable HTTP security guidance.”
+“This is an educational simulator, not a clinical decision-maker, and the runtime makes that boundary visible. Responses carry an educational disclaimer. A session cannot silently switch scenarios or be evaluated against the wrong rubric version. Retry-safe event IDs prevent duplicate turns, and an ended session is locked. A separate safety layer catches when the learner dismisses a red-flag presentation — telling the patient to go home — and coaches them to reconsider. The local server binds to localhost by default, and the public App Runner deployment adds HTTPS, API-key authentication, rate limiting, and durable storage, following the Streamable HTTP security guidance.”
 
 **Judging connection:** Tech implementation and product maturity.
 
@@ -175,7 +176,7 @@ Alexa+ agent
 **Slide content:**
 
 **For:** Clinical learners, simulation programs, and communication-skills educators  
-**Now:** One working scenario, one MCP workflow, evidence-linked feedback  
+**Now:** Seven scenarios across basic and advanced difficulty, one MCP workflow, evidence-linked feedback  
 **Next:** Educator-authored scenarios, rubric libraries, cohort reporting, and optional constrained model augmentation
 
 **Speaker script — 15 seconds:**
@@ -198,11 +199,13 @@ Before recording, verify that the video visibly demonstrates the project functio
 | Tool discovery | All five simulation tools are visible to the MCP client |
 | Scenario selection | The client calls `list_simulation_scenarios` |
 | Session start | The patient opening response is returned |
+| Learner goal | The agent speaks the scenario's learner-facing `goal` before the opening line |
 | Practitioner turn | A spoken or typed learner turn produces a patient response |
 | State continuity | A follow-up question reveals another scenario-approved fact |
-| Evaluation | The result includes metric IDs, evidence, rationale, and rubric version |
+| Evaluation | The result includes metric IDs, evidence, rationale, a spoken `summary`, and rubric version |
 | Retry behavior | Reusing a client event ID does not create a duplicate turn |
 | Safety boundary | The disclaimer is visible or spoken |
+| Dismissal note | Saying "go home and rest" returns a reconsideration `safety_note` and a `safety_flags` entry |
 | Ending | `end_simulation` returns the evaluation and locks the session |
 
 ## Submission compliance notes
