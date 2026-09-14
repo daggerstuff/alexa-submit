@@ -1,3 +1,6 @@
+# Reference source-configuration file. scripts/deploy_aws.sh is authoritative for
+# the live deployment — it builds the source configuration inline and auto-pins
+# MCP_ALLOWED_HOSTS to the service URL. Keep this file in sync as a template.
 version: 1.0
 runtime: docker
 build:
@@ -38,6 +41,8 @@ run:
       value: https://api.featherless.ai/v1
     - name: INFERENCE_MODEL
       value: Qwen/Qwen2.5-14B-Instruct
+    - name: INFERENCE_TIMEOUT
+      value: "15"
     - name: INFERENCE_API_KEY
       value: "" # deploy_aws.sh injects $INFERENCE_API_KEY.
   port: 8001

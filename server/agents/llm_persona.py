@@ -27,7 +27,7 @@ class LLMPersonaAgent:
     def __init__(self) -> None:
         self.base_url = os.getenv("INFERENCE_BASE_URL", "")
         self.api_key = os.getenv("INFERENCE_API_KEY", "")
-        self.model = os.getenv("INFERENCE_MODEL", "gpt-4o-mini")
+        self.model = os.getenv("INFERENCE_MODEL", "Qwen/Qwen2.5-14B-Instruct")
         self.fallback = PatientPersonaAgent()
         self.timeout = float(os.getenv("INFERENCE_TIMEOUT", "15"))
 

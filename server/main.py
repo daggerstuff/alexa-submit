@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -97,6 +98,7 @@ def _record_to_session(record: dict[str, Any]) -> Session:
 class SimulationOrchestrator:
     def __init__(self, db_path: str | None = None) -> None:
         self.sessions: dict[str, Session] = {}
+        self._lock = threading.RLock()
         self.session_ttl = float(os.getenv("SESSION_TTL_SECONDS", "1800"))
         self.max_sessions = int(os.getenv("SESSION_MAX_SESSIONS", "1000"))
         path = db_path if db_path is not None else os.getenv("SESSION_DB_PATH", "")
@@ -148,6 +150,10 @@ class SimulationOrchestrator:
             self.store.delete(session_id)
 
     def remove_session(self, session_id: str) -> bool:
+        with self._lock:
+            return self._remove_session_locked(session_id)
+
+    def _remove_session_locked(self, session_id: str) -> bool:
         present = session_id in self.sessions
         if not present and self.store is not None:
             present = self.store.get(session_id) is not None
@@ -155,6 +161,10 @@ class SimulationOrchestrator:
         return present
 
     def get_or_create(self, request: SimulationRequest) -> Session:
+        with self._lock:
+            return self._get_or_create_locked(request)
+
+    def _get_or_create_locked(self, request: SimulationRequest) -> Session:
         session = self.sessions.get(request.session_id)
         if session is not None and self._is_expired(session):
             self._delete_session(request.session_id)
@@ -203,6 +213,10 @@ class SimulationOrchestrator:
         )
 
     def handle(self, request: SimulationRequest) -> SimulationResponse:
+        with self._lock:
+            return self._handle_locked(request)
+
+    def _handle_locked(self, request: SimulationRequest) -> SimulationResponse:
         session = self.get_or_create(request)
         if request.client_event_id and request.client_event_id in session.processed_events:
             return session.processed_events[request.client_event_id]
@@ -290,7 +304,7 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
 def health() -> dict[str, Any]:
     return {
         "status": "ok",
-        "service": "alexa-clinical-sim",
+        "service": "clinical-conversation-coach",
         "active_sessions": len(orchestrator.sessions),
         "version": app.version,
     }

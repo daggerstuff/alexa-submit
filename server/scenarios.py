@@ -66,6 +66,8 @@ SCENARIOS: dict[str, ScenarioDefinition] = _load_scenarios()
 CHEST_PAIN_BASIC = SCENARIOS["chest-pain-basic"]
 ABDOMINAL_PAIN_BASIC = SCENARIOS["abdominal-pain-basic"]
 DEPRESSION_SCREENING_BASIC = SCENARIOS["depression-screening-basic"]
+MIGRAINE_BASIC = SCENARIOS["migraine-basic"]
+BACK_PAIN_BASIC = SCENARIOS["back-pain-basic"]
 
 
 def get_scenario(scenario_id: str) -> ScenarioDefinition:
