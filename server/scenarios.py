@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Scenarios and their versioned rubrics live as JSON in this directory so
 # non-engineers can author and version them independently of code. Files are
@@ -30,7 +30,7 @@ class MetricDefinition(BaseModel):
     name: str
     trigger_terms: tuple[str, ...]
     rationale: str
-    max_score: int = 4
+    max_score: int = Field(default=4, ge=1)
     coaching_hint: str | None = None
 
 

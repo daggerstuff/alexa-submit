@@ -68,7 +68,7 @@ from server.scenarios import SCENARIOS
 from server.schemas.validation import SimulationAction, SimulationRequest
 ```
 
-This gives the MCP surface the same behavior as the development REST API. The orchestrator remains responsible for scenario lookup, session lifecycle, transcript management, patient-agent calls, evaluation, idempotency, and status transitions.
+The orchestrator is the single domain entry point, shared by the MCP tools and by direct tests. It remains responsible for scenario lookup, session lifecycle, transcript management, patient-agent calls, evaluation, idempotency, and status transitions.
 
 The integration boundary should convert MCP arguments into the validated domain request:
 
@@ -220,22 +220,25 @@ There are two different session concepts:
 
 Keep these concepts separate. The MCP session controls protocol continuity. The simulation session controls the learner’s scenario. If a client reconnects and the MCP session changes, it should still provide the application `session_id` when continuing the simulation, subject to the server’s authorization policy.
 
-## 11. Start the local REST API separately
+## 11. Test the domain layer directly
 
-The REST API remains useful for deterministic development and regression testing:
+The domain layer is exercised directly through the orchestrator, independent of MCP transport:
 
-```bash
-uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload
+```python
+from server.main import orchestrator
+from server.schemas.validation import SimulationAction, SimulationRequest
+
+orchestrator.handle(SimulationRequest(session_id="demo-1", action=SimulationAction.start))
 ```
 
-Use it to test the domain layer independently from MCP transport. This gives the project two validation levels:
+This gives the project two validation levels:
 
-| Level      | Endpoint/process        | Purpose                                            |
-| ---------- | ----------------------- | -------------------------------------------------- |
-| Domain/API | FastAPI on port 8000    | Test validation, state transitions, and evaluation |
-| Protocol   | MCP server on port 8001 | Test tool discovery, JSON-RPC, and Streamable HTTP |
+| Level    | Entry point              | Purpose                                            |
+| -------- | ------------------------ | -------------------------------------------------- |
+| Domain   | `SimulationOrchestrator` | Test validation, state transitions, and evaluation |
+| Protocol | MCP server on port 8001  | Test tool discovery, JSON-RPC, and Streamable HTTP |
 
-This separation makes failures easier to diagnose. A failed REST test usually indicates domain logic. A failed MCP client test usually indicates tool registration, transport, serialization, or session negotiation.
+This separation makes failures easier to diagnose. A failed domain test usually indicates domain logic. A failed MCP client test usually indicates tool registration, transport, serialization, or session negotiation.
 
 ## 12. Add tests in three layers
 

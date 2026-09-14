@@ -17,7 +17,6 @@ See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy
 | Layer                | Responsibility                                           | Implementation                                 |
 | -------------------- | -------------------------------------------------------- | ---------------------------------------------- |
 | Alexa+/MCP transport | Expose agent-callable operations over Streamable HTTP    | `server/mcp_server.py`, `/mcp` on port 8001    |
-| Development API      | Provide easy local REST testing                          | `server/main.py`, `/mcp/simulate` on port 8000 |
 | Session              | Lifecycle, transcript, retries, and scenario consistency | `SimulationOrchestrator`                       |
 | Scenario             | Facts, disclosure rules, safety terms, and rubric        | `server/scenarios.py`                          |
 | Patient policy       | Stateful, scenario-constrained responses                 | `PatientPersonaAgent`                          |
@@ -33,13 +32,7 @@ chmod +x scripts/*.sh
 source .venv/bin/activate
 ```
 
-Start the development REST API:
-
-```bash
-uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-Start the Alexa+ MCP server in another terminal:
+Start the Alexa+ MCP server:
 
 ```bash
 ./scripts/start_mcp_server.sh
@@ -47,7 +40,7 @@ Start the Alexa+ MCP server in another terminal:
 
 The script applies localhost binding, the `/mcp` path, and local host/origin allowlists by default. You can override them with `MCP_HOST`, `MCP_PORT`, `MCP_PATH`, `MCP_ALLOWED_HOSTS`, and `MCP_ALLOWED_ORIGINS`.
 
-The MCP endpoint is `http://127.0.0.1:8001/mcp`. The development REST API is available at `http://127.0.0.1:8000`, with interactive documentation at `/docs`.
+The MCP endpoint is `http://127.0.0.1:8001/mcp`.
 
 For a hosted development demo, put the MCP endpoint behind HTTPS and an authenticated reverse proxy. Do not expose the unauthenticated local server directly to the public internet.
 
@@ -66,32 +59,6 @@ The MCP server exposes five agent-callable tools:
 These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching.
 
 See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; they are off by default because they reveal session IDs to any API-key holder.
-
-## Local REST flow
-
-Start a session:
-
-```bash
-curl -s http://127.0.0.1:8000/mcp/simulate \
-  -H 'content-type: application/json' \
-  -d '{"session_id":"demo-1","action":"start","scenario_id":"chest-pain-basic"}'
-```
-
-Send a practitioner turn. Use `client_event_id` for retry-safe behavior:
-
-```bash
-curl -s http://127.0.0.1:8000/mcp/simulate \
-  -H 'content-type: application/json' \
-  -d '{"session_id":"demo-1","action":"message","client_event_id":"turn-1","practitioner_message":"My name is Alex. Where is the pain, are you short of breath, and what medications do you take?"}'
-```
-
-Evaluate the session:
-
-```bash
-curl -s http://127.0.0.1:8000/mcp/simulate \
-  -H 'content-type: application/json' \
-  -d '{"session_id":"demo-1","action":"evaluate"}'
-```
 
 ## Scenario and evaluator model
 
@@ -125,7 +92,7 @@ The store survives worker and process restarts. App Runner redeploys replace the
 
 The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
 
-The REST API supports an optional `DEV_API_KEY` environment variable. When set, `/mcp/simulate` and session deletion require the `X-API-Key` header. CORS is restricted to local development origins. Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
+Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
 
 ## Testing
 

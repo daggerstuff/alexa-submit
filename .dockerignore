@@ -5,6 +5,8 @@ __pycache__
 *.pyc
 *.log
 .env
+.env.*
+!.env.example
 .git
 .ngrok
 .ruff_cache

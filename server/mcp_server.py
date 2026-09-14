@@ -9,7 +9,9 @@ from typing import Any
 from uuid import uuid4
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.exceptions import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse
@@ -43,6 +45,14 @@ def _serialize(response: Any) -> dict[str, Any]:
     return response
 
 
+def _handle(request: SimulationRequest) -> dict[str, Any]:
+    """Run an orchestrator request, surfacing anticipated domain errors to the client."""
+    try:
+        return _serialize(orchestrator.handle(request))
+    except HTTPException as exc:
+        raise ToolError(str(exc.detail)) from exc
+
+
 @mcp.tool(
     description="List the available educational simulation scenarios and their rubric versions.",
     structured_output=True,
@@ -67,14 +77,13 @@ def list_simulation_scenarios() -> dict[str, Any]:
     structured_output=True,
 )
 def start_simulation(session_id: str, scenario_id: str = "chest-pain-basic") -> dict[str, Any]:
-    response = orchestrator.handle(
+    return _handle(
         SimulationRequest(
             session_id=session_id,
             scenario_id=scenario_id,
             action=SimulationAction.start,
         )
     )
-    return _serialize(response)
 
 
 @mcp.tool(
@@ -87,7 +96,7 @@ def send_practitioner_turn(
     client_event_id: str | None = None,
     scenario_id: str | None = None,
 ) -> dict[str, Any]:
-    response = orchestrator.handle(
+    return _handle(
         SimulationRequest(
             session_id=session_id,
             scenario_id=scenario_id,
@@ -96,7 +105,6 @@ def send_practitioner_turn(
             client_event_id=client_event_id,
         )
     )
-    return _serialize(response)
 
 
 @mcp.tool(
@@ -104,14 +112,13 @@ def send_practitioner_turn(
     structured_output=True,
 )
 def evaluate_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
-    response = orchestrator.handle(
+    return _handle(
         SimulationRequest(
             session_id=session_id,
             scenario_id=scenario_id,
             action=SimulationAction.evaluate,
         )
     )
-    return _serialize(response)
 
 
 @mcp.tool(
@@ -119,10 +126,7 @@ def evaluate_simulation(session_id: str, scenario_id: str | None = None) -> dict
     structured_output=True,
 )
 def end_simulation(session_id: str, scenario_id: str | None = None) -> dict[str, Any]:
-    response = orchestrator.handle(
-        SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.end)
-    )
-    return _serialize(response)
+    return _handle(SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.end))
 
 
 if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):

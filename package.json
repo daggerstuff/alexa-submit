@@ -5,7 +5,7 @@
   "license": "MIT",
   "description": "Clinical Conversation Coach for Alexa+ — scenario-based clinical communication simulator as a self-hosted MCP server",
   "scripts": {
-    "start": "uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload",
+    "start": "python -m server.mcp_server",
     "test": "pytest -q",
     "lint": "ruff check server tests && ruff format --check server tests"
   }

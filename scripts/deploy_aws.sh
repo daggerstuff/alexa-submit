@@ -58,20 +58,53 @@ echo "=== Tagging and pushing image ==="
 $DOCKER tag "$REPO_NAME:$IMAGE_TAG" "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 $DOCKER push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 
-# Keep this env list in sync with apprunner.yaml (the reference template).
-source_config_for_host() {
+# Emit the App Runner SourceConfiguration JSON to stdout. Secrets are passed as
+# positional args to a Python heredoc and escaped there, so they never appear in
+# the process command line. Keep this env list in sync with apprunner.yaml.
+source_config_json() {
   local allowed_hosts="$1"
-  local api_key="${MCP_API_KEY:-}"
-  local rate_limit="${MCP_RATE_LIMIT_REQUESTS:-60}"
-  local rate_window="${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}"
-  local inference_provider="${INFERENCE_PROVIDER:-mock}"
-  local inference_base_url="${INFERENCE_BASE_URL:-}"
-  local inference_api_key="${INFERENCE_API_KEY:-}"
-  local inference_model="${INFERENCE_MODEL:-Qwen/Qwen2.5-14B-Instruct}"
-  local session_ttl="${SESSION_TTL_SECONDS:-1800}"
-  local session_max="${SESSION_MAX_SESSIONS:-1000}"
-  local session_db_path="${SESSION_DB_PATH:-/tmp/sessions.db}"
-  echo "ImageRepository={ImageIdentifier=$ECR_URI/$REPO_NAME:$IMAGE_TAG,ImageRepositoryType=ECR,ImageConfiguration={Port=8001,StartCommand='python -m server.mcp_server',RuntimeEnvironmentVariables={MCP_HOST=0.0.0.0,MCP_ALLOWED_HOSTS=$allowed_hosts,MCP_API_KEY=\"$api_key\",MCP_RATE_LIMIT_REQUESTS=$rate_limit,MCP_RATE_LIMIT_WINDOW_SECONDS=$rate_window,INFERENCE_PROVIDER=$inference_provider,INFERENCE_BASE_URL=\"$inference_base_url\",INFERENCE_API_KEY=\"$inference_api_key\",INFERENCE_MODEL=\"$inference_model\",SESSION_TTL_SECONDS=$session_ttl,SESSION_MAX_SESSIONS=$session_max,SESSION_DB_PATH=\"$session_db_path\"}}},AuthenticationConfiguration={AccessRoleArn=$ACCESS_ROLE_ARN}"
+  python3 - "$ECR_URI/$REPO_NAME:$IMAGE_TAG" "$ACCESS_ROLE_ARN" "$allowed_hosts" \
+    "${MCP_ALLOWED_ORIGINS:-http://127.0.0.1:*,http://localhost:*}" \
+    "${MCP_API_KEY:-}" "${MCP_RATE_LIMIT_REQUESTS:-60}" "${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}" \
+    "${INFERENCE_PROVIDER:-mock}" "${INFERENCE_BASE_URL:-}" "${INFERENCE_API_KEY:-}" \
+    "${INFERENCE_MODEL:-Qwen/Qwen2.5-14B-Instruct}" "${SESSION_TTL_SECONDS:-1800}" \
+    "${SESSION_MAX_SESSIONS:-1000}" "${SESSION_DB_PATH:-/tmp/sessions.db}" <<'PY'
+import json
+import sys
+
+(image, role_arn, allowed_hosts, allowed_origins, api_key, rate_limit, rate_window,
+ inference_provider, inference_base_url, inference_api_key, inference_model,
+ session_ttl, session_max, session_db_path) = sys.argv[1:]
+
+config = {
+    "ImageRepository": {
+        "ImageIdentifier": image,
+        "ImageRepositoryType": "ECR",
+        "ImageConfiguration": {
+            "Port": 8001,
+            "StartCommand": "python -m server.mcp_server",
+            "RuntimeEnvironmentVariables": {
+                "MCP_HOST": "0.0.0.0",
+                "MCP_ALLOWED_HOSTS": allowed_hosts,
+                "MCP_ALLOWED_ORIGINS": allowed_origins,
+                "MCP_API_KEY": api_key,
+                "MCP_RATE_LIMIT_REQUESTS": rate_limit,
+                "MCP_RATE_LIMIT_WINDOW_SECONDS": rate_window,
+                "INFERENCE_PROVIDER": inference_provider,
+                "INFERENCE_BASE_URL": inference_base_url,
+                "INFERENCE_API_KEY": inference_api_key,
+                "INFERENCE_MODEL": inference_model,
+                "SESSION_TTL_SECONDS": session_ttl,
+                "SESSION_MAX_SESSIONS": session_max,
+                "SESSION_DB_PATH": session_db_path,
+            },
+        },
+    },
+    "AuthenticationConfiguration": {"AccessRoleArn": role_arn},
+}
+
+print(json.dumps(config))
+PY
 }
 
 wait_for_running() {
@@ -93,8 +126,8 @@ wait_for_running() {
     esac
     sleep 30
   done
-  echo "Could not confirm RUNNING (deploy was already submitted). Verify manually with: aws apprunner describe-service --service-arn $arn --region $REGION" >&2
-  return 0
+  echo "Could not confirm RUNNING within the timeout. Verify manually with: aws apprunner describe-service --service-arn $arn --region $REGION" >&2
+  return 1
 }
 
 echo "=== Creating or updating App Runner service ==="
@@ -103,13 +136,19 @@ if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
   SERVICE_ARN=""
 fi
 
+# Secrets are written to a temp file and passed via --cli-input-json so they
+# never appear in the process argv (visible via /proc) or AWS CLI error echo.
+INPUT_FILE=$(mktemp)
+trap 'rm -f "$INPUT_FILE"' EXIT
+
 if [ -z "$SERVICE_ARN" ]; then
   echo "Creating new App Runner service..."
-  CREATE_OUT=$(aws apprunner create-service \
-    --service-name clinical-conversation-coach \
-    --source-configuration "$(source_config_for_host localhost)" \
-    --instance-configuration "Cpu=1 vCPU,Memory=2 GB" \
-    --region "$REGION")
+  {
+    printf '{"ServiceName":"clinical-conversation-coach","SourceConfiguration":'
+    source_config_json localhost
+    printf ',"InstanceConfiguration":{"Cpu":"1 vCPU","Memory":"2 GB"}}'
+  } > "$INPUT_FILE"
+  CREATE_OUT=$(aws apprunner create-service --cli-input-json "file://$INPUT_FILE" --region "$REGION")
   SERVICE_ARN=$(echo "$CREATE_OUT" | python3 -c "import sys,json; print(json.load(sys.stdin)['Service']['ServiceArn'])")
   wait_for_running "$SERVICE_ARN"
 fi
@@ -119,10 +158,12 @@ SERVICE_URL=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --regi
 SERVICE_HOST="${SERVICE_URL#https://}"
 SERVICE_HOST="${SERVICE_HOST#http://}"
 echo "Service host: $SERVICE_HOST"
-aws apprunner update-service \
-  --service-arn "$SERVICE_ARN" \
-  --source-configuration "$(source_config_for_host "${SERVICE_HOST}\,${SERVICE_HOST}:*")" \
-  --region "$REGION" >/dev/null
+{
+  printf '{"ServiceArn":"%s","SourceConfiguration":' "$SERVICE_ARN"
+  source_config_json "${SERVICE_HOST},${SERVICE_HOST}:*"
+  printf '}'
+} > "$INPUT_FILE"
+aws apprunner update-service --cli-input-json "file://$INPUT_FILE" --region "$REGION" >/dev/null
 wait_for_running "$SERVICE_ARN"
 
 echo "=== Done ==="

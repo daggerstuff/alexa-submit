@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -26,7 +26,6 @@ class SimulationRequest(BaseModel):
     scenario_id: str | None = Field(default=None, max_length=128)
     practitioner_message: str | None = Field(default=None, max_length=4000)
     client_event_id: str | None = Field(default=None, max_length=128)
-    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class TranscriptTurn(BaseModel):
