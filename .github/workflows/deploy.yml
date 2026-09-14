@@ -23,7 +23,7 @@ jobs:
 
       - name: Gate on tests and lint
         run: |
-          pip install -r server/requirements.txt
+          pip install -r server/requirements-dev.txt
           ruff check .
           pytest -q
 

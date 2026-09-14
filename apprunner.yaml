@@ -20,7 +20,7 @@ run:
     - name: MCP_ALLOWED_HOSTS
       value: "<service-host>,<service-host>:*"
     - name: MCP_ALLOWED_ORIGINS
-      value: "*"
+      value: http://127.0.0.1:*,http://localhost:*
     - name: MCP_API_KEY
       value: "" # Set a strong secret for public deployments; deploy_aws.sh injects $MCP_API_KEY.
     - name: MCP_RATE_LIMIT_REQUESTS

@@ -15,14 +15,14 @@ if command -v uv >/dev/null 2>&1; then
     uv venv .venv --python 3.13
   fi
   echo "==> Installing dependencies with uv"
-  uv pip install --python .venv/bin/python -r server/requirements.txt
+  uv pip install --python .venv/bin/python -r server/requirements-dev.txt
 else
   echo "==> uv not found; falling back to python3 -m venv"
   if [ ! -x .venv/bin/python ]; then
     python3 -m venv .venv
   fi
   .venv/bin/python -m pip install --upgrade pip
-  .venv/bin/python -m pip install -r server/requirements.txt
+  .venv/bin/python -m pip install -r server/requirements-dev.txt
 fi
 
 cp -n .env.example .env 2>/dev/null || true

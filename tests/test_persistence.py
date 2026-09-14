@@ -1,3 +1,5 @@
+import time
+
 from server.main import SimulationOrchestrator
 from server.schemas.validation import SimulationAction, SimulationRequest
 
@@ -54,3 +56,19 @@ def test_remove_session_persists_deletion(tmp_path) -> None:
 
     orch.store.close()
     reloaded.store.close()
+
+
+def test_store_only_expired_rows_are_swept(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("SESSION_TTL_SECONDS", "60")
+    db = str(tmp_path / "sessions.db")
+
+    first = SimulationOrchestrator(db_path=db)
+    first.handle(SimulationRequest(session_id="old", action=SimulationAction.start))
+    first.sessions["old"].last_accessed = time.time() - 120
+    first._persist(first.sessions["old"])
+    first.store.close()
+
+    second = SimulationOrchestrator(db_path=db)
+    second.get_or_create(SimulationRequest(session_id="new", action=SimulationAction.start))
+    assert second.store.get("old") is None  # swept even though never loaded into memory
+    second.store.close()

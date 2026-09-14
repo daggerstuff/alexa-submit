@@ -135,17 +135,7 @@ if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):
         structured_output=True,
     )
     def list_sessions() -> dict[str, Any]:
-        return {
-            "sessions": [
-                {
-                    "session_id": sid,
-                    "scenario_id": sess.scenario.scenario_id,
-                    "status": sess.status,
-                    "turn_count": sess.patient_state.turn_count,
-                }
-                for sid, sess in orchestrator.sessions.items()
-            ]
-        }
+        return {"sessions": orchestrator.list_sessions()}
 
     @mcp.tool(
         description="Delete a simulation session. Registered only when MCP_EXPOSE_SESSION_TOOLS is enabled.",

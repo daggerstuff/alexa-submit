@@ -58,6 +58,7 @@ echo "=== Tagging and pushing image ==="
 $DOCKER tag "$REPO_NAME:$IMAGE_TAG" "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 $DOCKER push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 
+# Keep this env list in sync with apprunner.yaml (the reference template).
 source_config_for_host() {
   local allowed_hosts="$1"
   local api_key="${MCP_API_KEY:-}"

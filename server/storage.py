@@ -89,6 +89,13 @@ class SessionStore:
             self._conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
             self._conn.commit()
 
+    def delete_expired(self, cutoff: float) -> int:
+        """Delete rows whose ``last_accessed`` predates ``cutoff``; return the count."""
+        with self._lock:
+            cursor = self._conn.execute("DELETE FROM sessions WHERE last_accessed < ?", (cutoff,))
+            self._conn.commit()
+            return cursor.rowcount
+
     def close(self) -> None:
         with self._lock:
             self._conn.close()

@@ -21,7 +21,7 @@ class Registry:
 
     def incr(self, name: str, amount: int = 1) -> None:
         with self._lock:
-            setattr(self, name, getattr(self, name) + amount)
+            setattr(self, name, getattr(self, name, 0) + amount)
 
     def reset(self) -> None:
         with self._lock:

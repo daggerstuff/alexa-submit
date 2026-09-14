@@ -14,18 +14,16 @@ The Python MCP documentation recommends Python 3.10 or newer and MCP SDK 2.0.0 o
 
 ## 2. Install the dependencies
 
-The validated dependency set is in `server/requirements.txt`:
+The validated runtime dependency set is in `server/requirements.txt`; dev tooling (pytest, ruff) lives in `server/requirements-dev.txt`:
 
 ```text
+# server/requirements.txt
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 pydantic==2.13.5
 pydantic-settings==2.15.0
 httpx==0.28.1
-pytest==9.1.1
-pytest-asyncio==1.4.0
 mcp==2.2.0
-ruff==0.16.6
 ```
 
 Initialize the repository with:

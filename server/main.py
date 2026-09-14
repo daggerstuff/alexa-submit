@@ -96,19 +96,30 @@ def _record_to_session(record: dict[str, Any]) -> Session:
 
 
 class SimulationOrchestrator:
-    def __init__(self, db_path: str | None = None) -> None:
+    def __init__(self, db_path: str | None = None, patient_agent: Any = None) -> None:
         self.sessions: dict[str, Session] = {}
-        self._lock = threading.RLock()
+        self._registry_lock = threading.RLock()
+        self._session_locks: dict[str, threading.RLock] = {}
+        self._session_locks_guard = threading.Lock()
         self.session_ttl = float(os.getenv("SESSION_TTL_SECONDS", "1800"))
         self.max_sessions = int(os.getenv("SESSION_MAX_SESSIONS", "1000"))
         path = db_path if db_path is not None else os.getenv("SESSION_DB_PATH", "")
         self.store = SessionStore(path) if path else None
-        provider = os.getenv("INFERENCE_PROVIDER", "mock")
-        if provider == "llm":
+        if patient_agent is not None:
+            self.patient_agent = patient_agent
+        elif os.getenv("INFERENCE_PROVIDER", "mock") == "llm":
             self.patient_agent = LLMPersonaAgent()
         else:
             self.patient_agent = PatientPersonaAgent()
         self.evaluator_agent = ClinicalEvaluatorAgent()
+
+    def _session_lock(self, session_id: str) -> threading.RLock:
+        with self._session_locks_guard:
+            lock = self._session_locks.get(session_id)
+            if lock is None:
+                lock = threading.RLock()
+                self._session_locks[session_id] = lock
+            return lock
 
     def _is_expired(self, session: Session) -> bool:
         return self.session_ttl > 0 and (time.time() - session.last_accessed) > self.session_ttl
@@ -120,6 +131,8 @@ class SimulationOrchestrator:
         expired = [sid for sid, sess in self.sessions.items() if now - sess.last_accessed > self.session_ttl]
         for sid in expired:
             self._delete_session(sid)
+        if self.store is not None:
+            self.store.delete_expired(now - self.session_ttl)
 
     def _evict_lru(self) -> None:
         oldest = min(self.sessions, key=lambda sid: self.sessions[sid].last_accessed)
@@ -150,27 +163,39 @@ class SimulationOrchestrator:
             self.store.delete(session_id)
 
     def remove_session(self, session_id: str) -> bool:
-        with self._lock:
-            return self._remove_session_locked(session_id)
+        with self._session_lock(session_id):
+            with self._registry_lock:
+                present = session_id in self.sessions
+                if not present and self.store is not None:
+                    present = self.store.get(session_id) is not None
+                self._delete_session(session_id)
+            return present
 
-    def _remove_session_locked(self, session_id: str) -> bool:
-        present = session_id in self.sessions
-        if not present and self.store is not None:
-            present = self.store.get(session_id) is not None
-        self._delete_session(session_id)
-        return present
+    def list_sessions(self) -> list[dict[str, Any]]:
+        with self._registry_lock:
+            return [
+                {
+                    "session_id": session_id,
+                    "scenario_id": sess.scenario.scenario_id,
+                    "status": sess.status,
+                    "turn_count": sess.patient_state.turn_count,
+                }
+                for session_id, sess in self.sessions.items()
+            ]
 
     def get_or_create(self, request: SimulationRequest) -> Session:
-        with self._lock:
-            return self._get_or_create_locked(request)
+        with self._session_lock(request.session_id):
+            return self._get_or_create(request)
 
-    def _get_or_create_locked(self, request: SimulationRequest) -> Session:
-        session = self.sessions.get(request.session_id)
-        if session is not None and self._is_expired(session):
-            self._delete_session(request.session_id)
-            session = None
-        if session is None:
-            session = self._load_session(request.session_id)
+    def _get_or_create(self, request: SimulationRequest) -> Session:
+        session_id = request.session_id
+        with self._registry_lock:
+            session = self.sessions.get(session_id)
+            if session is not None and self._is_expired(session):
+                self._delete_session(session_id)
+                session = None
+            if session is None:
+                session = self._load_session(session_id)
         if session is not None:
             if request.scenario_id is not None and session.scenario.scenario_id != request.scenario_id:
                 raise HTTPException(status_code=409, detail="Session cannot switch scenarios")
@@ -178,21 +203,22 @@ class SimulationOrchestrator:
             self._persist(session)
             return session
 
-        self._evict_expired()
-        if self.max_sessions > 0 and len(self.sessions) >= self.max_sessions:
-            self._evict_lru()
-        scenario_id = request.scenario_id or "chest-pain-basic"
-        try:
-            scenario = get_scenario(scenario_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        session = Session(
-            session_id=request.session_id,
-            scenario=scenario,
-            patient_state=PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version),
-        )
-        self.sessions[request.session_id] = session
-        registry.incr("sessions_created_total")
+        with self._registry_lock:
+            self._evict_expired()
+            if self.max_sessions > 0 and len(self.sessions) >= self.max_sessions:
+                self._evict_lru()
+            scenario_id = request.scenario_id or "chest-pain-basic"
+            try:
+                scenario = get_scenario(scenario_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            session = Session(
+                session_id=session_id,
+                scenario=scenario,
+                patient_state=PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version),
+            )
+            self.sessions[session_id] = session
+            registry.incr("sessions_created_total")
         self._persist(session)
         return session
 
@@ -213,7 +239,7 @@ class SimulationOrchestrator:
         )
 
     def handle(self, request: SimulationRequest) -> SimulationResponse:
-        with self._lock:
+        with self._session_lock(request.session_id):
             return self._handle_locked(request)
 
     def _handle_locked(self, request: SimulationRequest) -> SimulationResponse:
