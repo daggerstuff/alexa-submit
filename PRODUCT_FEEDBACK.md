@@ -52,7 +52,7 @@ This document satisfies the product-feedback and friction-log submission require
 
 3. **Tool error handling had to be mapped by hand.** The MCP SDK wraps an uncaught tool exception in a generic `UnexpectedToolError`, which drops the domain status and message. We worked around it by catching `HTTPException` and re-raising a `ToolError` that preserves the message; a documented pattern (or a structured `ToolError` result type) would make this unnecessary.
 
-4. **No built-in health or metadata endpoint.** The MCP server exposes only `/mcp`. A companion `/health` endpoint would be useful for container orchestration and load balancer checks; App Runner currently relies on the TCP port check rather than an application-level health probe.
+4. **No built-in health endpoint in the SDK.** The MCP SDK ships no health or metadata route, so we hand-rolled unauthenticated GET `/health`, `/ready`, and `/metrics` around the Streamable HTTP app. A first-class health preset would remove that boilerplate.
 
 ### Alexa+ integration
 
