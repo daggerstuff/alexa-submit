@@ -12,9 +12,9 @@ This document satisfies the product-feedback and friction-log submission require
 | ---------------------- | ---------- | --------------------------------------------- |
 | Python MCP SDK (`mcp`) | 2.2.0      | Self-hosted MCP server over Streamable HTTP   |
 | MCP protocol           | 2025-11-25 | Transport specification version               |
-| FastAPI                | 0.141.1    | Development REST API and test surface         |
+| FastAPI                | 0.141.1    | HTTP exception types and Starlette `TestClient` |
 | Pydantic               | 2.13.5     | Request/response validation and serialization |
-| Uvicorn                | 0.52.4     | ASGI server for MCP and REST                  |
+| Uvicorn                | 0.52.4     | ASGI server for the MCP endpoint              |
 | pytest                 | 9.1.1      | Test suite                                    |
 | Ruff                   | 0.16.6     | Linting and formatting                        |
 | Docker                 | —          | Containerized deployment for judges           |
@@ -34,7 +34,7 @@ This document satisfies the product-feedback and friction-log submission require
 ### Pydantic + FastAPI
 
 - Pydantic v2 models made the simulation request/response contracts self-documenting. The `Field` constraints (min_length, max_length) catch malformed input before it reaches the orchestrator.
-- FastAPI's `TestClient` integration with dependency injection (for the optional `DEV_API_KEY`) worked without any custom fixtures.
+- FastAPI's `TestClient` (built on Starlette) gave us a full MCP-protocol test surface — initialize, tools/list, and tools/call — without starting a separate process.
 
 ### Docker
 
@@ -50,13 +50,9 @@ This document satisfies the product-feedback and friction-log submission require
 
 2. **`streamable_http_app()` is not in the public API docs.** We found it by reading the SDK source. The official "Build an MCP Server" guide [2] shows `mcp.run()` but does not mention the test-app factory. A testing section in the docs would save significant time.
 
-3. **Tool error handling surfaces as `UnexpectedToolError`.** When the orchestrator raises an `HTTPException` (e.g., 409 for scenario switching), the MCP SDK wraps it in `UnexpectedToolError` and the client receives a generic error instead of the structured HTTP status. There is no documented pattern for returning a tool-level error result that preserves the domain error code and message.
+3. **Tool error handling had to be mapped by hand.** The MCP SDK wraps an uncaught tool exception in a generic `UnexpectedToolError`, which drops the domain status and message. We worked around it by catching `HTTPException` and re-raising a `ToolError` that preserves the message; a documented pattern (or a structured `ToolError` result type) would make this unnecessary.
 
-4. **No built-in health or metadata endpoint.** The MCP server exposes only `/mcp`. A companion `/health` endpoint would be useful for container orchestration and load balancer checks. We worked around this by running the REST API separately, but a single-process deployment would benefit from a built-in health check.
-
-### FastAPI + MCP coexistence
-
-5. **Two ports for one project.** The REST API runs on port 8000 and the MCP server on port 8001. There is no documented pattern for mounting the MCP Streamable HTTP app as a sub-application inside the FastAPI app. This would simplify deployment and reduce the number of processes judges need to start.
+4. **No built-in health or metadata endpoint.** The MCP server exposes only `/mcp`. A companion `/health` endpoint would be useful for container orchestration and load balancer checks; App Runner currently relies on the TCP port check rather than an application-level health probe.
 
 ### Alexa+ integration
 
@@ -70,7 +66,7 @@ This document satisfies the product-feedback and friction-log submission require
 
 **Yes.** The MCP Python SDK is the strongest part of the stack. The tool registration pattern is clean, the Streamable HTTP transport works, and the test infrastructure is solid. The main gaps are documentation (test app factory, error handling patterns, FastAPI mounting) rather than fundamental design problems.
 
-We would also build with FastAPI and Pydantic again. The combination of Pydantic validation and FastAPI dependency injection made the REST API easy to test and secure.
+We would also build with Pydantic again. Its models made the simulation contracts self-documenting, and the `Field` constraints catch malformed input before it reaches the orchestrator.
 
 ---
 
