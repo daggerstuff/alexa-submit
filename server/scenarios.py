@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from functools import cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -63,6 +64,7 @@ class ScenarioDefinition(BaseModel):
     title: str
     opening: str
     goal: str = ""
+    difficulty: Literal["basic", "intermediate", "advanced"] = "basic"
     pitfalls: tuple[str, ...] = ()
     disclosures: tuple[DisclosureRule, ...]
     metrics: tuple[MetricDefinition, ...]

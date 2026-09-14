@@ -1,6 +1,7 @@
 {
   "scenario_id": "abdominal-pain-basic",
   "version": "1.0.0",
+  "difficulty": "basic",
   "title": "Adult with acute abdominal pain",
   "goal": "You are the clinician. Assess a patient with acute abdominal pain: cover location, onset, associated symptoms, and surgical history.",
   "opening": "Hi. My stomach has been hurting since last night and I cannot sleep.",

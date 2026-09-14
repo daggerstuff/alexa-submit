@@ -1,0 +1,106 @@
+{
+  "scenario_id": "syncope-basic",
+  "version": "1.0.0",
+  "difficulty": "basic",
+  "title": "Adult after a fainting episode",
+  "goal": "You are the clinician. Assess a patient who fainted: cover what happened before and during the episode, red flags, and next steps.",
+  "opening": "I passed out this morning while I was getting out of bed. My wife found me on the floor.",
+  "safety_terms": ["chest pain", "collapse", "unresponsive", "severe", "seizure", "passed out", "unconscious", "can't breathe"],
+  "pitfalls": ["go home", "nothing serious", "just stress", "just tired", "sleep it off", "wait and see"],
+  "disclosures": [
+    {
+      "fact_id": "prodrome",
+      "trigger_terms": ["before", "feel", "warning", "dizzy", "lightheaded", "prodrome", "what happened"],
+      "response": "I felt lightheaded and a little warm just before. I did not have time to sit down.",
+      "emotional_state": "shaken"
+    },
+    {
+      "fact_id": "context",
+      "trigger_terms": ["when", "getting up", "standing", "position", "bed", "morning", "what were you"],
+      "response": "I had just stood up from bed to walk to the bathroom. I had been lying down for a while.",
+      "emotional_state": "shaken"
+    },
+    {
+      "fact_id": "duration",
+      "trigger_terms": ["how long", "unconscious", "out", "minutes", "seconds", "duration"],
+      "response": "My wife says I was out for maybe thirty seconds. I woke up on the floor a little confused for a moment.",
+      "emotional_state": "shaken"
+    },
+    {
+      "fact_id": "injury",
+      "trigger_terms": ["hurt", "injury", "hit", "fall", "pain", "head", "cut", "bleed"],
+      "response": "I have a small cut on my forehead where I hit the nightstand, but nothing else hurts.",
+      "emotional_state": "reassured"
+    },
+    {
+      "fact_id": "recovery",
+      "trigger_terms": ["after", "feel now", "now", "confus", "memory", "weakness", "chest", "recover"],
+      "response": "Since then I feel tired and a little off, but no chest pain and no confusion. My memory of the event is a bit foggy.",
+      "emotional_state": "tired"
+    },
+    {
+      "fact_id": "history",
+      "trigger_terms": ["history", "before", "faint", "syncope", "medication", "heart", "diabet", "family", "seizure"],
+      "response": "This is the first time I have fainted. I take a blood pressure pill, and my father had heart problems.",
+      "emotional_state": "guarded"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before exploring sensitive topics."
+    },
+    {
+      "metric_id": "prodrome",
+      "name": "Prodromal symptoms",
+      "trigger_terms": ["before", "dizzy", "lightheaded", "warning", "feel", "prodrome"],
+      "rationale": "Asks about warning symptoms just before the episode.",
+      "max_score": 4,
+      "coaching_hint": "Ask what happened before: 'Any lightheadedness or warning signs just before you fainted?'"
+    },
+    {
+      "metric_id": "context",
+      "name": "Circumstances and triggers",
+      "trigger_terms": ["when", "standing", "position", "getting up", "bed", "exert", "context"],
+      "rationale": "Establishes posture and activity at the time of the episode.",
+      "max_score": 4,
+      "coaching_hint": "Ask about the circumstances: 'What were you doing right before it happened?'"
+    },
+    {
+      "metric_id": "episode",
+      "name": "Event characterization and recovery",
+      "trigger_terms": ["how long", "unconscious", "out", "minutes", "seconds", "duration", "seizure", "shaking", "confus", "after", "hurt", "injury", "head", "fall"],
+      "rationale": "Characterizes duration, convulsive features, injury, and recovery.",
+      "max_score": 4,
+      "coaching_hint": "Characterize the event: 'How long were you out, was there any shaking, and did you hurt yourself?'"
+    },
+    {
+      "metric_id": "history",
+      "name": "Cardiac and seizure history",
+      "trigger_terms": ["history", "before", "faint", "syncope", "medication", "heart", "diabet", "family", "seizure"],
+      "rationale": "Explores prior fainting, cardiac disease, medications, and seizure history.",
+      "max_score": 4,
+      "coaching_hint": "Ask about history: 'Any prior fainting, heart problems, or seizures in you or your family?'"
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Red-flag and escalation assessment",
+      "trigger_terms": ["emergency", "urgent", "hospital", "911", "plan", "next step", "escalat"],
+      "rationale": "Recognizes red flags and confirms the immediate next step.",
+      "max_score": 4,
+      "coaching_hint": "Assess escalation: 'Confirm the immediate next step, including when to seek urgent evaluation.'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding before ending."
+    }
+  ]
+}

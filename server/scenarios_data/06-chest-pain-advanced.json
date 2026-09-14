@@ -1,0 +1,106 @@
+{
+  "scenario_id": "chest-pain-advanced",
+  "version": "1.0.0",
+  "difficulty": "advanced",
+  "title": "Diabetic adult with atypical exertional chest pressure",
+  "goal": "You are the clinician. Assess an atypical chest-pressure presentation in a patient with diabetes: probe exertional timing, diaphoresis, and cardiac risk factors, then confirm escalation.",
+  "opening": "I have had this pressure in my chest, mostly when I walk up the stairs. It goes away when I sit down. It is not terrible, so I thought I would just mention it.",
+  "safety_terms": ["collapse", "unresponsive", "severe", "can't breathe", "cannot breathe", "passed out", "clammy"],
+  "pitfalls": ["go home", "nothing serious", "just stress", "just indigestion", "just heartburn", "wait and see", "sleep it off"],
+  "disclosures": [
+    {
+      "fact_id": "atypical-character",
+      "trigger_terms": ["atypical", "diabet", "describe", "pressure", "character", "burn", "dull", "sharp", "ache"],
+      "response": "It is more of a pressure and a dull ache than a sharp pain. It never crushes me the way I hear heart attacks do on TV.",
+      "emotional_state": "uncertain"
+    },
+    {
+      "fact_id": "exertional-pattern",
+      "trigger_terms": ["when", "exert", "walk", "stairs", "exercise", "activity", "effort", "trigger"],
+      "response": "It comes on when I walk up the stairs or carry the groceries. It eases within a minute or two once I sit down.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "diaphoresis",
+      "trigger_terms": ["sweat", "diaphoresis", "clammy", "nausea", "sick", "vomit"],
+      "response": "The last couple of times I got clammy and a little nauseous with it. That part is new.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "diabetes",
+      "trigger_terms": ["diabet", "sugar", "glucose", "a1c", "metformin", "medication", "history"],
+      "response": "I have had type 2 diabetes for about ten years. I take metformin twice a day, and my last A1c was 8.2.",
+      "emotional_state": "flat"
+    },
+    {
+      "fact_id": "risk-factors",
+      "trigger_terms": ["smoke", "smoking", "tobacco", "family", "cholesterol", "blood pressure", "hypertension", "father", "heart"],
+      "response": "I smoked for twenty years but quit two years ago. My father had a heart attack at fifty-two, and my blood pressure runs high.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "duration",
+      "trigger_terms": ["how long", "started", "when", "days", "weeks", "onset", "begin"],
+      "response": "It started about two weeks ago, and it seems to be happening more often, not just with the stairs now.",
+      "emotional_state": "concerned"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission or rapport.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before exploring sensitive topics."
+    },
+    {
+      "metric_id": "symptoms",
+      "name": "Symptom characterization",
+      "trigger_terms": ["where", "when", "started", "pressure", "character", "describe", "severity", "scale"],
+      "rationale": "Explores onset, location, quality, and severity of the chest pressure.",
+      "max_score": 4,
+      "coaching_hint": "Characterize the chest pressure: 'Where is it, what does it feel like, and how bad is it?'"
+    },
+    {
+      "metric_id": "exertional_timing",
+      "name": "Exertional timing and relief",
+      "trigger_terms": ["exert", "walk", "stairs", "activity", "effort", "rest", "relief", "trigger"],
+      "rationale": "Pins down the exertional pattern and whether rest relieves it.",
+      "max_score": 4,
+      "coaching_hint": "Pin down the pattern: 'Does activity bring it on, and does rest relieve it?'"
+    },
+    {
+      "metric_id": "associated",
+      "name": "Associated symptoms",
+      "trigger_terms": ["sweat", "diaphoresis", "clammy", "nausea", "sick", "breath", "shortness"],
+      "rationale": "Checks for diaphoresis, nausea, and shortness of breath.",
+      "max_score": 4,
+      "coaching_hint": "Ask about associated symptoms: 'Any sweating, nausea, or shortness of breath with it?'"
+    },
+    {
+      "metric_id": "risk_factors",
+      "name": "Cardiac risk factors",
+      "trigger_terms": ["diabet", "smoke", "family", "cholesterol", "blood pressure", "hypertension", "history"],
+      "rationale": "Explores diabetes, smoking, family history, and hypertension.",
+      "max_score": 4,
+      "coaching_hint": "Explore risk factors: 'Any history of diabetes, smoking, high blood pressure, or family heart disease?'"
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Red-flag and escalation assessment",
+      "trigger_terms": ["emergency", "urgent", "hospital", "911", "worst", "escalat", "plan", "next step"],
+      "rationale": "Recognizes an atypical presentation in a high-risk patient and confirms timely evaluation.",
+      "max_score": 4,
+      "coaching_hint": "Assess escalation: 'This pattern warrants timely evaluation — confirm the next step.'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate next step.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the plan and check understanding before ending."
+    }
+  ]
+}

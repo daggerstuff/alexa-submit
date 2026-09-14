@@ -52,6 +52,7 @@ class ScenarioListItem(BaseModel):
     scenario_id: str
     version: str
     title: str
+    difficulty: str
     metric_ids: list[str]
 
 
@@ -87,6 +88,7 @@ def list_simulation_scenarios() -> ScenarioListResult:
                 scenario_id=scenario.scenario_id,
                 version=scenario.version,
                 title=scenario.title,
+                difficulty=scenario.difficulty,
                 metric_ids=[metric.metric_id for metric in scenario.metrics],
             )
             for scenario in SCENARIOS.values()

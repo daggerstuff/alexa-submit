@@ -11,13 +11,29 @@ first** (tests and the demo depend on it).
 {
   "scenario_id": "chest-pain-basic",   // unique, kebab-case, stable across versions
   "version": "1.1.0",                  // SemVer; change it when the rubric changes
+  "difficulty": "basic",               // basic | intermediate | advanced
   "title": "Adult with acute chest pressure",
+  "goal": "You are the clinician. Assess…",  // spoken to the learner on start
   "opening": "Hello. I have been having pressure in my chest…",  // first patient line
-  "safety_terms": ["collapse", "severe", "can't breathe"],       // trigger a safety note
+  "safety_terms": ["collapse", "severe", "can't breathe"],       // trigger an acuity note
+  "pitfalls": ["go home", "nothing serious"],                    // trigger a dismissal note
   "disclosures": [ /* what the patient reveals, gated on trigger terms */ ],
   "metrics": [ /* the scored rubric dimensions */ ]
 }
 ```
+
+### Difficulty
+
+`difficulty` is one of `basic`, `intermediate`, or `advanced` and is surfaced in
+`list_simulation_scenarios` so a learner or agent can pick a progression path:
+
+- **basic** — a single, uncomplicated presentation with a straightforward history.
+- **intermediate** — more domains to cover or a less clean history.
+- **advanced** — atypical or high-risk presentations where subtle cues matter
+  (e.g. `chest-pain-advanced`, a diabetic patient whose pressure is exertional
+  rather than crushing).
+
+Numeric filename prefixes order the library; keep `01-chest-pain-basic` first.
 
 ### Disclosure rule
 
@@ -56,6 +72,22 @@ allows a trailing suffix, so `"medication"` matches `"medications"` and
 - `coaching_hint` (optional) is the concrete next-step suggestion returned in the
   evaluation's `coaching` list when the metric is not fully demonstrated.
 
+### Safety notes and pitfalls
+
+`safety_terms` and `pitfalls` both surface a `safety_note` on the patient
+response, but they mean different things:
+
+- `safety_terms` are the **presentation's red flags** (e.g. `"collapse"`,
+  `"suicide"`). When the learner raises one, the note reminds them that a real
+  patient would warrant emergency protocols.
+- `pitfalls` are **dismissal phrases** a learner might say instead of escalating
+  (e.g. `"go home"`, `"snap out of it"`). When the learner says one, the note
+  warns them to reconsider, and the evaluation's `safety_flags` plus the spoken
+  `summary` name the matched phrase.
+
+Keep the two lists distinct: `safety_terms` for acuity, `pitfalls` for
+inappropriate reassurance or dismissal.
+
 ## Grading
 
 Each metric is graded on a `1..max_score` band by counting **distinct** matched
@@ -73,16 +105,18 @@ terms as `matched_terms`, so every score is self-explanatory.
 
 ## Adding a scenario
 
-1. Copy an existing file to the next numeric prefix (e.g. `06-<id>.json`).
-2. Choose a unique `scenario_id`, write the opening line, disclosures, and metrics.
-3. Keep `safety_terms` aligned with the presentation's red flags so urgent language
-   in the learner's turn surfaces a safety note.
+1. Copy an existing file to the next numeric prefix (e.g. `08-<id>.json`).
+2. Choose a unique `scenario_id`; set `difficulty`, write the `goal` and opening
+   line, then the disclosures and metrics.
+3. Keep `safety_terms` aligned with the presentation's red flags and add
+   `pitfalls` for the dismissal phrases learners most often fall into.
 4. Re-run `uv run pytest -q` — the loader validates every file at import time, and
    `test_mcp_protocol.py` asserts the full scenario set.
 
 ## Safety
 
 Scenarios are educational simulation only. Write responses that model a patient
-while withholding diagnosis and treatment; the server's disclaimer and the
-`safety_terms` note carry the "real patient" boundary. Never author content that
-instructs on dosing, diagnosis, or real care decisions.
+while withholding diagnosis and treatment; the server's disclaimer, the
+`safety_terms` acuity note, and the `pitfalls` dismissal note carry the "real
+patient" boundary. Never author content that instructs on dosing, diagnosis, or
+real care decisions.

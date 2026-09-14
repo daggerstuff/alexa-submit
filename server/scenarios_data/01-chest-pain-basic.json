@@ -1,6 +1,7 @@
 {
   "scenario_id": "chest-pain-basic",
   "version": "1.1.0",
+  "difficulty": "basic",
   "title": "Adult with acute chest pressure",
   "goal": "You are the clinician. Assess a patient with acute chest pressure: ask about location, onset, associated symptoms, medications, and safety, then confirm next steps.",
   "opening": "Hello. I have been having pressure in my chest and I am worried.",

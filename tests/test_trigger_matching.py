@@ -79,3 +79,22 @@ def test_persona_normal_question_has_no_pitfall_note() -> None:
     state = PatientState(scenario_id=chest.scenario_id, scenario_version=chest.version)
     resp = agent.respond(state, chest, "Where is the pain, and are you short of breath?")
     assert resp.safety_note is None
+
+
+def test_scenario_difficulty_progression() -> None:
+    from server.scenarios import SCENARIOS
+
+    assert SCENARIOS["chest-pain-basic"].difficulty == "basic"
+    assert SCENARIOS["chest-pain-advanced"].difficulty == "advanced"
+    assert SCENARIOS["syncope-basic"].difficulty == "basic"
+    assert SCENARIOS["chest-pain-advanced"].goal
+    assert SCENARIOS["syncope-basic"].goal
+
+
+def test_advanced_scenario_discloses_exertional_and_diaphoresis() -> None:
+    agent = PatientPersonaAgent()
+    adv = get_scenario("chest-pain-advanced")
+    state = PatientState(scenario_id=adv.scenario_id, scenario_version=adv.version)
+    resp = agent.respond(state, adv, "Does it come on when you walk up stairs, and do you get sweaty with it?")
+    assert "exertional-pattern" in resp.disclosed_facts
+    assert "diaphoresis" in resp.disclosed_facts

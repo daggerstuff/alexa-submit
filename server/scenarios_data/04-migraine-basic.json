@@ -1,6 +1,7 @@
 {
   "scenario_id": "migraine-basic",
   "version": "1.0.0",
+  "difficulty": "basic",
   "title": "Adult with severe unilateral headache",
   "goal": "You are the clinician. Assess a patient with a severe unilateral headache: cover onset, quality, associated symptoms, history, and red flags.",
   "opening": "I have this pounding headache on one side and it is making me sick to my stomach.",
