@@ -4,7 +4,7 @@
 
 The project should be submitted as **Clinical Conversation Coach for Alexa+**. The product is a self-hosted MCP server that lets an Alexa+ agent orchestrate an educational clinical communication simulation: discover scenarios, start a session, conduct a practitioner-patient conversation, and request evidence-linked feedback.
 
-This is a stronger hackathon concept than “Alexa clinical simulation node” because it makes the Alexa+ integration the product surface while preserving the clinical education differentiator. The experience is not a generic symptom question-and-answer bot. It is a stateful, scenario-constrained workflow with a beginning, an interaction loop, and a measurable outcome.
+This is a stronger hackathon concept than “Alexa clinical simulation node” because it makes the Alexa+ integration the product surface while preserving the clinical education differentiator. The experience is not a generic symptom question-and-answer bot. It is a stateful, scenario-constrained workflow with a beginning, an interaction loop, and a measurable outcome — and, with an optional learner identifier, one that remembers a learner across sessions and steers their next practice.
 
 The official rules require the Alexa+ primary track to use either a working Agent Skill or a self-hosted MCP server implementing MCP version 2025-11-25 or later over Streamable HTTP. The rules also provide an alternate simulated Alexa+ path, but the working MCP path is the stronger fit for this project because it demonstrates the required technology directly at runtime [1].
 
@@ -42,6 +42,7 @@ Scenario registry + session orchestrator
         +--> constrained patient persona
         +--> transcript and event state
         +--> versioned evidence-linked evaluator
+        +--> cross-session learner progress (per-metric mastery + focus)
 ```
 
 The MCP tools are intentionally task-oriented. The client does not need to know internal FastAPI routes or manipulate transcript state directly. It asks the server to perform meaningful operations in the learner workflow.
@@ -75,9 +76,9 @@ The official judging criteria are equally weighted across tech implementation, d
 
 **Design** is addressed by keeping the tool surface small and meaningful. The learner should not need to understand internal session mechanics. The agent should guide the conversation, keep spoken responses concise, and reserve detailed evaluation for the end of the simulation.
 
-**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a seven-scenario library across `basic`/`advanced` difficulty and can grow to educator-authored rubrics, cohort reporting, and accessibility-oriented voice practice without changing the core MCP contract.
+**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a seven-scenario library across `basic`/`advanced` difficulty, plus cross-session learner progress (per-metric mastery, improvement detection, and a recommended next focus), and can grow to educator-authored rubrics, cohort reporting, and accessibility-oriented voice practice without changing the core MCP contract.
 
-**Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, and safe educational boundaries. This goes beyond a single-turn health-information bot or a basic MCP wrapper.
+**Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, safe educational boundaries, and cross-session learner memory with adaptive coaching. This goes beyond a single-turn health-information bot or a basic MCP wrapper.
 
 ## Security and trust positioning
 
@@ -124,6 +125,7 @@ This repository existed before the hackathon window as a local FastAPI clinical-
 - A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing five tools.
 - A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation — graded with partial credit and per-metric matched-term evidence.
 - A coaching loop: every evaluation returns concrete next-step questions for metrics not yet demonstrated.
+- Cross-session learner progress: an optional `learner_id` persists per-metric mastery, per-session improvement, and a recommended next focus across sessions, surfaced in the `end_simulation` response and via a gated `get_learner_progress` tool.
 - An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with JSON-mode responses, tolerant parsing, automatic retry, and a deterministic fallback.
 - Bearer/API-key auth (constant-time comparison) and proxy-safe per-IP rate limiting on the public endpoint.
 - Session lifecycle controls: idle TTL, a bounded session cache with LRU eviction, and optional SQLite persistence (WAL) so state survives process restarts.

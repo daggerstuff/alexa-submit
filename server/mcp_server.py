@@ -21,7 +21,7 @@ from server._version import __version__
 from server.main import orchestrator
 from server.observability import registry, render_prometheus, request_id_var
 from server.scenarios import SCENARIOS
-from server.schemas.validation import SimulationAction, SimulationRequest, SimulationResponse
+from server.schemas.validation import LearnerProgress, SimulationAction, SimulationRequest, SimulationResponse
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -104,12 +104,14 @@ def list_simulation_scenarios() -> ScenarioListResult:
 def start_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
     scenario_id: Annotated[str, Field(description="Scenario id to start; defaults to chest-pain-basic.", max_length=128)] = "chest-pain-basic",
+    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
             session_id=session_id,
             scenario_id=scenario_id,
             action=SimulationAction.start,
+            learner_id=learner_id,
         )
     )
 
@@ -123,6 +125,7 @@ def send_practitioner_turn(
     practitioner_message: Annotated[str, Field(description="The learner's next utterance.", max_length=4000)],
     client_event_id: Annotated[str | None, Field(description="Idempotency key; a retried key is not reprocessed.", max_length=128)] = None,
     scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
@@ -131,6 +134,7 @@ def send_practitioner_turn(
             action=SimulationAction.message,
             practitioner_message=practitioner_message,
             client_event_id=client_event_id,
+            learner_id=learner_id,
         )
     )
 
@@ -142,12 +146,14 @@ def send_practitioner_turn(
 def evaluate_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
     scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
             session_id=session_id,
             scenario_id=scenario_id,
             action=SimulationAction.evaluate,
+            learner_id=learner_id,
         )
     )
 
@@ -159,8 +165,16 @@ def evaluate_simulation(
 def end_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
     scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
+    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
 ) -> SimulationResponse:
-    return _handle(SimulationRequest(session_id=session_id, scenario_id=scenario_id, action=SimulationAction.end))
+    return _handle(
+        SimulationRequest(
+            session_id=session_id,
+            scenario_id=scenario_id,
+            action=SimulationAction.end,
+            learner_id=learner_id,
+        )
+    )
 
 
 if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):
@@ -184,6 +198,22 @@ if os.getenv("MCP_EXPOSE_SESSION_TOOLS", "").lower() in ("1", "true", "yes"):
     ) -> DeleteSessionResult:
         removed = orchestrator.remove_session(session_id)
         return DeleteSessionResult(status="deleted" if removed else "not_found", session_id=session_id)
+
+
+if os.getenv("MCP_EXPOSE_LEARNER_TOOLS", "").lower() in ("1", "true", "yes"):
+
+    @mcp.tool(
+        description=(
+            "Return a learner's accumulated progress across simulation sessions — per-metric "
+            "mastery, sessions completed, and a recommended next focus. Registered only when "
+            "MCP_EXPOSE_LEARNER_TOOLS is enabled, because learner identifiers may be personal."
+        ),
+        structured_output=True,
+    )
+    def get_learner_progress(
+        learner_id: Annotated[str, Field(description="Stable learner identifier.", max_length=128)],
+    ) -> LearnerProgress:
+        return orchestrator.get_learner_progress(learner_id)
 
 
 class RateLimiter:

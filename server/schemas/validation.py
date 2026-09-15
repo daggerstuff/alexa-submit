@@ -26,6 +26,7 @@ class SimulationRequest(BaseModel):
     scenario_id: str | None = Field(default=None, max_length=128)
     practitioner_message: str | None = Field(default=None, max_length=4000)
     client_event_id: str | None = Field(default=None, max_length=128)
+    learner_id: str | None = Field(default=None, max_length=128)
 
 
 class TranscriptTurn(BaseModel):
@@ -73,6 +74,29 @@ class EvaluationResult(BaseModel):
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 
 
+class MetricMastery(BaseModel):
+    """Cross-session mastery of one rubric metric for one learner."""
+
+    scenario_id: str
+    metric_id: str
+    metric: str
+    best_score: int = Field(ge=0)
+    max_score: int = Field(ge=1)
+    latest_score: int = Field(ge=0)
+    attempts: int = Field(ge=1)
+
+
+class LearnerProgress(BaseModel):
+    """A learner's accumulated progress across simulation sessions."""
+
+    learner_id: str
+    sessions_completed: int = Field(ge=0)
+    metrics: list[MetricMastery] = Field(default_factory=list)
+    improved_this_session: list[str] = Field(default_factory=list)
+    focus_next: str = ""
+    adaptive_note: str = ""
+
+
 class SimulationResponse(BaseModel):
     request_id: str
     session_id: str
@@ -84,4 +108,5 @@ class SimulationResponse(BaseModel):
     evaluation: EvaluationResult | None = None
     transcript: list[TranscriptTurn]
     status: Literal["active", "evaluated", "ended"]
+    learner_progress: LearnerProgress | None = None
     disclaimer: str = "Educational simulation only; do not use for real patient care."

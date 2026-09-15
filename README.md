@@ -67,9 +67,9 @@ The MCP server exposes five agent-callable tools:
 | `evaluate_simulation`       | Returns evidence-linked rubric feedback without ending the session  |
 | `end_simulation`            | Returns the final evaluation and locks the session                  |
 
-These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching.
+These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching. Every session tool also accepts an optional `learner_id`; when supplied, the coach remembers that learner across sessions (see below).
 
-See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; they are off by default because they reveal session IDs to any API-key holder.
+See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management, and when `MCP_EXPOSE_LEARNER_TOOLS=true` is set, `get_learner_progress` is registered. They are off by default because they reveal session/learner identifiers to any API-key holder.
 
 ## Scenario and evaluator model
 
@@ -112,6 +112,18 @@ SESSION_DB_PATH=/data/sessions.db
 
 The store survives worker and process restarts. App Runner redeploys replace the container filesystem, so to survive those, point `SESSION_DB_PATH` at a mounted EFS volume (via a VPC connector). `server/storage.py` is the seam to swap for a DynamoDB-backed store if you scale past a single instance.
 
+## Cross-session learner progress
+
+Pass an optional `learner_id` on `start_simulation` (or any other session tool) and the coach becomes context-aware across sessions. Each completed `end_simulation` folds the session's rubric into a learner record that tracks, per metric:
+
+- best and latest score, plus attempt count;
+- which metrics improved this session; and
+- a recommended next focus (the weakest metric by mastery).
+
+The `end_simulation` response then carries a `learner_progress` object with a spoken-friendly `adaptive_note` (e.g. "Session 3 complete. Improved: Safety escalation. Focus next: Shared next-step confirmation."), so an Alexa+ agent can greet a returning learner and steer their next practice session. A gated `get_learner_progress` tool exposes the same record on demand when `MCP_EXPOSE_LEARNER_TOOLS=true`.
+
+Learner records persist to the same SQLite store as sessions (`SESSION_DB_PATH`) via `LearnerStore`, so progress survives restarts. A learner ID is an opaque string the application chooses; it is never derived from or tied to a real identity inside this server.
+
 ## Security boundaries
 
 The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
@@ -126,7 +138,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all seven scenarios, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all seven scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 

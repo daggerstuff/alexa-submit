@@ -50,10 +50,10 @@ Streamable HTTP.
 > scoring.
 >
 > **How it works:**
-> - **Seven authorable scenarios** across basic→advanced difficulty (chest pain,
->   abdominal pain, depression screening, migraine, back pain, syncope), each
->   with a clinical goal, a patient persona, disclosure rules, safety terms, and
->   a scoring rubric.
+> - **Seven authorable scenarios** spanning basic→advanced difficulty (chest pain,
+>   abdominal pain, depression screening, migraine, back pain, syncope, and an
+>   advanced diabetic chest-pain case), each with a clinical goal, a patient
+>   persona, disclosure rules, safety terms, and a scoring rubric.
 > - **Stateful sessions** hold scenario state and a transcript across turns; the
 >   patient only discloses facts whose trigger terms appear in the learner's
 >   question.
@@ -63,6 +63,11 @@ Streamable HTTP.
 > - **A safety boundary** flags dismissal language ("go home and rest") and
 >   pushes back so learners don't normalize under-response to a potentially
 >   serious presentation.
+> - **Cross-session coaching:** an optional `learner_id` makes the coach remember
+>   a learner across sessions — per-metric mastery, which skills improved, and a
+>   recommended next focus — so Alexa+ can greet a returning learner and steer
+>   their next practice session (a context-aware, state-across-sessions
+>   workflow).
 > - **Optional LLM persona** (Featherless Qwen or Amazon Bedrock Converse) with
 >   JSON-mode responses, a tolerant parser, automatic retry, and a deterministic
 >   fallback.
@@ -72,7 +77,8 @@ Streamable HTTP.
 >
 > **Why it matters:** it gives clinical education programs a repeatable,
 > evidence-linked surface for practicing patient interviews, and it demonstrates
-> a stateful multi-tool Alexa+ workflow rather than a single-turn Q&A bot.
+> a stateful multi-tool Alexa+ workflow that maintains learner state across
+> sessions — not a single-turn Q&A bot.
 
 ---
 
@@ -114,6 +120,9 @@ Streamable HTTP.
 >   evidence-linked rubric evaluation (partial credit + matched-term evidence).
 > - A coaching loop that returns concrete next-step questions for metrics not yet
 >   demonstrated, plus a spoken takeaway.
+> - Cross-session learner progress: an optional `learner_id` persists per-metric
+>   mastery, per-session improvement, and a recommended next focus across
+>   sessions (with a gated `get_learner_progress` tool).
 > - An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct` or
 >   Amazon Bedrock Converse) with JSON-mode responses, tolerant parsing,
 >   automatic retry, and a deterministic fallback.
@@ -186,7 +195,7 @@ All three submission artifacts live in
 ```bash
 ./scripts/initialize.sh
 ./scripts/start_mcp_server.sh        # http://127.0.0.1:8001/mcp
-.venv/bin/pytest                     # 69 tests, incl. full MCP-protocol flow
+.venv/bin/pytest                     # 74 tests, incl. full MCP-protocol flow + learner progress
 ```
 
 **Live (auth-protected):**

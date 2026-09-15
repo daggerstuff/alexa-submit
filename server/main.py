@@ -17,6 +17,9 @@ from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import JsonFormatter, registry
 from server.scenarios import ScenarioDefinition, get_scenario
 from server.schemas.validation import (
+    EvaluationResult,
+    LearnerProgress,
+    MetricMastery,
     PatientResponse,
     Role,
     SimulationAction,
@@ -24,7 +27,7 @@ from server.schemas.validation import (
     SimulationResponse,
     TranscriptTurn,
 )
-from server.storage import SessionStore
+from server.storage import LearnerStore, SessionStore
 
 logger = logging.getLogger("alexa_clinical_sim")
 if not logger.handlers:
@@ -49,6 +52,7 @@ class Session:
     processed_events: dict[str, SimulationResponse] = field(default_factory=dict)
     status: str = "active"
     last_accessed: float = field(default_factory=time.time)
+    learner_id: str | None = None
 
 
 def _state_to_dict(state: PatientState) -> dict[str, Any]:
@@ -80,6 +84,7 @@ def _session_to_record(session: Session) -> dict[str, Any]:
         "processed_events": {key: value.model_dump(mode="json") for key, value in session.processed_events.items()},
         "status": session.status,
         "last_accessed": session.last_accessed,
+        "learner_id": session.learner_id,
     }
 
 
@@ -101,6 +106,7 @@ def _record_to_session(record: dict[str, Any]) -> Session:
         },
         status=record["status"],
         last_accessed=float(record["last_accessed"]),
+        learner_id=record.get("learner_id"),
     )
 
 
@@ -114,6 +120,8 @@ class SimulationOrchestrator:
         self.max_sessions = int(os.getenv("SESSION_MAX_SESSIONS", "1000"))
         path = db_path if db_path is not None else os.getenv("SESSION_DB_PATH", "")
         self.store = SessionStore(path) if path else None
+        self.learners: dict[str, dict[str, Any]] = {}
+        self.learner_store = LearnerStore(path) if path else None
         if patient_agent is not None:
             self.patient_agent = patient_agent
         elif os.getenv("INFERENCE_PROVIDER", "mock") in ("llm", "bedrock"):
@@ -194,6 +202,74 @@ class SimulationOrchestrator:
                 for session_id, sess in self.sessions.items()
             ]
 
+    def _load_learner(self, learner_id: str) -> dict[str, Any]:
+        if learner_id in self.learners:
+            return self.learners[learner_id]
+        if self.learner_store is not None:
+            record = self.learner_store.get(learner_id)
+            if record is not None:
+                self.learners[learner_id] = record
+                return record
+        return {"learner_id": learner_id, "sessions_completed": 0, "metrics": {}}
+
+    def _persist_learner(self, learner_id: str, record: dict[str, Any]) -> None:
+        self.learners[learner_id] = record
+        if self.learner_store is not None:
+            self.learner_store.upsert(learner_id, record)
+
+    def _record_progress(
+        self, learner_id: str, session: Session, evaluation: EvaluationResult
+    ) -> LearnerProgress:
+        """Fold a completed session's rubric into the learner's cross-session record."""
+        record = self._load_learner(learner_id)
+        improved: list[str] = []
+        metrics = record.setdefault("metrics", {})
+        for item in evaluation.metrics:
+            key = f"{session.scenario.scenario_id}:{item.metric_id}"
+            prev = metrics.get(key)
+            if prev is not None and item.score > prev["best_score"]:
+                improved.append(item.metric)
+            metrics[key] = {
+                "scenario_id": session.scenario.scenario_id,
+                "metric_id": item.metric_id,
+                "metric": item.metric,
+                "best_score": max(item.score, prev["best_score"]) if prev is not None else item.score,
+                "max_score": item.max_score,
+                "latest_score": item.score,
+                "attempts": (prev["attempts"] + 1) if prev is not None else 1,
+            }
+        record["sessions_completed"] = record.get("sessions_completed", 0) + 1
+        record["last_scenario_id"] = session.scenario.scenario_id
+        record["last_improved"] = improved
+        record["updated_at"] = time.time()
+        self._persist_learner(learner_id, record)
+        return self._build_learner_progress(learner_id, record)
+
+    def _build_learner_progress(self, learner_id: str, record: dict[str, Any]) -> LearnerProgress:
+        mastery = [MetricMastery(**item) for item in record.get("metrics", {}).values()]
+        # Weakest mastery first; ties broken by fewest attempts, then name.
+        ranked = sorted(mastery, key=lambda m: (m.best_score / m.max_score, m.attempts, m.metric))
+        focus = ranked[0].metric if ranked else ""
+        improved = record.get("last_improved", [])
+        completed = int(record.get("sessions_completed", 0))
+        note = f"Session {completed} complete."
+        if improved:
+            note += f" Improved: {', '.join(improved)}."
+        if focus:
+            note += f" Focus next: {focus}."
+        return LearnerProgress(
+            learner_id=learner_id,
+            sessions_completed=completed,
+            metrics=mastery,
+            improved_this_session=improved,
+            focus_next=focus,
+            adaptive_note=note,
+        )
+
+    def get_learner_progress(self, learner_id: str) -> LearnerProgress:
+        record = self._load_learner(learner_id)
+        return self._build_learner_progress(learner_id, record)
+
     def get_or_create(self, request: SimulationRequest) -> Session:
         with self._session_lock(request.session_id):
             return self._get_or_create(request)
@@ -210,6 +286,8 @@ class SimulationOrchestrator:
         if session is not None:
             if request.scenario_id is not None and session.scenario.scenario_id != request.scenario_id:
                 raise HTTPException(status_code=409, detail="Session cannot switch scenarios")
+            if request.learner_id is not None and session.learner_id is None:
+                session.learner_id = request.learner_id
             session.last_accessed = time.time()
             self._persist(session)
             return session
@@ -227,6 +305,7 @@ class SimulationOrchestrator:
                 session_id=session_id,
                 scenario=scenario,
                 patient_state=PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version),
+                learner_id=request.learner_id,
             )
             self.sessions[session_id] = session
             registry.incr("sessions_created_total")
@@ -302,7 +381,9 @@ class SimulationOrchestrator:
         elif request.action == SimulationAction.end:
             evaluation = self.evaluator_agent.evaluate(session.transcript, session.scenario)
             session.status = "ended"
-            response = self._response(request, session, evaluation=evaluation)
+            learner_id = request.learner_id or session.learner_id
+            learner_progress = self._record_progress(learner_id, session, evaluation) if learner_id else None
+            response = self._response(request, session, evaluation=evaluation, learner_progress=learner_progress)
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported action: {request.action}")
 

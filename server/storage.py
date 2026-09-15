@@ -99,3 +99,53 @@ class SessionStore:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+
+class LearnerStore:
+    """SQLite-backed learner-progress persistence with a process-local lock.
+
+    Mirrors ``SessionStore``: rows store opaque JSON text and the orchestrator
+    owns (de)serialization. Learner progress survives process restarts within a
+    container; point ``SESSION_DB_PATH`` at mounted EFS (or swap for DynamoDB)
+    to survive redeploys across instances.
+    """
+
+    def __init__(self, path: str) -> None:
+        self._lock = threading.Lock()
+        self._conn = sqlite3.connect(path, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS learners (
+                learner_id TEXT PRIMARY KEY,
+                record TEXT NOT NULL
+            )
+            """
+        )
+        self._conn.commit()
+
+    def upsert(self, learner_id: str, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO learners (learner_id, record) VALUES (?, ?) "
+                "ON CONFLICT(learner_id) DO UPDATE SET record = excluded.record",
+                (learner_id, json.dumps(record)),
+            )
+            self._conn.commit()
+
+    def get(self, learner_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT record FROM learners WHERE learner_id = ?", (learner_id,)
+            ).fetchone()
+        return json.loads(row[0]) if row is not None else None
+
+    def delete(self, learner_id: str) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM learners WHERE learner_id = ?", (learner_id,))
+            self._conn.commit()
+
+    def close(self) -> None:
+        with self._lock:
+            self._conn.close()
