@@ -15,11 +15,11 @@ The official rules require the Alexa+ primary track to use either a working Agen
 | Alexa+ primary track                   | Strong conceptual fit                                                                                                                                                                                                       | Submit under Alexa+                                                            |
 | Self-hosted MCP server                 | Implemented in `server/mcp_server.py`                                                                                                                                                                                       | Demonstrate `/mcp` over Streamable HTTP                                        |
 | MCP version target                     | Pinned: `mcp==2.2.0`, protocol `2025-11-25` (Python 3.13)                                                                                                                                                                   | Documented in `server/requirements.txt` and `ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md` |
-| Public GitHub repository               | Repository code exists locally                                                                                                                                                                                              | Create a public GitHub repository with `LICENSE` and setup instructions        |
-| Working demo video under three minutes | `demo.mp4` (original, 1:02, LLM persona) + `demo-v2.mp4` (re-angle, 1:33, Remotion terminal recording + ElevenLabs narration, deterministic 11/20 + summary + safety)          | Publish one on YouTube/Vimeo before submission                                                                  |
-| Product feedback                       | Prepared in `PRODUCT_FEEDBACK.md`                                                                                                                                                                                           | Submit with friction log for up to 10% bonus                                   |
-| AWS Builder mini-challenge             | **Deployed and verified.** MCP server live at `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp` (App Runner + ECR, us-east-2). Full 8-step MCP demo flow passes against the live URL. Endpoint hardened with bearer/API-key auth + rate limiting; LLM patient persona runs on Featherless (`Qwen/Qwen2.5-14B-Instruct`). | Claim with the live URL and this row as evidence                               |
-| Open Source mini-challenge             | Not yet claimed                                                                                                                                                                                                             | Claim only after a qualifying contribution during the hackathon window         |
+| Public GitHub repository               | Done: public at `https://github.com/daggerstuff/alexa-submit` (MIT, in About) | N/A |
+| Working demo video under three minutes | `demo-v2.mp4` (problem-first, 1:42, Remotion terminal + ElevenLabs narration, deterministic 11/20 + summary + safety) | Publish on YouTube/Vimeo (see `SUBMISSION.md`) |
+| Product feedback                       | Done in `PRODUCT_FEEDBACK.md` — every tool/API/SDK + onboarding + build-again + feature requests + 8-entry friction log | N/A |
+| AWS Builder mini-challenge             | Claimed: Amazon Bedrock (Converse API persona) + Amazon ECR + AWS App Runner. Live at `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp` | N/A |
+| Open Source mini-challenge             | Claimed via new public, MIT-licensed repo (see section below) | N/A |
 
 ## Architecture for the submission
 
@@ -112,9 +112,9 @@ Before submitting, complete the following items:
 4. Demonstrate the MCP endpoint and tool calls in the video.
 5. Keep the demo video under three minutes and publish it publicly on YouTube or Vimeo.
 6. ~~Explain the meaningful update made during the hackathon period if the project existed beforehand.~~ — Done: see the "Meaningful update statement" section below.
-7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md`.
-8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md`.
-9. Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.
+7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md` (every tool/API/SDK, onboarding experience, and build-again answers).
+8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md` (8 entries, each with task, steps taken, expected vs. actual, severity, workaround, and suggestion).
+9. ~~Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.~~ — Done: Amazon Bedrock (Converse API LLM persona) + Amazon ECR + AWS App Runner; see `SUBMISSION.md`.
 10. ~~Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.~~ — Done: claimed via this submission as a new open-source project; see the "Open Source mini-challenge" section below.
 
 ## Meaningful update statement

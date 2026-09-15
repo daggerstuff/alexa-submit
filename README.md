@@ -10,7 +10,7 @@ The project is designed for the **Alexa+ primary track** of the Amazon AppDev 20
 
 The hackathon requires an Alexa+ working Agent Skill or self-hosted MCP server using MCP version 2025-11-25 or later over Streamable HTTP. The repository also includes a conventional FastAPI development API for local testing, but the MCP server is the track-facing integration surface.
 
-See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy, judging alignment, three-minute demo plan, product feedback template, and remaining checklist.
+See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy, judging alignment, and the three-minute demo plan, and [`SUBMISSION.md`](SUBMISSION.md) for the ready-to-paste Devpost form fields.
 
 ## Architecture
 
@@ -21,6 +21,17 @@ See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy
 | Scenario             | Facts, disclosure rules, safety terms, and rubric        | `server/scenarios.py`                          |
 | Patient policy       | Stateful, scenario-constrained responses                 | `PatientPersonaAgent`                          |
 | Evaluation policy    | Versioned scoring with transcript evidence               | `ClinicalEvaluatorAgent`                       |
+
+```mermaid
+flowchart LR
+    A["Alexa+ · voice ASR/TTS"] -->|"MCP 2025-11-25 · Streamable HTTP /mcp"| M["server/mcp_server.py"]
+    M --> O["SimulationOrchestrator"]
+    O --> S["Scenario registry · scenarios_data/*.json"]
+    O --> P["PatientPersonaAgent · deterministic"]
+    O --> L["LLMPersonaAgent · Featherless Qwen / Amazon Bedrock"]
+    O --> E["ClinicalEvaluatorAgent · rubric + coaching"]
+    O --> D["SessionStore · memory / SQLite"]
+```
 
 The MCP server is **text-in/text-out**. Voice is supplied by the Alexa+ agent, which provides automatic speech recognition (ASR) and text-to-speech (TTS) natively; this project does not reimplement a speech stack. The "voice-first" framing refers to the Alexa+ surface, not to embedded TTS/ASR here.
 
@@ -64,9 +75,9 @@ See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_T
 
 `server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
 
-`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints and falls back to the deterministic agent when the LLM is unavailable or returns invalid output.
+`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API **or Amazon Bedrock's Converse API**. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints and falls back to the deterministic agent when the LLM is unavailable or returns invalid output.
 
-To enable the LLM adapter, set these environment variables (Featherless example, any OpenAI-compatible API works):
+To enable the LLM adapter over an OpenAI-compatible endpoint (Featherless example, any compatible API works):
 
 ```bash
 INFERENCE_PROVIDER=llm
@@ -75,6 +86,19 @@ INFERENCE_API_KEY=your-featherless-key
 INFERENCE_MODEL=Qwen/Qwen2.5-14B-Instruct
 INFERENCE_TIMEOUT=15
 ```
+
+To use **Amazon Bedrock** instead (AWS Builder mini-challenge), install the extra and point `INFERENCE_PROVIDER` at Bedrock:
+
+```bash
+pip install -e ".[bedrock]"
+export AWS_ACCESS_KEY_ID=...   # or rely on an instance role
+export AWS_SECRET_ACCESS_KEY=...
+INFERENCE_PROVIDER=bedrock
+BEDROCK_MODEL_ID=qwen/qwen3-30b-a3b-instruct   # verify with: aws bedrock list-foundation-models
+AWS_REGION=us-east-1
+```
+
+The Bedrock path uses the Converse API (`bedrock-runtime`) with an explicit `maxTokens` and adaptive retry; `boto3` is an optional dependency so the core install stays lean.
 
 `ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, matched terms, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, concrete coaching suggestions, and an educational disclaimer.
 
@@ -123,7 +147,7 @@ The MCP endpoint is available at `http://localhost:8001/mcp`.
 
 ## AWS App Runner deployment
 
-For the AWS Builder mini-challenge, the project includes an App Runner deployment configuration (`apprunner.yaml`) and a deployment script (`scripts/deploy_aws.sh`).
+For the AWS Builder mini-challenge, the project uses **Amazon Bedrock** (optional LLM persona), **Amazon ECR** (image registry), and **AWS App Runner** (hosting). Deployment is configured in `apprunner.yaml` and `scripts/deploy_aws.sh`.
 
 ```bash
 # Prerequisites: AWS CLI configured, Docker installed
@@ -146,9 +170,9 @@ The deploy workflow runs the same `scripts/deploy_aws.sh` used for manual deploy
 
 ## Hackathon submission requirements
 
-The Alexa+ submission should include a public GitHub repository with this source, assets, setup instructions, and `LICENSE`; a public demo video shorter than three minutes showing the MCP tools and end-to-end simulation; a concise project description; product feedback for the MCP/Alexa+ developer experience; and a friction log with concrete setup or integration issues.
+The Alexa+ submission includes a public GitHub repository with this source, assets, setup instructions, and `LICENSE`; a public demo video under three minutes showing the MCP tools and end-to-end simulation; a concise project description; product feedback for the MCP/Alexa+ developer experience; and a friction log with concrete setup or integration issues.
 
-The AWS Builder and Open Source mini-challenges should be claimed only when their additional requirements are actually met. See `HACKATHON_STRATEGY.md` for the full submission checklist.
+The AWS Builder mini-challenge is claimed via Amazon Bedrock (optional LLM persona), Amazon ECR, and AWS App Runner; the Open Source mini-challenge is claimed via this new public, MIT-licensed repository. See [`SUBMISSION.md`](SUBMISSION.md) for the ready-to-paste Devpost fields and [`PRODUCT_FEEDBACK.md`](PRODUCT_FEEDBACK.md) for the feedback and friction log.
 
 ## Layout
 
@@ -159,6 +183,7 @@ alexa-clinical-sim/
 ├── README.md
 ├── HACKATHON_STRATEGY.md
 ├── PRODUCT_FEEDBACK.md
+├── SUBMISSION.md
 ├── DEMO_TRANSCRIPT.md
 ├── ALEXA_PLUS_3_MINUTE_PITCH.md
 ├── ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md
@@ -170,6 +195,7 @@ alexa-clinical-sim/
 ├── pyproject.toml
 ├── uv.lock
 ├── pytest.ini
+├── demo-video/                    # Remotion renderer + ElevenLabs narration (gitignored output)
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
@@ -199,6 +225,7 @@ alexa-clinical-sim/
     ├── test_mcp_protocol.py
     ├── test_mcp_security.py
     ├── test_llm_persona.py
+    ├── test_llm_persona_bedrock.py
     ├── test_evaluator.py
     ├── test_session_lifecycle.py
     ├── test_observability.py

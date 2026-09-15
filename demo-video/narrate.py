@@ -15,7 +15,10 @@ Usage:
 Then mux onto the rendered video (offsets printed at the end).
 """
 
-import json, os, urllib.request, urllib.error
+import json
+import os
+import urllib.error
+import urllib.request
 
 KEY = os.environ.get("ELEVENLABS_API_KEY", "").strip()
 if not KEY:

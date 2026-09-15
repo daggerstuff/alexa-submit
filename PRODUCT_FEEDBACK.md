@@ -22,6 +22,7 @@ This document satisfies the product-feedback and friction-log submission require
 | Featherless            | `Qwen/Qwen2.5-14B-Instruct` | Optional LLM patient persona (JSON mode) |
 | AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint |
 | AWS ECR                | —          | Container image registry                      |
+| Amazon Bedrock         | —          | Optional LLM persona via Converse API (AWS Builder mini-challenge) |
 | GitHub Actions         | —          | CI (lint + test) and deploy pipeline          |
 | Remotion               | 4.0.484    | Demo video (synthetic terminal recording)     |
 | ElevenLabs             | `eleven_v3`| Demo narration voice-over                     |
@@ -46,8 +47,9 @@ This document satisfies the product-feedback and friction-log submission require
 
 - The slim Python 3.13 image produces a ~150 MB container that starts in under 2 seconds. The MCP server responds to `initialize` immediately after startup.
 
-### AWS (App Runner + ECR + GitHub Actions)
+### AWS (Bedrock + App Runner + ECR + GitHub Actions)
 
+- Amazon Bedrock's Converse API gives the LLM persona one provider-agnostic request/response shape; a single `bedrock-runtime` client call covers text completion with explicit `maxTokens` and adaptive retry.
 - App Runner took the container and gave us a TLS endpoint with no load-balancer or ingress configuration; the `/mcp` Streamable HTTP endpoint passed the full MCP flow on the first successful push.
 - ECR with a unique tag per deploy made builds deterministic and rollback simple; a `latest`-style tag would have let stale images deploy silently.
 - GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline.
@@ -76,15 +78,17 @@ This document satisfies the product-feedback and friction-log submission require
 
 ### Alexa+ integration
 
-6. **No Alexa+ MCP client documentation.** The hackathon rules describe the MCP server requirement, but there is no public documentation for how an Alexa+ agent discovers and calls MCP tools. We inferred the workflow (list scenarios → start → send turns → evaluate → end) from the MCP protocol spec, not from Alexa+ documentation.
+5. **No Alexa+ MCP client documentation.** The hackathon rules describe the MCP server requirement, but there is no public documentation for how an Alexa+ agent discovers and calls MCP tools. We inferred the workflow (list scenarios → start → send turns → evaluate → end) from the MCP protocol spec, not from Alexa+ documentation.
 
-7. **No Alexa+ local testing tool.** We could not find a mock Alexa+ MCP client for local development. The closest option was a raw MCP client using the Python SDK, which does not simulate the Alexa+ conversation UX (voice prompts, session management, spoken response formatting).
+6. **No Alexa+ local testing tool.** We could not find a mock Alexa+ MCP client for local development. The closest option was a raw MCP client using the Python SDK, which does not simulate the Alexa+ conversation UX (voice prompts, session management, spoken response formatting).
 
 ### AWS
 
-8. **App Runner deploy has no dry-run or preview.** The only way to know whether a build/tag/region combination works is to push and watch the service update. A preview or validate step (or a clearer error when the tag already exists) would have saved two failed deploys.
+7. **App Runner deploy has no dry-run or preview.** The only way to know whether a build/tag/region combination works is to push and watch the service update. A preview or validate step (or a clearer error when the tag already exists) would have saved two failed deploys.
 
-9. **Region must match the `aws login` session exactly.** A mismatched region caused silent credential-refresh failures until the deploy region was aligned with the login profile. This should be surfaced as an explicit error rather than a generic refresh failure.
+8. **Region must match the `aws login` session exactly.** A mismatched region caused silent credential-refresh failures until the deploy region was aligned with the login profile. This should be surfaced as an explicit error rather than a generic refresh failure.
+
+9. **Bedrock Converse has no native JSON-mode toggle.** The Converse API has no `response_format: json_object` equivalent; JSON output is prompt-driven. We rely on the persona's system prompt ("Return JSON only") plus a tolerant parser. A first-class structured-output option would remove the need.
 
 ### Featherless
 
@@ -98,29 +102,40 @@ This document satisfies the product-feedback and friction-log submission require
 
 We would also build with Pydantic again. Its models made the simulation contracts self-documenting, and the `Field` constraints catch malformed input before it reaches the orchestrator.
 
+We would build with **Alexa+** again: voice-first clinical practice is a strong fit for the MCP tool surface, and the missing piece is local testing tooling rather than the platform itself. We would build with **AWS** again — App Runner + ECR gave a zero-config TLS deploy, and **Bedrock** is a clean swap-in for the persona when AWS is the deployment target.
+
+---
+
+## Onboarding experience
+
+- **MCP Python SDK (zero → hello world):** a working `@mcp.tool()` server over Streamable HTTP came up in under an hour from the "Build an MCP Server" guide. Getting from "hello world" to "hello world with tests" was the real climb — the test factory (`streamable_http_app()`) is not documented, so we read SDK source to write protocol-level integration tests.
+- **Alexa+:** there is no local Alexa+ MCP client simulator, so we onboarded against a raw MCP client plus the hosted endpoint. The protocol flow itself (initialize → tools/list → tools/call) was unambiguous.
+- **AWS:** ECR push + App Runner deploy reached a working TLS `/mcp` endpoint in a single session; the friction was region/credential alignment and the unique-tag requirement, not the service model. Bedrock onboarding is a single `bedrock-runtime` Converse call once model access is enabled.
+
 ---
 
 ## Feature requests
 
-| Priority | Request                                           | Rationale                                                                    |
-| -------- | ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| High     | Document `streamable_http_app()` in the SDK guide | The test factory is essential for integration testing but undocumented       |
-| High     | Add tool-level error result pattern               | Allow tools to return structured errors without raising exceptions           |
-| Medium   | Support mounting MCP inside an existing ASGI app  | Simplify single-process deployment                                           |
-| Medium   | Add built-in `/health` endpoint option            | Container orchestration support                                              |
-| Low      | Provide an Alexa+ MCP client simulator            | Reduce the gap between MCP server development and Alexa+ integration testing |
+| Priority     | Request                                           | Rationale                                                                    |
+| ------------ | ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Critical     | Document `streamable_http_app()` in the SDK guide | The test factory is essential for integration testing but undocumented       |
+| Important    | Add tool-level error result pattern               | Allow tools to return structured errors without raising exceptions           |
+| Important    | Support mounting MCP inside an existing ASGI app  | Simplify single-process deployment                                           |
+| Nice-to-have | Add built-in `/health` endpoint option            | Container orchestration support                                              |
+| Important    | Provide an Alexa+ MCP client simulator            | Reduce the gap between MCP server development and Alexa+ integration testing |
 
 ---
 
 ## Friction log
 
-Each entry includes: attempted task, expected result, actual result, severity, workaround, and proposed improvement.
+Each entry includes: specific task attempted, steps taken, expected vs. actual result, severity, workaround, and actionable suggestion.
 
 ### Friction 1: Pydantic version conflict blocks installation
 
 | Field                    | Value                                                                                                                                                                                                          |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Attempted task**       | Install dependencies from `server/requirements.txt` in a fresh virtualenv                                                                                                                                      |
+| **Steps taken**          | 1. Create a fresh virtualenv. 2. Run `pip install -r server/requirements.txt`. |
 | **Expected result**      | `pip install -r server/requirements.txt` completes successfully                                                                                                                                                |
 | **Actual result**        | `ResolutionImpossible` — `mcp>=2.0.0` requires `pydantic>=2.12.0` but `requirements.txt` pinned `pydantic==2.10.5`                                                                                             |
 | **Severity**             | High — blocks initial setup                                                                                                                                                                                    |
@@ -132,6 +147,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Attempted task**       | Start the MCP server with `python -m server.mcp_server`                                                                        |
+| **Steps taken**          | 1. Export `LOG_LEVEL=info`. 2. Run `python -m server.mcp_server`. |
 | **Expected result**      | Server starts and listens on `127.0.0.1:8001/mcp`                                                                              |
 | **Actual result**        | `ValueError: Unknown level: 'info'` — Python's `logging.basicConfig()` rejects lowercase level names                           |
 | **Severity**             | Medium — crashes on startup if the environment sets `LOG_LEVEL=info` (common in shell configs)                                 |
@@ -143,6 +159,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Attempted task**       | Write an integration test that calls the MCP server through the protocol (initialize, tools/list, tools/call)                                    |
+| **Steps taken**          | 1. Search the SDK guide for a test client. 2. Read the `mcp/server/mcpserver.py` source. 3. Write a `TestClient` integration test. |
 | **Expected result**      | Find a documented test factory or test client in the MCP Python SDK                                                                              |
 | **Actual result**        | No testing documentation in the official guide. Found `streamable_http_app()` by reading `mcp/server/mcpserver.py` source code                   |
 | **Severity**             | Medium — costs 30+ minutes of source-code reading                                                                                                |
@@ -154,6 +171,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                                                                               |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Attempted task**       | Call `send_practitioner_turn` via MCP with a `scenario_id` that conflicts with the session's scenario                                                                               |
+| **Steps taken**          | 1. Start a session with `start_simulation`. 2. Call `send_practitioner_turn` with a conflicting `scenario_id`. 3. Inspect the MCP error payload. |
 | **Expected result**      | Client receives a structured error with status 409 and message "Session cannot switch scenarios"                                                                                    |
 | **Actual result**        | Client receives a generic `UnexpectedToolError: Error executing tool send_practitioner_turn` — the 409 status and detail message are lost                                           |
 | **Severity**             | Medium — makes debugging harder for the MCP client                                                                                                                                  |
@@ -165,6 +183,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Attempted task**       | Run the MCP server in Docker and call it from the host                                                                                                                  |
+| **Steps taken**          | 1. `docker build` the image. 2. `docker run -p 8001:8001`. 3. `curl http://127.0.0.1:8001/mcp`. |
 | **Expected result**      | `curl http://127.0.0.1:8001/mcp` returns the `initialize` response                                                                                                      |
 | **Actual result**        | `Invalid Host header` — `TransportSecuritySettings` rejects the request because the container's allowed hosts don't include the host's `127.0.0.1`                      |
 | **Severity**             | Low — easily worked around                                                                                                                                              |
@@ -176,6 +195,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                                                     |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Attempted task**       | Run the deploy pipeline to build, push to ECR, and update App Runner in `us-east-2`                                                                        |
+| **Steps taken**          | 1. Run `aws login`. 2. Run `scripts/deploy_aws.sh`. 3. Observe the `aws ecr` credential-refresh failure. |
 | **Expected result**      | `aws ecr` and `aws apprunner` commands succeed with the logged-in profile                                                                                  |
 | **Actual result**        | Credential-refresh failures because the deploy region did not match the `aws login` session region                                                          |
 | **Severity**             | High — blocks every deploy until aligned                                                                                                                   |
@@ -187,6 +207,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Attempted task**       | Push a rebuilt image and update App Runner                                                                                      |
+| **Steps taken**          | 1. Rebuild the image with the same tag. 2. Push to ECR. 3. Update App Runner and confirm the old image is still serving. |
 | **Expected result**      | The new image is pushed and served                                                                                              |
 | **Actual result**        | Pushing over a reused tag let the previous image persist, so the new build did not actually ship                                |
 | **Severity**             | Medium — silently serves stale code                                                                                             |
@@ -198,6 +219,7 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | Field                    | Value                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Attempted task**       | Get a patient response from the Featherless `Qwen/Qwen2.5-14B-Instruct` persona in JSON mode                                   |
+| **Steps taken**          | 1. Set `INFERENCE_PROVIDER=llm`. 2. Call `send_practitioner_turn`. 3. Parse the persona's JSON response. |
 | **Expected result**      | A single valid JSON object per turn                                                                                            |
 | **Actual result**        | Occasional trailing prose or unescaped characters after the JSON object, which broke strict parsing                            |
 | **Severity**             | Medium — intermittent persona failures                                                                                         |
