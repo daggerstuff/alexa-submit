@@ -4,9 +4,13 @@ Uses the Eleven v3 model (recommended for video narration) with a neutral
 "Adam" voice, Natural stability, and speech-normalized text (M-C-P spelled
 out, ellipses for pacing, em-dash for emphasis).
 
+The opening beat leads with the problem; the terminal starts at
+PROBLEM_SECONDS (9.5s) in DemoVideo.tsx, so every terminal-beat offset below
+is shifted by +9500 ms.
+
 Usage:
     export ELEVENLABS_API_KEY=sk_...
-    python3 narrate.py          # writes /tmp/el_audio/seg1..seg8.mp3
+    python3 narrate.py          # writes /tmp/el_audio9/seg1..seg9.mp3
 
 Then mux onto the rendered video (offsets printed at the end).
 """
@@ -19,19 +23,23 @@ if not KEY:
 
 VOICE = "pNInz6obpgDQGcFmaJgB"  # Adam (neutral clinician narrator)
 URL = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE}"
-OUT = "/tmp/el_audio"
+OUT = "/tmp/el_audio9"
 os.makedirs(OUT, exist_ok=True)
+
+PROBLEM_SECONDS = 9.5  # keep in sync with DemoVideo.tsx
+SHIFT = int(PROBLEM_SECONDS * 1000)
 
 # (text, delay_ms) — delay is the video-time offset for ffmpeg `adelay`.
 SEGMENTS = [
-    ("Here's Clinical Conversation Coach. An M-C-P server that lets Alexa Plus run safe, repeatable clinical-conversation practice.", 0),
-    ("Five agent-callable tools — from scenario discovery, through evaluation.", 9300),
-    ("Seven authorable scenarios... from basic, to advanced.", 15200),
-    ("The learner hears the goal first... then the patient opens the case.", 20500),
-    ("Four turns: location, radiation, shortness of breath and medications — then safety.", 31000),
-    ("The rubric grades every turn, linking each score to the words that earned it. Eleven of twenty... with a spoken takeaway that tells the learner exactly what to ask next.", 63000),
-    ("And when the learner dismisses the case, the safety layer pushes back: reconsider — this may delay needed care.", 75500),
-    ("Alexa Plus provides the conversation. M-C-P provides the orchestration. And the coach... provides the learning outcome.", 83300),
+    ("Practicing a difficult patient conversation usually means doing it live — on a real patient. There is no safe way to rehearse the interview first.", 0),
+    ("Here's Clinical Conversation Coach. An M-C-P server that lets Alexa Plus run safe, repeatable clinical-conversation practice.", SHIFT + 0),
+    ("Five agent-callable tools — from scenario discovery, through evaluation.", SHIFT + 9300),
+    ("Seven authorable scenarios... from basic, to advanced.", SHIFT + 15200),
+    ("The learner hears the goal first... then the patient opens the case.", SHIFT + 20500),
+    ("Four turns: location, radiation, shortness of breath and medications — then safety.", SHIFT + 31000),
+    ("The rubric grades every turn, linking each score to the words that earned it. Eleven of twenty... with a spoken takeaway that tells the learner exactly what to ask next.", SHIFT + 63000),
+    ("And when the learner dismisses the case, the safety layer pushes back: reconsider — this may delay needed care.", SHIFT + 75500),
+    ("Alexa Plus provides the conversation. M-C-P provides the orchestration. And the coach... provides the learning outcome.", SHIFT + 83300),
 ]
 
 for i, (text, _offset) in enumerate(SEGMENTS, 1):
@@ -65,8 +73,8 @@ for i, (text, _offset) in enumerate(SEGMENTS, 1):
 print("\n# mux offsets (ms) for ffmpeg adelay:")
 for i, (_text, offset) in enumerate(SEGMENTS, 1):
     print(f"  seg{i}: {offset}")
-print("""\n# assemble narration track (inputs seg1..seg8 => indices 0..7):
-# ffmpeg -i seg1.mp3 ... -i seg8.mp3 \\
-#   -filter_complex "[0:a]...adelay=0:all=1[a1];[1:a]...adelay=9300:all=1[a2];...;[a1]...[a8]amix=inputs=8:duration=longest:normalize=0,apad" \\
-#   -t 93.2 -ar 48000 -ac 2 narration.wav
+print("""\n# assemble narration track (inputs seg1..seg9 => indices 0..8):
+# ffmpeg -i seg1.mp3 ... -i seg9.mp3 \\
+#   -filter_complex "[0:a]...adelay=0:all=1[a1];[1:a]...adelay=9500:all=1[a2];...;[a1]...[a9]amix=inputs=9:duration=longest:normalize=0,apad" \\
+#   -t <total> -ar 48000 -ac 2 narration.wav
 # then: ffmpeg -i demo.mp4 -i narration.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4""")

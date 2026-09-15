@@ -1,4 +1,5 @@
 import React from "react";
+import { AbsoluteFill, Sequence, interpolate, useCurrentFrame } from "remotion";
 import { TerminalScene, TerminalStep } from "./TerminalScene";
 
 export const steps: TerminalStep[] = [
@@ -103,15 +104,62 @@ function stepSeconds(s: TerminalStep): number {
   }
 }
 
-export const TOTAL_SECONDS = steps.reduce((acc, s) => acc + stepSeconds(s), 0);
+const FPS = 30;
+export const PROBLEM_SECONDS = 9.5;
+const TERMINAL_SECONDS = steps.reduce((acc, s) => acc + stepSeconds(s), 0);
+
+export const TOTAL_SECONDS = PROBLEM_SECONDS + TERMINAL_SECONDS;
+
+const ProblemCard: React.FC = () => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: "clamp" });
+  const rise = interpolate(frame, [0, 24], [18, 0], { extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: "#0B0F1A",
+        justifyContent: "center",
+        alignItems: "center",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          opacity,
+          transform: `translateY(${rise}px)`,
+          textAlign: "center",
+          maxWidth: 1500,
+          padding: "0 80px",
+        }}
+      >
+        <div style={{ color: "#22D3EE", fontSize: 36, fontWeight: 700, letterSpacing: 6, marginBottom: 36 }}>
+          THE PROBLEM
+        </div>
+        <div style={{ color: "#F4F6FB", fontSize: 92, fontWeight: 800, lineHeight: 1.1 }}>
+          Clinicians rehearse hard conversations on real patients.
+        </div>
+        <div style={{ color: "#9AA6B8", fontSize: 42, fontWeight: 400, lineHeight: 1.35, marginTop: 44 }}>
+          There is no safe, repeatable way to practice the interview first.
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 export const DemoVideo: React.FC = () => {
   return (
-    <TerminalScene
-      title="Clinical Conversation Coach — Alexa+ MCP demo"
-      prompt="$"
-      accentColor="#22D3EE"
-      steps={steps}
-    />
+    <>
+      <Sequence from={0} durationInFrames={Math.round(PROBLEM_SECONDS * FPS)}>
+        <ProblemCard />
+      </Sequence>
+      <Sequence from={Math.round(PROBLEM_SECONDS * FPS)}>
+        <TerminalScene
+          title="Clinical Conversation Coach — Alexa+ MCP demo"
+          prompt="$"
+          accentColor="#22D3EE"
+          steps={steps}
+        />
+      </Sequence>
+    </>
   );
 };
