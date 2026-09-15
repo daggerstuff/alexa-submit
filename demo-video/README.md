@@ -32,7 +32,9 @@ python3 narrate.py            # writes /tmp/el_audio/seg1..seg8.mp3 + prints off
 # mux:       ffmpeg -i demo.mp4 -i narration.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4
 ```
 
-The API key is never committed; it is read from the environment only.
+The API key is never committed; it is read from the environment only. The
+narration uses the **Eleven v3** model (recommended for video narration), Natural
+stability, and speech-normalized text ("M-C-P" spelled out, ellipses for pacing).
 
 ## Note
 
