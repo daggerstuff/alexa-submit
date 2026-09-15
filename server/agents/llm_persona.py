@@ -25,9 +25,12 @@ class LLMPersonaAgent:
     """
 
     def __init__(self) -> None:
+        self.provider = os.getenv("INFERENCE_PROVIDER", "mock").lower()
         self.base_url = os.getenv("INFERENCE_BASE_URL", "")
         self.api_key = os.getenv("INFERENCE_API_KEY", "")
         self.model = os.getenv("INFERENCE_MODEL", "Qwen/Qwen2.5-14B-Instruct")
+        self.bedrock_model = os.getenv("BEDROCK_MODEL_ID", "")
+        self.aws_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
         self.fallback = PatientPersonaAgent()
         try:
             self.timeout = float(os.getenv("INFERENCE_TIMEOUT", "15"))
@@ -38,6 +41,8 @@ class LLMPersonaAgent:
 
     @property
     def available(self) -> bool:
+        if self.provider == "bedrock":
+            return bool(self.bedrock_model)
         return bool(self.base_url and self.api_key)
 
     def respond(
@@ -121,6 +126,8 @@ class LLMPersonaAgent:
         )
 
     def _complete(self, messages: list[dict[str, str]]) -> str:
+        if self.provider == "bedrock":
+            return self._complete_bedrock(messages)
         last_exc: Exception | None = None
         for json_mode in (True, False):
             body: dict[str, Any] = {
@@ -144,6 +151,38 @@ class LLMPersonaAgent:
                 last_exc = exc
                 logger.warning("LLM call failed (json_mode=%s): %s", json_mode, exc)
         raise last_exc if last_exc is not None else RuntimeError("LLM completion produced no response")
+
+    def _build_bedrock_request(self, messages: list[dict[str, str]]) -> dict[str, Any]:
+        """Build a Bedrock Converse request from the persona's message list.
+
+        Converse has no `system` role in `messages`; system prompts are passed
+        in the dedicated `system` list instead. `maxTokens` is set explicitly
+        (unset values reserve the model's full quota and can throttle).
+        """
+        system_texts = [m["content"] for m in messages if m.get("role") == "system"]
+        user_texts = [m["content"] for m in messages if m.get("role") != "system"]
+        return {
+            "modelId": self.bedrock_model,
+            "messages": [{"role": "user", "content": [{"text": text}]} for text in user_texts],
+            "system": [{"text": text} for text in system_texts],
+            "inferenceConfig": {"maxTokens": 300, "temperature": 0.7},
+        }
+
+    def _bedrock_client(self) -> Any:
+        """Lazily build a bedrock-runtime client (boto3 is an optional dependency)."""
+        import boto3
+        from botocore.config import Config
+
+        return boto3.client(
+            "bedrock-runtime",
+            region_name=self.aws_region,
+            config=Config(retries={"max_attempts": 5, "mode": "adaptive"}),
+        )
+
+    def _complete_bedrock(self, messages: list[dict[str, str]]) -> str:
+        client = self._bedrock_client()
+        response = client.converse(**self._build_bedrock_request(messages))
+        return response["output"]["message"]["content"][0]["text"]
 
     def _build_system_prompt(self, state: PatientState, scenario: ScenarioDefinition) -> str:
         disclosure_lines = []

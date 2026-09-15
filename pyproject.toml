@@ -20,6 +20,9 @@ dev = [
     "pytest-asyncio==1.4.0",
     "ruff==0.16.6",
 ]
+bedrock = [
+    "boto3>=1.34.0",
+]
 
 [build-system]
 requires = ["hatchling"]
