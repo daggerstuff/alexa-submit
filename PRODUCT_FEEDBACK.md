@@ -19,6 +19,12 @@ This document satisfies the product-feedback and friction-log submission require
 | Ruff                   | 0.16.6     | Linting and formatting                        |
 | Docker                 | —          | Containerized deployment for judges           |
 | Python                 | 3.13.15    | Runtime                                       |
+| Featherless            | `Qwen/Qwen2.5-14B-Instruct` | Optional LLM patient persona (JSON mode) |
+| AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint |
+| AWS ECR                | —          | Container image registry                      |
+| GitHub Actions         | —          | CI (lint + test) and deploy pipeline          |
+| Remotion               | 4.0.484    | Demo video (synthetic terminal recording)     |
+| ElevenLabs             | `eleven_v3`| Demo narration voice-over                     |
 
 ---
 
@@ -40,6 +46,20 @@ This document satisfies the product-feedback and friction-log submission require
 
 - The slim Python 3.13 image produces a ~150 MB container that starts in under 2 seconds. The MCP server responds to `initialize` immediately after startup.
 
+### AWS (App Runner + ECR + GitHub Actions)
+
+- App Runner took the container and gave us a TLS endpoint with no load-balancer or ingress configuration; the `/mcp` Streamable HTTP endpoint passed the full MCP flow on the first successful push.
+- ECR with a unique tag per deploy made builds deterministic and rollback simple; a `latest`-style tag would have let stale images deploy silently.
+- GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline.
+
+### Featherless (Qwen)
+
+- The OpenAI-compatible `/v1` endpoint let the LLM patient persona reuse a standard chat-completions client instead of a provider-specific SDK. JSON-mode output with a tolerant parser and one automatic retry made the persona robust in practice.
+
+### Remotion + ElevenLabs (demo)
+
+- Remotion rendered a deterministic, pixel-perfect 1080p terminal recording with per-character typing and no live desktop capture. ElevenLabs `eleven_v3` produced natural narration from speech-normalized text (acronyms spelled out, punctuation-driven pacing).
+
 ---
 
 ## What needs improvement
@@ -59,6 +79,16 @@ This document satisfies the product-feedback and friction-log submission require
 6. **No Alexa+ MCP client documentation.** The hackathon rules describe the MCP server requirement, but there is no public documentation for how an Alexa+ agent discovers and calls MCP tools. We inferred the workflow (list scenarios → start → send turns → evaluate → end) from the MCP protocol spec, not from Alexa+ documentation.
 
 7. **No Alexa+ local testing tool.** We could not find a mock Alexa+ MCP client for local development. The closest option was a raw MCP client using the Python SDK, which does not simulate the Alexa+ conversation UX (voice prompts, session management, spoken response formatting).
+
+### AWS
+
+8. **App Runner deploy has no dry-run or preview.** The only way to know whether a build/tag/region combination works is to push and watch the service update. A preview or validate step (or a clearer error when the tag already exists) would have saved two failed deploys.
+
+9. **Region must match the `aws login` session exactly.** A mismatched region caused silent credential-refresh failures until the deploy region was aligned with the login profile. This should be surfaced as an explicit error rather than a generic refresh failure.
+
+### Featherless
+
+10. **JSON-mode output is not always valid JSON.** The persona occasionally returned trailing prose or unescaped characters after the JSON object. We worked around it with a tolerant parser and one automatic retry; a stricter JSON-mode guarantee (or a `response_format` that always terminates) would remove the need.
 
 ---
 
@@ -140,6 +170,39 @@ Each entry includes: attempted task, expected result, actual result, severity, w
 | **Severity**             | Low — easily worked around                                                                                                                                              |
 | **Workaround**           | Set `MCP_HOST=0.0.0.0` and `MCP_ALLOWED_HOSTS=0.0.0.0:*,127.0.0.1:*,localhost:*` in the Dockerfile                                                                      |
 | **Proposed improvement** | Document the Docker deployment pattern including the required `MCP_ALLOWED_HOSTS` override, or provide a `--docker` preset that configures sensible container defaults. |
+
+### Friction 6: AWS region mismatch breaks credential refresh
+
+| Field                    | Value                                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Attempted task**       | Run the deploy pipeline to build, push to ECR, and update App Runner in `us-east-2`                                                                        |
+| **Expected result**      | `aws ecr` and `aws apprunner` commands succeed with the logged-in profile                                                                                  |
+| **Actual result**        | Credential-refresh failures because the deploy region did not match the `aws login` session region                                                          |
+| **Severity**             | High — blocks every deploy until aligned                                                                                                                   |
+| **Workaround**           | Aligned the deploy region with the `aws login` profile region in the deploy script                                                                         |
+| **Proposed improvement** | Read the region from the AWS profile instead of a hardcoded value, and fail with an explicit "region mismatch" message rather than a generic refresh error. |
+
+### Friction 7: Reusing a single ECR tag caused stale deploys
+
+| Field                    | Value                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Attempted task**       | Push a rebuilt image and update App Runner                                                                                      |
+| **Expected result**      | The new image is pushed and served                                                                                              |
+| **Actual result**        | Pushing over a reused tag let the previous image persist, so the new build did not actually ship                                |
+| **Severity**             | Medium — silently serves stale code                                                                                             |
+| **Workaround**           | Generate a unique ECR tag per deploy and build the image with that tag                                                          |
+| **Proposed improvement** | Fail or warn when pushing an image over an existing tag, or make unique-per-deploy tags the documented default.                |
+
+### Friction 8: LLM persona returns malformed JSON
+
+| Field                    | Value                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Attempted task**       | Get a patient response from the Featherless `Qwen/Qwen2.5-14B-Instruct` persona in JSON mode                                   |
+| **Expected result**      | A single valid JSON object per turn                                                                                            |
+| **Actual result**        | Occasional trailing prose or unescaped characters after the JSON object, which broke strict parsing                            |
+| **Severity**             | Medium — intermittent persona failures                                                                                         |
+| **Workaround**           | Added a tolerant parser that extracts the first JSON object plus one automatic retry                                          |
+| **Proposed improvement** | The provider should guarantee terminated JSON output in JSON mode, or expose a strict `response_format` that never emits trailing text. |
 
 ---
 
