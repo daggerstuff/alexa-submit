@@ -339,6 +339,20 @@ Do not treat the local tunnel helper as a production deployment. It is only a de
 | Repository   | Public repository contains setup instructions and an open-source license                   |
 | Feedback     | Product feedback and a concrete friction log are ready for submission                      |
 
+## 17. Registering this server as an Alexa+ Agent Skill
+
+The Alexa+ track accepts a working Agent Skill **or** a self-hosted MCP server; this project's working path is the MCP server. The same endpoint can also be registered as the MCP connection for an Alexa+ Agent Skill in the Alexa developer console, because the connection contract is identical:
+
+| Contract element | Value |
+| --- | --- |
+| Protocol | MCP `2025-11-25` over Streamable HTTP |
+| Endpoint | `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp` (or your deployed `/mcp`) |
+| Auth | `Authorization: Bearer <MCP_API_KEY>` or `X-API-Key: <MCP_API_KEY>` |
+| Server name | `clinical-conversation-coach` |
+| Tools | `list_simulation_scenarios`, `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, `end_simulation` (+ gated `get_learner_progress`) |
+
+Point the Agent Skill's MCP server configuration at the hosted endpoint with `MCP_API_KEY` set, then exercise the same sequence in §14. The skill manifest/schema is configured in the console (not in this repository), so this runbook documents the MCP side of the contract rather than a console-authored skill definition. A deterministic, keyless local path remains available for judging via `./scripts/initialize.sh` + `./scripts/start_mcp_server.sh`.
+
 ## References
 
 [1]: https://amazonappdev2026.devpost.com/rules "Build, Ship, Shape: Amazon Developer Hackathon Official Rules"
