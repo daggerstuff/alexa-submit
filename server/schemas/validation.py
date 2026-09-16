@@ -97,6 +97,26 @@ class LearnerProgress(BaseModel):
     adaptive_note: str = ""
 
 
+class LearnerSummary(BaseModel):
+    """One learner's aggregate standing within a cohort view."""
+
+    learner_id: str
+    sessions_completed: int = Field(ge=0)
+    metrics_attempted: int = Field(ge=0)
+    mastery: float = Field(ge=0.0, le=1.0)
+    focus_next: str = ""
+
+
+class CohortProgress(BaseModel):
+    """Aggregate progress across all learners (faculty/coach view)."""
+
+    learner_count: int = Field(ge=0)
+    total_sessions: int = Field(ge=0)
+    learners: list[LearnerSummary] = Field(default_factory=list)
+    cohort_weakest_metrics: list[str] = Field(default_factory=list)
+    disclaimer: str = "Educational simulation only; learner progress is practice feedback, not a clinical assessment."
+
+
 class SimulationResponse(BaseModel):
     request_id: str
     session_id: str

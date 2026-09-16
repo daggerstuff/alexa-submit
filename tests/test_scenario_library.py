@@ -10,13 +10,15 @@ def setup_function() -> None:
 
 
 def test_library_covers_all_difficulties() -> None:
-    assert len(SCENARIOS) == 10
+    assert len(SCENARIOS) == 12
     difficulties = {scenario.difficulty for scenario in SCENARIOS.values()}
     assert difficulties == {"basic", "intermediate", "advanced"}
     for scenario_id in (
         "suicide-risk-screening-advanced",
         "pediatric-fever-basic",
         "stroke-fast-intermediate",
+        "medication-reconciliation-intermediate",
+        "alcohol-screening-basic",
     ):
         assert scenario_id in SCENARIOS
 
@@ -150,3 +152,73 @@ def test_stroke_fast_scenario() -> None:
     # The escalation metric should be fully demonstrated by the explicit 911 call.
     escalation = next(m for m in evaluation.evaluation.metrics if m.metric_id == "escalation")
     assert escalation.score == escalation.max_score
+
+
+def test_medication_reconciliation_scenario() -> None:
+    session_id = "medrec-test"
+    start = orchestrator.handle(
+        SimulationRequest(
+            session_id=session_id,
+            action=SimulationAction.start,
+            scenario_id="medication-reconciliation-intermediate",
+        )
+    )
+    assert start.scenario_version == "1.0.0"
+    assert "pills" in start.patient.content.lower()
+
+    turn = orchestrator.handle(
+        SimulationRequest(
+            session_id=session_id,
+            action=SimulationAction.message,
+            practitioner_message=(
+                "My name is Sam. Can you list every pill you take and how often? "
+                "Do you ever miss a dose? Any stomach upset, bruising, or dizziness? "
+                "What about over-the-counter pain relievers or supplements?"
+            ),
+        )
+    )
+    disclosed = set(turn.patient.disclosed_facts)
+    assert "medication-list" in disclosed
+    assert "dosing-frequency" in disclosed
+    assert "adherence" in disclosed
+    assert "side-effects" in disclosed
+    assert "otc-supplements" in disclosed
+
+    evaluation = orchestrator.handle(SimulationRequest(session_id=session_id, action=SimulationAction.evaluate))
+    metric_ids = {m.metric_id for m in evaluation.evaluation.metrics}
+    assert {"inventory", "dosing", "adherence", "side_effects", "otc"} <= metric_ids
+
+
+def test_alcohol_screening_scenario() -> None:
+    session_id = "alcohol-test"
+    start = orchestrator.handle(
+        SimulationRequest(
+            session_id=session_id,
+            action=SimulationAction.start,
+            scenario_id="alcohol-screening-basic",
+        )
+    )
+    assert start.scenario_version == "1.0.0"
+    assert "drinks" in start.patient.content.lower()
+
+    turn = orchestrator.handle(
+        SimulationRequest(
+            session_id=session_id,
+            action=SimulationAction.message,
+            practitioner_message=(
+                "My name is Sam. How many drinks on a typical day, and how many days a week? "
+                "How has it affected your work or relationships? Any shaking or nausea when "
+                "you stop? Would you want to cut down?"
+            ),
+        )
+    )
+    disclosed = set(turn.patient.disclosed_facts)
+    assert "quantity" in disclosed
+    assert "frequency" in disclosed
+    assert "impact" in disclosed
+    assert "withdrawal" in disclosed
+    assert "readiness" in disclosed
+
+    evaluation = orchestrator.handle(SimulationRequest(session_id=session_id, action=SimulationAction.evaluate))
+    metric_ids = {m.metric_id for m in evaluation.evaluation.metrics}
+    assert {"quantity_frequency", "impact", "withdrawal", "readiness"} <= metric_ids

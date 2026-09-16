@@ -21,7 +21,13 @@ from server._version import __version__
 from server.main import orchestrator
 from server.observability import registry, render_prometheus, request_id_var
 from server.scenarios import SCENARIOS
-from server.schemas.validation import LearnerProgress, SimulationAction, SimulationRequest, SimulationResponse
+from server.schemas.validation import (
+    CohortProgress,
+    LearnerProgress,
+    SimulationAction,
+    SimulationRequest,
+    SimulationResponse,
+)
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -214,6 +220,21 @@ if os.getenv("MCP_EXPOSE_LEARNER_TOOLS", "").lower() in ("1", "true", "yes"):
         learner_id: Annotated[str, Field(description="Stable learner identifier.", max_length=128)],
     ) -> LearnerProgress:
         return orchestrator.get_learner_progress(learner_id)
+
+
+if os.getenv("MCP_EXPOSE_COHORT_TOOLS", "").lower() in ("1", "true", "yes"):
+
+    @mcp.tool(
+        description=(
+            "Return aggregate progress across all learners for a faculty/coach view: per-learner "
+            "session counts and mastery, plus the metrics the cohort most often needs to work on. "
+            "Registered only when MCP_EXPOSE_COHORT_TOOLS is enabled, because it reveals every "
+            "learner identifier."
+        ),
+        structured_output=True,
+    )
+    def list_cohort_progress() -> CohortProgress:
+        return orchestrator.cohort_progress()
 
 
 class RateLimiter:

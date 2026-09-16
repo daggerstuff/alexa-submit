@@ -141,6 +141,12 @@ class LearnerStore:
             ).fetchone()
         return json.loads(row[0]) if row is not None else None
 
+    def list(self) -> dict[str, dict[str, Any]]:
+        """Return every learner record keyed by learner_id."""
+        with self._lock:
+            rows = self._conn.execute("SELECT learner_id, record FROM learners").fetchall()
+        return {learner_id: json.loads(record) for learner_id, record in rows}
+
     def delete(self, learner_id: str) -> None:
         with self._lock:
             self._conn.execute("DELETE FROM learners WHERE learner_id = ?", (learner_id,))

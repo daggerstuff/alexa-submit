@@ -17,8 +17,10 @@ from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import JsonFormatter, registry
 from server.scenarios import ScenarioDefinition, get_scenario
 from server.schemas.validation import (
+    CohortProgress,
     EvaluationResult,
     LearnerProgress,
+    LearnerSummary,
     MetricMastery,
     PatientResponse,
     Role,
@@ -269,6 +271,44 @@ class SimulationOrchestrator:
     def get_learner_progress(self, learner_id: str) -> LearnerProgress:
         record = self._load_learner(learner_id)
         return self._build_learner_progress(learner_id, record)
+
+    def cohort_progress(self) -> CohortProgress:
+        """Aggregate every learner's progress into a faculty/coach cohort view."""
+        records: dict[str, dict[str, Any]] = {}
+        if self.learner_store is not None:
+            records.update(self.learner_store.list())
+        records.update(self.learners)  # in-memory overlay may be newer than the store
+
+        summaries: list[LearnerSummary] = []
+        weakest_counter: dict[str, int] = {}
+        for learner_id, record in records.items():
+            progress = self._build_learner_progress(learner_id, record)
+            mastery = [MetricMastery(**item) for item in record.get("metrics", {}).values()]
+            average = (
+                sum(item.best_score / item.max_score for item in mastery) / len(mastery)
+                if mastery
+                else 0.0
+            )
+            summaries.append(
+                LearnerSummary(
+                    learner_id=learner_id,
+                    sessions_completed=progress.sessions_completed,
+                    metrics_attempted=len(mastery),
+                    mastery=round(average, 3),
+                    focus_next=progress.focus_next,
+                )
+            )
+            if progress.focus_next:
+                weakest_counter[progress.focus_next] = weakest_counter.get(progress.focus_next, 0) + 1
+
+        summaries.sort(key=lambda item: (-item.sessions_completed, item.learner_id))
+        weakest = sorted(weakest_counter, key=lambda name: (-weakest_counter[name], name))
+        return CohortProgress(
+            learner_count=len(summaries),
+            total_sessions=sum(item.sessions_completed for item in summaries),
+            learners=summaries,
+            cohort_weakest_metrics=weakest,
+        )
 
     def get_or_create(self, request: SimulationRequest) -> Session:
         with self._session_lock(request.session_id):

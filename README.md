@@ -69,13 +69,13 @@ The MCP server exposes five agent-callable tools:
 
 These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching. Every session tool also accepts an optional `learner_id`; when supplied, the coach remembers that learner across sessions (see below).
 
-See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management, and when `MCP_EXPOSE_LEARNER_TOOLS=true` is set, `get_learner_progress` is registered. They are off by default because they reveal session/learner identifiers to any API-key holder.
+See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; when `MCP_EXPOSE_LEARNER_TOOLS=true` is set, `get_learner_progress` is registered; and when `MCP_EXPOSE_COHORT_TOOLS=true` is set, `list_cohort_progress` is registered. They are off by default because they reveal session/learner identifiers to any API-key holder.
 
 ## Scenario and evaluator model
 
 `server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
 
-`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API **or Amazon Bedrock's Converse API**. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints and falls back to the deterministic agent when the LLM is unavailable or returns invalid output.
+`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API **or Amazon Bedrock's Converse API**. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when the LLM is unavailable, returns invalid output, or would not read aloud naturally.
 
 To enable the LLM adapter over an OpenAI-compatible endpoint (Featherless example, any compatible API works):
 
@@ -124,6 +124,8 @@ The `end_simulation` response then carries a `learner_progress` object with a sp
 
 Learner records persist to the same SQLite store as sessions (`SESSION_DB_PATH`) via `LearnerStore`, so progress survives restarts. A learner ID is an opaque string the application chooses; it is never derived from or tied to a real identity inside this server.
 
+A gated `list_cohort_progress` tool (`MCP_EXPOSE_COHORT_TOOLS=true`) aggregates every learner into a faculty/coach view — per-learner session counts and mastery, plus the metrics the cohort most often needs to work on.
+
 ## Security boundaries
 
 The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
@@ -138,7 +140,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all ten scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all twelve scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 

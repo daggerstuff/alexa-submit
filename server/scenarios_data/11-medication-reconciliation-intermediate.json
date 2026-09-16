@@ -1,0 +1,112 @@
+{
+  "scenario_id": "medication-reconciliation-intermediate",
+  "version": "1.0.0",
+  "difficulty": "intermediate",
+  "title": "Older adult on multiple medications",
+  "goal": "You are the clinician. Reconcile an older adult's medications: build a complete list with doses and frequencies, then screen for side effects, duplication, and adherence.",
+  "opening": "I have so many pills now I am not sure what I am taking, to be honest.",
+  "safety_terms": ["bleeding", "dizzy", "falls", "fainted", "passed out", "chest pain", "severe", "confused"],
+  "pitfalls": ["just stop it", "don't worry about it", "you'll be fine", "it's nothing", "skip it", "just cut back"],
+  "disclosures": [
+    {
+      "fact_id": "medication-list",
+      "trigger_terms": ["medication", "medicine", "pill", "list", "take", "prescription", "what are you"],
+      "response": "I take metformin, lisinopril, atorvastatin, aspirin, and ibuprofen for my knees. It is hard to keep them all straight.",
+      "emotional_state": "overwhelmed"
+    },
+    {
+      "fact_id": "dosing-frequency",
+      "trigger_terms": ["dose", "how much", "mg", "milligram", "frequency", "times", "how often"],
+      "response": "Most of them are once a day, but the ibuprofen I take two or three times a day when my knees ache.",
+      "emotional_state": "uncertain"
+    },
+    {
+      "fact_id": "adherence",
+      "trigger_terms": ["skip", "miss", "forget", "remember", "take every", "routine", "adhere"],
+      "response": "I forget the evening ones sometimes, and I skip the aspirin some days because it upsets my stomach.",
+      "emotional_state": "guilty"
+    },
+    {
+      "fact_id": "side-effects",
+      "trigger_terms": ["side effect", "dizzy", "bleed", "bruis", "stomach", "upset", "cough", "symptom", "falls"],
+      "response": "The aspirin gives me stomach upset, and I bruise more easily than I used to. I got dizzy standing up the other morning.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "duplication",
+      "trigger_terms": ["duplicate", "same", "double", "over the counter", "otc", "ibuprofen", "naproxen", "aspirin"],
+      "response": "On bad days I also take a store-brand pain reliever with ibuprofen in it, on top of the ibuprofen.",
+      "emotional_state": "unaware"
+    },
+    {
+      "fact_id": "otc-supplements",
+      "trigger_terms": ["supplement", "herbal", "vitamin", "over the counter", "fish oil", "natural", "multivitamin"],
+      "response": "I take fish oil and a multivitamin, and a herbal sleep tea most nights.",
+      "emotional_state": "casual"
+    },
+    {
+      "fact_id": "multiple-prescribers",
+      "trigger_terms": ["pharmacy", "prescriber", "doctor", "refill", "which doctor", "specialist"],
+      "response": "My heart doctor prescribed some and my regular doctor prescribed others. I get refills at two different pharmacies.",
+      "emotional_state": "confused"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before the medication review."
+    },
+    {
+      "metric_id": "inventory",
+      "name": "Complete medication inventory",
+      "trigger_terms": ["medication", "medicine", "pill", "list", "take", "prescription", "what are you", "inventory"],
+      "rationale": "Builds a complete list of every prescription and over-the-counter medication.",
+      "max_score": 4,
+      "coaching_hint": "List every medication: 'Can you list every prescription and pill you take, including pain relievers?'"
+    },
+    {
+      "metric_id": "dosing",
+      "name": "Dose and frequency",
+      "trigger_terms": ["dose", "how much", "mg", "milligram", "frequency", "times", "how often"],
+      "rationale": "Confirms dose and frequency for each medication.",
+      "max_score": 4,
+      "coaching_hint": "Confirm dosing: 'For each one, what dose and how many times a day?'"
+    },
+    {
+      "metric_id": "adherence",
+      "name": "Adherence assessment",
+      "trigger_terms": ["skip", "miss", "forget", "remember", "take every", "routine", "adhere"],
+      "rationale": "Asks about missed doses and how consistently medications are taken.",
+      "max_score": 4,
+      "coaching_hint": "Assess adherence: 'How often do you miss a dose, and why?'"
+    },
+    {
+      "metric_id": "side_effects",
+      "name": "Side effects and safety",
+      "trigger_terms": ["side effect", "dizzy", "bleed", "bruis", "stomach", "upset", "cough", "symptom", "falls"],
+      "rationale": "Screens for side effects, bleeding, falls, and dizziness.",
+      "max_score": 4,
+      "coaching_hint": "Screen for side effects: 'Any stomach upset, unusual bruising, bleeding, or dizziness?'"
+    },
+    {
+      "metric_id": "otc",
+      "name": "OTC and supplements",
+      "trigger_terms": ["supplement", "herbal", "vitamin", "over the counter", "fish oil", "natural", "otc", "ibuprofen", "naproxen", "multivitamin"],
+      "rationale": "Identifies over-the-counter medications, herbs, and supplements that may interact or duplicate.",
+      "max_score": 4,
+      "coaching_hint": "Ask about OTC and supplements: 'What else do you take that I did not prescribe — pain relievers, herbs, vitamins?'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Confirms the reconciled plan and checks understanding.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the reconciled list and next step before ending."
+    }
+  ]
+}

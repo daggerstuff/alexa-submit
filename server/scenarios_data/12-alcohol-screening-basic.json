@@ -1,0 +1,104 @@
+{
+  "scenario_id": "alcohol-screening-basic",
+  "version": "1.0.0",
+  "difficulty": "basic",
+  "title": "Adult with rising alcohol intake",
+  "goal": "You are the clinician. Screen an adult's alcohol use without judgment: cover quantity, frequency, impact, withdrawal safety, and readiness to change, then confirm next steps.",
+  "opening": "I have been having a few drinks most nights to unwind. My partner thinks it is becoming a problem.",
+  "safety_terms": ["seizure", "blackout", "driving", "withdrawal", "shaking", "tremor", "can't stop", "liver", "chest pain"],
+  "pitfalls": ["just cut back", "willpower", "you're fine", "don't worry", "it's not that bad", "just stop", "everyone drinks"],
+  "disclosures": [
+    {
+      "fact_id": "quantity",
+      "trigger_terms": ["how much", "drink", "many", "glass", "beer", "wine", "standard"],
+      "response": "Most nights it is three or four drinks. On weekends it can be more, maybe six or seven.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "frequency",
+      "trigger_terms": ["how often", "days", "week", "daily", "every day", "how many days"],
+      "response": "It is every day now, mostly. I used to keep it to weekends.",
+      "emotional_state": "defensive"
+    },
+    {
+      "fact_id": "impact",
+      "trigger_terms": ["affect", "work", "miss", "family", "relationship", "problem", "consequence", "argument"],
+      "response": "I have missed a couple of mornings of work, and my partner and I argue about it most weeks.",
+      "emotional_state": "ashamed"
+    },
+    {
+      "fact_id": "withdrawal",
+      "trigger_terms": ["shaking", "withdrawal", "tremor", "sweat", "morning", "nausea", "stop", "seizure"],
+      "response": "If I go a day without drinking, I get shaky and a little nauseous by the afternoon.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "driving",
+      "trigger_terms": ["drive", "car", "dui", "driving"],
+      "response": "I have driven after drinking a few times. I tell myself I am fine, but I know it was not smart.",
+      "emotional_state": "regretful"
+    },
+    {
+      "fact_id": "readiness",
+      "trigger_terms": ["change", "quit", "cut down", "reduce", "ready", "want to", "motivated"],
+      "response": "Part of me wants to cut down, but I am not sure I can do it on my own.",
+      "emotional_state": "ambivalent"
+    },
+    {
+      "fact_id": "prior-attempt",
+      "trigger_terms": ["tried", "before", "past", "program", "aa", "support group"],
+      "response": "I tried stopping once on my own and lasted about a month before it crept back.",
+      "emotional_state": "discouraged"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and sets a non-judgmental tone.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission before the screening."
+    },
+    {
+      "metric_id": "quantity_frequency",
+      "name": "Quantity and frequency",
+      "trigger_terms": ["how much", "drink", "many", "glass", "beer", "wine", "standard", "how often", "days", "week", "daily", "every day"],
+      "rationale": "Quantifies drinks per occasion and days per week.",
+      "max_score": 4,
+      "coaching_hint": "Quantify use: 'How many drinks on a typical day, and how many days a week?'"
+    },
+    {
+      "metric_id": "impact",
+      "name": "Impact on life",
+      "trigger_terms": ["affect", "work", "miss", "family", "relationship", "problem", "consequence", "argument"],
+      "rationale": "Explores consequences for work, relationships, and daily life.",
+      "max_score": 4,
+      "coaching_hint": "Ask about impact: 'How has drinking affected your work, relationships, or health?'"
+    },
+    {
+      "metric_id": "withdrawal",
+      "name": "Withdrawal and safety",
+      "trigger_terms": ["shaking", "withdrawal", "tremor", "sweat", "morning", "nausea", "seizure", "blackout", "driving"],
+      "rationale": "Screens for withdrawal symptoms and safety risks such as driving after drinking.",
+      "max_score": 4,
+      "coaching_hint": "Screen for withdrawal and safety: 'Any shaking or nausea when you stop, or driving after drinking?'"
+    },
+    {
+      "metric_id": "readiness",
+      "name": "Readiness and next step",
+      "trigger_terms": ["change", "quit", "cut down", "reduce", "ready", "want to", "motivated", "tried", "before", "program"],
+      "rationale": "Explores readiness to change and prior attempts, then agrees on a next step.",
+      "max_score": 4,
+      "coaching_hint": "Explore readiness: 'What would you want to change, and what has worked or not worked before?'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Confirms the next step and checks understanding.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the next step and check understanding before ending."
+    }
+  ]
+}
