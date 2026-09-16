@@ -37,7 +37,7 @@ SEGMENTS = [
     ("Practicing a difficult patient conversation usually means doing it live — on a real patient. There is no safe way to rehearse the interview first.", 0),
     ("Here's Clinical Conversation Coach. An M-C-P server that lets Alexa Plus run safe, repeatable clinical-conversation practice.", SHIFT + 0),
     ("Five agent-callable tools — from scenario discovery, through evaluation.", SHIFT + 9300),
-    ("Seven authorable scenarios... from basic, to advanced.", SHIFT + 15200),
+    ("Ten authorable scenarios... from basic, through advanced.", SHIFT + 15200),
     ("The learner hears the goal first... then the patient opens the case.", SHIFT + 20500),
     ("Four turns: location, radiation, shortness of breath and medications — then safety.", SHIFT + 31000),
     ("The rubric grades every turn, linking each score to the words that earned it. Eleven of twenty... with a spoken takeaway that tells the learner exactly what to ask next.", SHIFT + 63000),

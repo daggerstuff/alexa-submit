@@ -208,6 +208,8 @@ alexa-clinical-sim/
 ├── uv.lock
 ├── pytest.ini
 ├── demo-video/                    # Remotion renderer + ElevenLabs narration (gitignored output)
+├── assets/
+│   └── gallery/                   # 1080p stills for the Devpost media section
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml

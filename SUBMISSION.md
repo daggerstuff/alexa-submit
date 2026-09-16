@@ -106,6 +106,21 @@ Streamable HTTP.
   into a simulated patient for safe, repeatable clinical-conversation practice.
   Built for the Amazon AppDev 2026 hackathon (Alexa+ track)."*
 
+### Gallery images (for the Devpost media section)
+
+Four 1080p stills extracted from the final render are committed to
+`assets/gallery/` for the submission gallery:
+
+| File | Beat |
+| --- | --- |
+| `assets/gallery/01-problem.png` | The problem card ("rehearse hard conversations on real patients") |
+| `assets/gallery/02-scenarios.png` | `list_simulation_scenarios` → the scenario library |
+| `assets/gallery/03-evaluation.png` | `evaluate_simulation` → evidence-linked rubric (11/20) |
+| `assets/gallery/04-safety.png` | The dismissal safety boundary (`safety_flags: ["go home"]`) |
+
+Regenerate them from `demo-v2.mp4` with
+`ffmpeg -ss <seconds> -i demo-v2.mp4 -frames:v 1 assets/gallery/<n>-<name>.png`.
+
 ---
 
 ## 7. "Existed before" — significant update explanation

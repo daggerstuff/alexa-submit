@@ -24,8 +24,8 @@ export const steps: TerminalStep[] = [
   { kind: "out", text: "  abdominal-pain-basic         v1.0.0  basic      Adult with acute abdominal pain", holdSeconds: 1.0 },
   { kind: "out", text: "  chest-pain-advanced          v1.0.0  advanced   Diabetic, atypical exertional", holdSeconds: 1.0 },
   { kind: "out", text: "  syncope-basic                v1.0.0  basic      Adult after a fainting episode", holdSeconds: 1.0 },
-  { kind: "out", text: "  … 7 scenarios  ·  basic → advanced", holdSeconds: 1.3 },
-  { kind: "pill", text: "7 scenarios · basic → advanced", color: "#22D3EE", durationSeconds: 2.2 },
+  { kind: "out", text: "  … 10 scenarios  ·  basic → advanced", holdSeconds: 1.3 },
+  { kind: "pill", text: "10 scenarios · basic → advanced", color: "#22D3EE", durationSeconds: 2.2 },
   { kind: "pause", seconds: 1.0 },
 
   { kind: "out", text: "▸ start_simulation(session=demo-2, scenario=chest-pain-basic)", holdSeconds: 1.0 },
@@ -86,7 +86,7 @@ export const steps: TerminalStep[] = [
 
   { kind: "out", text: "▸ end_simulation", holdSeconds: 0.9 },
   { kind: "out", text: "  session demo-2 ended · final evaluation returned", holdSeconds: 1.5 },
-  { kind: "out", text: "impact: 7 scenarios · basic → advanced · Alexa+ voice + MCP orchestration", holdSeconds: 2.0 },
+  { kind: "out", text: "impact: 10 scenarios · basic → advanced · Alexa+ voice + MCP orchestration", holdSeconds: 2.0 },
   { kind: "pill", text: "demo complete", color: "#22D3EE", durationSeconds: 2.6 },
   { kind: "pause", seconds: 3.0 },
 ];
