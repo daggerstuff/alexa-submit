@@ -70,9 +70,8 @@ Streamable HTTP.
 >   recommended next focus — so Alexa+ can greet a returning learner and steer
 >   their next practice session (a context-aware, state-across-sessions
 >   workflow).
-> - **Optional LLM persona** (Featherless Qwen or Amazon Bedrock Converse) with
->   JSON-mode responses, a tolerant parser, automatic retry, and a deterministic
->   fallback.
+> - **Optional LLM persona** (Amazon Bedrock Converse) with JSON-mode responses,
+>   a tolerant parser, adaptive retry, and a deterministic fallback.
 > - **Production posture:** bearer/API-key auth, per-IP rate limiting, idle TTL
 >   with a bounded session cache, optional SQLite persistence, structured JSON
 >   logging, and Prometheus metrics — deployed on AWS (ECR + App Runner).
@@ -146,9 +145,8 @@ Regenerate them from `demo-v2.mp4` with
 > - Voice-tuned persona: the LLM patient persona is prompted and validated for
 >   spoken delivery (short first-person sentences, no lists or role-break), with
 >   a deterministic fallback when output would not read aloud naturally.
-> - An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct` or
->   Amazon Bedrock Converse) with JSON-mode responses, tolerant parsing,
->   automatic retry, and a deterministic fallback.
+> - An optional LLM patient persona (Amazon Bedrock Converse) with JSON-mode
+>   responses, tolerant parsing, adaptive retry, and a deterministic fallback.
 > - Bearer/API-key auth and proxy-safe per-IP rate limiting.
 > - Session lifecycle controls, a bounded cache with LRU eviction, and optional
 >   SQLite persistence.

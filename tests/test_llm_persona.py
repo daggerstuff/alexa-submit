@@ -7,12 +7,23 @@ from server.agents.patient_persona import PatientState
 from server.scenarios import CHEST_PAIN_BASIC
 
 
-def test_llm_falls_back_when_not_configured() -> None:
+def _agent() -> LLMPersonaAgent:
+    agent = LLMPersonaAgent()
+    agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
+    return agent
+
+
+def _converse(raw_text: str) -> MagicMock:
+    """Return a fake bedrock-runtime client whose `converse` returns `raw_text`."""
+    client = MagicMock()
+    client.converse.return_value = {"output": {"message": {"content": [{"text": raw_text}]}}}
+    return client
+
+
+def test_falls_back_when_bedrock_not_configured() -> None:
     import os
 
-    os.environ.pop("INFERENCE_BASE_URL", None)
-    os.environ.pop("INFERENCE_API_KEY", None)
-
+    os.environ.pop("BEDROCK_MODEL_ID", None)
     agent = LLMPersonaAgent()
     assert not agent.available
 
@@ -22,32 +33,27 @@ def test_llm_falls_back_when_not_configured() -> None:
     assert "chest-pressure" in response.disclosed_facts
 
 
-def test_llm_falls_back_on_api_error() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
+def test_falls_back_on_bedrock_error() -> None:
+    agent = _agent()
+    client = MagicMock()
+    client.converse.side_effect = Exception("ThrottlingException")
 
-    mock_response = MagicMock()
-    mock_response.raise_for_status.side_effect = Exception("Connection refused")
-
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
         assert "chest" in response.content.lower()
         assert "chest-pressure" in response.disclosed_facts
 
 
-def test_llm_parses_response_and_enforces_constraints() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
+def test_parses_response_and_enforces_constraints() -> None:
+    agent = _agent()
+    llm_output = (
+        '{"content": "It hurts right here in my chest.", "emotional_state": "anxious", '
+        '"disclosed_facts": ["chest-pressure", "fake-fact"]}'
+    )
+    client = _converse(llm_output)
 
-    llm_output = '{"content": "It hurts right here in my chest.", "emotional_state": "anxious", "disclosed_facts": ["chest-pressure", "fake-fact"]}'
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
-
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
 
@@ -57,15 +63,10 @@ def test_llm_parses_response_and_enforces_constraints() -> None:
     assert response.emotional_state == "anxious"
 
 
-def test_llm_preserves_previously_disclosed_facts() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
-
+def test_preserves_previously_disclosed_facts() -> None:
+    agent = _agent()
     llm_output = '{"content": "I still feel the pressure.", "emotional_state": "worried", "disclosed_facts": []}'
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+    client = _converse(llm_output)
 
     state = PatientState(
         scenario_id="chest-pain-basic",
@@ -73,23 +74,18 @@ def test_llm_preserves_previously_disclosed_facts() -> None:
         disclosed_facts={"chest-pressure"},
     )
 
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         response = agent.respond(state, CHEST_PAIN_BASIC, "Tell me more about it.")
 
     assert "chest-pressure" in response.disclosed_facts
 
 
-def test_llm_safety_note_on_severe_language() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
-
+def test_safety_note_on_severe_language() -> None:
+    agent = _agent()
     llm_output = '{"content": "I feel like I might collapse.", "emotional_state": "distressed", "disclosed_facts": []}'
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+    client = _converse(llm_output)
 
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Are you going to collapse?")
 
@@ -103,56 +99,16 @@ def test_parse_extracts_json_object_from_prose() -> None:
     assert parsed["disclosed_facts"] == []
 
 
-def test_llm_retries_without_json_mode_on_failure() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
-
-    calls: list[dict] = []
-
-    def fake_post(url, **kwargs):  # noqa: ANN001, ANN003
-        calls.append(kwargs["json"])
-        response = MagicMock()
-        if kwargs["json"].get("response_format"):
-            response.raise_for_status.side_effect = Exception("json mode unsupported")
-        else:
-            response.raise_for_status = MagicMock()
-            response.json.return_value = {
-                "choices": [
-                    {
-                        "message": {
-                            "content": '{"content": "It hurts in my chest.", "emotional_state": "anxious", "disclosed_facts": ["chest-pressure"]}'
-                        }
-                    }
-                ]
-            }
-        return response
-
-    with patch("server.agents.llm_persona.httpx.post", side_effect=fake_post):
-        state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
-        response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
-
-    assert len(calls) == 2
-    assert calls[0]["response_format"] == {"type": "json_object"}
-    assert "response_format" not in calls[1]
-    assert "chest" in response.content.lower()
-
-
-def test_llm_rejects_claimed_disallowed_fact() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
-
+def test_rejects_claimed_disallowed_fact() -> None:
+    agent = _agent()
     # Practitioner asks about pain only; the model claims a fact it may not disclose.
     llm_output = (
         '{"content": "It hurts in my chest.", "emotional_state": "anxious", '
         '"disclosed_facts": ["chest-pressure", "history-medications"]}'
     )
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+    client = _converse(llm_output)
 
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
 
@@ -160,22 +116,17 @@ def test_llm_rejects_claimed_disallowed_fact() -> None:
     assert "history-medications" not in response.disclosed_facts
 
 
-def test_llm_rejects_disallowed_content_leak() -> None:
-    agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
-
+def test_rejects_disallowed_content_leak() -> None:
+    agent = _agent()
     # Metadata is honest, but the prose repeats a disallowed disclosure verbatim.
     llm_output = (
         '{"content": "It hurts, and I take a blood-pressure medicine. I have high blood pressure, '
         'but no known medication allergies.", "emotional_state": "anxious", '
         '"disclosed_facts": ["chest-pressure"]}'
     )
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+    client = _converse(llm_output)
 
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
 

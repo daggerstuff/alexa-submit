@@ -9,7 +9,7 @@ from server.scenarios import CHEST_PAIN_BASIC
 
 def test_bedrock_unavailable_without_model_id() -> None:
     agent = LLMPersonaAgent()
-    agent.provider = "bedrock"
+
     agent.bedrock_model = ""
 
     assert not agent.available
@@ -22,7 +22,7 @@ def test_bedrock_unavailable_without_model_id() -> None:
 
 def test_bedrock_request_builds_converse_shape() -> None:
     agent = LLMPersonaAgent()
-    agent.provider = "bedrock"
+
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
 
     messages = [
@@ -41,7 +41,7 @@ def test_bedrock_request_builds_converse_shape() -> None:
 
 def test_bedrock_complete_calls_converse() -> None:
     agent = LLMPersonaAgent()
-    agent.provider = "bedrock"
+
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
 
     fake_client = MagicMock()
@@ -63,7 +63,7 @@ def test_bedrock_complete_calls_converse() -> None:
         {"role": "user", "content": "Practitioner says: Where is the pain?"},
     ]
     with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=fake_client):
-        raw = agent._complete(messages)
+        raw = agent._complete_bedrock(messages)
 
     assert "chest" in raw
     fake_client.converse.assert_called_once()
@@ -74,7 +74,7 @@ def test_bedrock_complete_calls_converse() -> None:
 
 def test_bedrock_respond_enforces_constraints() -> None:
     agent = LLMPersonaAgent()
-    agent.provider = "bedrock"
+
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
 
     fake_client = MagicMock()

@@ -35,18 +35,16 @@ def test_system_prompt_includes_voice_rules() -> None:
 
 def test_respond_falls_back_on_non_spoken_output() -> None:
     agent = LLMPersonaAgent()
-    agent.base_url = "http://fake"
-    agent.api_key = "fake"
+    agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
 
     llm_output = (
         '{"content": "- It hurts here.\\n- I feel short of breath.", '
         '"emotional_state": "anxious", "disclosed_facts": []}'
     )
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"choices": [{"message": {"content": llm_output}}]}
+    client = MagicMock()
+    client.converse.return_value = {"output": {"message": {"content": [{"text": llm_output}]}}}
 
-    with patch("server.agents.llm_persona.httpx.post", return_value=mock_response):
+    with patch.object(LLMPersonaAgent, "_bedrock_client", return_value=client):
         state = PatientState(scenario_id="chest-pain-basic", scenario_version="1.1.0")
         response = agent.respond(state, CHEST_PAIN_BASIC, "Where is the pain?")
 

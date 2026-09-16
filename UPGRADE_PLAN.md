@@ -36,11 +36,10 @@ check on `handle()`.
   `hmac.compare_digest` for constant-time comparison.
 
 ### 4. LLM persona: schema-enforced output + retry
-`server/agents/llm_persona.py:143` does `json.loads(raw)` and treats any non-JSON as a
-hard failure → silent fallback to the deterministic agent. Add: request
-`response_format={"type":"json_object"}` (Featherless/Qwen supports it), a tolerant
-parse (strip prose fences), one retry, and log *why* the fallback fired instead of only
-a warning line.
+`server/agents/llm_persona.py` does `json.loads(raw)` and treats any non-JSON as a
+hard failure → silent fallback to the deterministic agent. Add: a Bedrock Converse
+request with explicit `maxTokens`, a tolerant parse (strip prose fences), adaptive
+retry, and log *why* the fallback fired instead of only a warning line.
 
 ### 5. CI: tests + lint on push
 There is no `.github/workflows/`. Add a minimal workflow: `ruff check server tests` +
@@ -116,7 +115,7 @@ Add 2–3 scenarios (e.g. medication counseling, breaking-bad-news) and a short
 
 ### 16. Automated deploy pipeline
 Replace the manual `scripts/deploy_aws.sh` run with a GitHub Actions workflow
-(build → ECR → update App Runner) on tag, pulling `MCP_API_KEY` / `INFERENCE_API_KEY`
+(build → ECR → update App Runner) on tag, pulling `MCP_API_KEY` / `BEDROCK_MODEL_ID`
 from AWS Secrets Manager via `{{resolve:secretsmanager:…}}` / `asm-exec` (also closes
 the secret-handling gap flagged in the workspace `AGENTS.md`).
 

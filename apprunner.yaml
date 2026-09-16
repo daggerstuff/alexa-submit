@@ -40,13 +40,11 @@ run:
     - name: SESSION_DB_PATH
       value: "/tmp/sessions.db"
     - name: INFERENCE_PROVIDER
-      value: llm
-    - name: INFERENCE_BASE_URL
-      value: https://api.featherless.ai/v1
-    - name: INFERENCE_MODEL
-      value: Qwen/Qwen2.5-14B-Instruct
-    - name: INFERENCE_TIMEOUT
-      value: "15"
-    - name: INFERENCE_API_KEY
-      value: "" # deploy_aws.sh injects $INFERENCE_API_KEY.
+      value: mock
+    # Bedrock provider (used when INFERENCE_PROVIDER=bedrock). Requires a
+    # Bedrock model/inference-profile ID plus AWS credentials in the task role.
+    - name: BEDROCK_MODEL_ID
+      value: ""
+    - name: AWS_REGION
+      value: us-east-1
   port: 8001

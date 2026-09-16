@@ -126,7 +126,7 @@ class SimulationOrchestrator:
         self.learner_store = LearnerStore(path) if path else None
         if patient_agent is not None:
             self.patient_agent = patient_agent
-        elif os.getenv("INFERENCE_PROVIDER", "mock") in ("llm", "bedrock"):
+        elif os.getenv("INFERENCE_PROVIDER", "mock") == "bedrock":
             self.patient_agent = LLMPersonaAgent()
         else:
             self.patient_agent = PatientPersonaAgent()

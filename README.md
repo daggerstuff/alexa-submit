@@ -28,7 +28,7 @@ flowchart LR
     M --> O["SimulationOrchestrator"]
     O --> S["Scenario registry · scenarios_data/*.json"]
     O --> P["PatientPersonaAgent · deterministic"]
-    O --> L["LLMPersonaAgent · Featherless Qwen / Amazon Bedrock"]
+    O --> L["LLMPersonaAgent · Amazon Bedrock"]
     O --> E["ClinicalEvaluatorAgent · rubric + coaching"]
     O --> D["SessionStore · memory / SQLite"]
 ```
@@ -75,30 +75,19 @@ See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_T
 
 `server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
 
-`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using any OpenAI-compatible chat completions API **or Amazon Bedrock's Converse API**. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when the LLM is unavailable, returns invalid output, or would not read aloud naturally.
+`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using **Amazon Bedrock's Converse API**. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when Bedrock is not configured, is unavailable, returns invalid output, or would not read aloud naturally.
 
-To enable the LLM adapter over an OpenAI-compatible endpoint (Featherless example, any compatible API works):
-
-```bash
-INFERENCE_PROVIDER=llm
-INFERENCE_BASE_URL=https://api.featherless.ai/v1
-INFERENCE_API_KEY=your-featherless-key
-INFERENCE_MODEL=Qwen/Qwen2.5-14B-Instruct
-INFERENCE_TIMEOUT=15
-```
-
-To use **Amazon Bedrock** instead (AWS Builder mini-challenge), install the extra and point `INFERENCE_PROVIDER` at Bedrock:
+To enable the LLM adapter (Amazon Bedrock Converse, the AWS Builder mini-challenge):
 
 ```bash
-pip install -e ".[bedrock]"
-export AWS_ACCESS_KEY_ID=...   # or rely on an instance role
-export AWS_SECRET_ACCESS_KEY=...
 INFERENCE_PROVIDER=bedrock
 BEDROCK_MODEL_ID=qwen/qwen3-30b-a3b-instruct   # verify with: aws bedrock list-foundation-models
 AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=...   # or rely on an instance role
+export AWS_SECRET_ACCESS_KEY=...
 ```
 
-The Bedrock path uses the Converse API (`bedrock-runtime`) with an explicit `maxTokens` and adaptive retry; `boto3` is an optional dependency so the core install stays lean.
+The Bedrock path uses the Converse API (`bedrock-runtime`) with an explicit `maxTokens` and adaptive retry.
 
 `ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, matched terms, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, concrete coaching suggestions, and an educational disclaimer.
 
@@ -178,7 +167,7 @@ The script builds the Docker image, pushes it to ECR, and creates or updates an 
 
 1. Create an IAM role whose trust policy allows the GitHub repo (via an OIDC identity provider), and attach permissions for ECR push plus App Runner create/update.
 2. Store the role ARN in the `AWS_DEPLOY_ROLE_ARN` repository secret.
-3. Add `MCP_API_KEY`, `INFERENCE_BASE_URL`, and `INFERENCE_API_KEY` as repository secrets.
+3. Add `MCP_API_KEY` (and, when using the Bedrock persona, `BEDROCK_MODEL_ID`) as repository secrets.
 
 The deploy workflow runs the same `scripts/deploy_aws.sh` used for manual deploys, tagged with the commit SHA.
 

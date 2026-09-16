@@ -66,14 +66,14 @@ source_config_json() {
   python3 - "$ECR_URI/$REPO_NAME:$IMAGE_TAG" "$ACCESS_ROLE_ARN" "$allowed_hosts" \
     "${MCP_ALLOWED_ORIGINS:-http://127.0.0.1:*,http://localhost:*}" \
     "${MCP_API_KEY:-}" "${MCP_RATE_LIMIT_REQUESTS:-60}" "${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}" \
-    "${INFERENCE_PROVIDER:-mock}" "${INFERENCE_BASE_URL:-}" "${INFERENCE_API_KEY:-}" \
-    "${INFERENCE_MODEL:-Qwen/Qwen2.5-14B-Instruct}" "${SESSION_TTL_SECONDS:-1800}" \
-    "${SESSION_MAX_SESSIONS:-1000}" "${SESSION_DB_PATH:-/tmp/sessions.db}" <<'PY'
+    "${INFERENCE_PROVIDER:-mock}" "${BEDROCK_MODEL_ID:-}" "${AWS_REGION:-us-east-1}" \
+    "${SESSION_TTL_SECONDS:-1800}" "${SESSION_MAX_SESSIONS:-1000}" \
+    "${SESSION_DB_PATH:-/tmp/sessions.db}" <<'PY'
 import json
 import sys
 
 (image, role_arn, allowed_hosts, allowed_origins, api_key, rate_limit, rate_window,
- inference_provider, inference_base_url, inference_api_key, inference_model,
+ inference_provider, bedrock_model_id, aws_region,
  session_ttl, session_max, session_db_path) = sys.argv[1:]
 
 config = {
@@ -92,9 +92,8 @@ config = {
                 "MCP_RATE_LIMIT_REQUESTS": rate_limit,
                 "MCP_RATE_LIMIT_WINDOW_SECONDS": rate_window,
                 "INFERENCE_PROVIDER": inference_provider,
-                "INFERENCE_BASE_URL": inference_base_url,
-                "INFERENCE_API_KEY": inference_api_key,
-                "INFERENCE_MODEL": inference_model,
+                "BEDROCK_MODEL_ID": bedrock_model_id,
+                "AWS_REGION": aws_region,
                 "SESSION_TTL_SECONDS": session_ttl,
                 "SESSION_MAX_SESSIONS": session_max,
                 "SESSION_DB_PATH": session_db_path,

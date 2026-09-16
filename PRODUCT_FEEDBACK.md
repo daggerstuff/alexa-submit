@@ -19,7 +19,6 @@ This document satisfies the product-feedback and friction-log submission require
 | Ruff                   | 0.16.6     | Linting and formatting                        |
 | Docker                 | —          | Containerized deployment for judges           |
 | Python                 | 3.13.15    | Runtime                                       |
-| Featherless            | `Qwen/Qwen2.5-14B-Instruct` | Optional LLM patient persona (JSON mode) |
 | AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint |
 | AWS ECR                | —          | Container image registry                      |
 | Amazon Bedrock         | —          | Optional LLM persona via Converse API (AWS Builder mini-challenge) |
@@ -54,10 +53,6 @@ This document satisfies the product-feedback and friction-log submission require
 - ECR with a unique tag per deploy made builds deterministic and rollback simple; a `latest`-style tag would have let stale images deploy silently.
 - GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline.
 
-### Featherless (Qwen)
-
-- The OpenAI-compatible `/v1` endpoint let the LLM patient persona reuse a standard chat-completions client instead of a provider-specific SDK. JSON-mode output with a tolerant parser and one automatic retry made the persona robust in practice.
-
 ### Remotion + ElevenLabs (demo)
 
 - Remotion rendered a deterministic, pixel-perfect 1080p terminal recording with per-character typing and no live desktop capture. ElevenLabs `eleven_v3` produced natural narration from speech-normalized text (acronyms spelled out, punctuation-driven pacing).
@@ -89,10 +84,6 @@ This document satisfies the product-feedback and friction-log submission require
 8. **Region must match the `aws login` session exactly.** A mismatched region caused silent credential-refresh failures until the deploy region was aligned with the login profile. This should be surfaced as an explicit error rather than a generic refresh failure.
 
 9. **Bedrock Converse has no native JSON-mode toggle.** The Converse API has no `response_format: json_object` equivalent; JSON output is prompt-driven. We rely on the persona's system prompt ("Return JSON only") plus a tolerant parser. A first-class structured-output option would remove the need.
-
-### Featherless
-
-10. **JSON-mode output is not always valid JSON.** The persona occasionally returned trailing prose or unescaped characters after the JSON object. We worked around it with a tolerant parser and one automatic retry; a stricter JSON-mode guarantee (or a `response_format` that always terminates) would remove the need.
 
 ---
 
@@ -218,13 +209,13 @@ Each entry includes: specific task attempted, steps taken, expected vs. actual r
 
 | Field                    | Value                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Attempted task**       | Get a patient response from the Featherless `Qwen/Qwen2.5-14B-Instruct` persona in JSON mode                                   |
-| **Steps taken**          | 1. Set `INFERENCE_PROVIDER=llm`. 2. Call `send_practitioner_turn`. 3. Parse the persona's JSON response. |
+| **Attempted task**       | Get a patient response from the Bedrock persona via the Converse API                                                           |
+| **Steps taken**          | 1. Set `INFERENCE_PROVIDER=bedrock` with `BEDROCK_MODEL_ID`. 2. Call `send_practitioner_turn`. 3. Parse the persona's JSON response. |
 | **Expected result**      | A single valid JSON object per turn                                                                                            |
 | **Actual result**        | Occasional trailing prose or unescaped characters after the JSON object, which broke strict parsing                            |
 | **Severity**             | Medium — intermittent persona failures                                                                                         |
-| **Workaround**           | Added a tolerant parser that extracts the first JSON object plus one automatic retry                                          |
-| **Proposed improvement** | The provider should guarantee terminated JSON output in JSON mode, or expose a strict `response_format` that never emits trailing text. |
+| **Workaround**           | Added a tolerant parser that extracts the first JSON object, plus Bedrock's adaptive retry                                     |
+| **Proposed improvement** | Bedrock should offer a first-class structured-output option for the Converse API so the parser never sees trailing text.      |
 
 ---
 

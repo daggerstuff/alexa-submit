@@ -5,8 +5,6 @@ import logging
 import os
 from typing import Any
 
-import httpx
-
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import registry
 from server.scenarios import ScenarioDefinition, matches_term
@@ -16,34 +14,21 @@ logger = logging.getLogger("alexa_clinical_sim")
 
 
 class LLMPersonaAgent:
-    """LLM-backed patient persona that respects scenario disclosure rules.
+    """LLM-backed patient persona (Amazon Bedrock Converse) that respects scenario disclosure rules.
 
-    Falls back to the deterministic PatientPersonaAgent when the LLM is
-    unavailable, returns invalid output, or INFERENCE_PROVIDER is not 'llm'.
-    The scenario registry — not the model — remains the authority over which
-    facts may be disclosed.
+    Falls back to the deterministic PatientPersonaAgent when Bedrock is not
+    configured, is unavailable, or returns invalid output. The scenario registry
+    — not the model — remains the authority over which facts may be disclosed.
     """
 
     def __init__(self) -> None:
-        self.provider = os.getenv("INFERENCE_PROVIDER", "mock").lower()
-        self.base_url = os.getenv("INFERENCE_BASE_URL", "")
-        self.api_key = os.getenv("INFERENCE_API_KEY", "")
-        self.model = os.getenv("INFERENCE_MODEL", "Qwen/Qwen2.5-14B-Instruct")
         self.bedrock_model = os.getenv("BEDROCK_MODEL_ID", "")
         self.aws_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
         self.fallback = PatientPersonaAgent()
-        try:
-            self.timeout = float(os.getenv("INFERENCE_TIMEOUT", "15"))
-        except ValueError:
-            self.timeout = 15.0
-        if self.timeout <= 0:
-            self.timeout = 15.0
 
     @property
     def available(self) -> bool:
-        if self.provider == "bedrock":
-            return bool(self.bedrock_model)
-        return bool(self.base_url and self.api_key)
+        return bool(self.bedrock_model)
 
     def respond(
         self,
@@ -72,7 +57,7 @@ class LLMPersonaAgent:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Practitioner says: {practitioner_message}"},
         ]
-        raw = self._complete(messages)
+        raw = self._complete_bedrock(messages)
 
         parsed = self._parse_response(raw)
 
@@ -132,33 +117,6 @@ class LLMPersonaAgent:
             scenario_id=scenario.scenario_id,
             scenario_version=scenario.version,
         )
-
-    def _complete(self, messages: list[dict[str, str]]) -> str:
-        if self.provider == "bedrock":
-            return self._complete_bedrock(messages)
-        last_exc: Exception | None = None
-        for json_mode in (True, False):
-            body: dict[str, Any] = {
-                "model": self.model,
-                "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 300,
-            }
-            if json_mode:
-                body["response_format"] = {"type": "json_object"}
-            try:
-                response = httpx.post(
-                    f"{self.base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {self.api_key}"},
-                    json=body,
-                    timeout=self.timeout,
-                )
-                response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
-            except Exception as exc:
-                last_exc = exc
-                logger.warning("LLM call failed (json_mode=%s): %s", json_mode, exc)
-        raise last_exc if last_exc is not None else RuntimeError("LLM completion produced no response")
 
     def _build_bedrock_request(self, messages: list[dict[str, str]]) -> dict[str, Any]:
         """Build a Bedrock Converse request from the persona's message list.
