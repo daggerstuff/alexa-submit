@@ -36,6 +36,7 @@ def test_system_prompt_includes_voice_rules() -> None:
 def test_respond_falls_back_on_non_spoken_output() -> None:
     agent = LLMPersonaAgent()
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
+    agent.providers = [{"name": "bedrock", "kind": "bedrock"}]
 
     llm_output = (
         '{"content": "- It hurts here.\\n- I feel short of breath.", '

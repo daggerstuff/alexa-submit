@@ -74,8 +74,8 @@ def test_bedrock_complete_calls_converse() -> None:
 
 def test_bedrock_respond_enforces_constraints() -> None:
     agent = LLMPersonaAgent()
-
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
+    agent.providers = [{"name": "bedrock", "kind": "bedrock"}]
 
     fake_client = MagicMock()
     fake_client.converse.return_value = {

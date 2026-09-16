@@ -5,6 +5,8 @@ import logging
 import os
 from typing import Any
 
+import httpx
+
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import registry
 from server.scenarios import ScenarioDefinition, matches_term
@@ -12,23 +14,56 @@ from server.schemas.validation import PatientResponse
 
 logger = logging.getLogger("alexa_clinical_sim")
 
+KNOWN_PROVIDERS = ("bedrock", "nim", "cloudflare")
+
+# OpenAI-compatible providers: name → (base_url env, base_url default, api_key env, model env).
+OPENAI_PROVIDER_CONFIG = {
+    "nim": ("NIM_BASE_URL", "https://integrate.api.nvidia.com/v1", "NIM_API_KEY", "NIM_MODEL"),
+    "cloudflare": ("CLOUDFLARE_BASE_URL", "", "CLOUDFLARE_API_KEY", "CLOUDFLARE_MODEL"),
+}
+
 
 class LLMPersonaAgent:
-    """LLM-backed patient persona (Amazon Bedrock Converse) that respects scenario disclosure rules.
+    """LLM-backed patient persona with a provider fallback chain.
 
-    Falls back to the deterministic PatientPersonaAgent when Bedrock is not
-    configured, is unavailable, or returns invalid output. The scenario registry
-    — not the model — remains the authority over which facts may be disclosed.
+    Supports Amazon Bedrock Converse plus OpenAI-compatible providers (NVIDIA
+    NIM and Cloudflare Workers AI). Providers are tried in the order named by
+    INFERENCE_PROVIDER (comma-separated); the first that succeeds wins. Falls
+    back to the deterministic PatientPersonaAgent when no provider is
+    configured or every provider fails. The scenario registry — not the model —
+    remains the authority over which facts may be disclosed.
     """
 
     def __init__(self) -> None:
+        chain = [p.strip().lower() for p in os.getenv("INFERENCE_PROVIDER", "mock").split(",") if p.strip()]
         self.bedrock_model = os.getenv("BEDROCK_MODEL_ID", "")
         self.aws_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
         self.fallback = PatientPersonaAgent()
+        try:
+            self.timeout = float(os.getenv("INFERENCE_TIMEOUT", "15"))
+        except ValueError:
+            self.timeout = 15.0
+        if self.timeout <= 0:
+            self.timeout = 15.0
+
+        self.providers: list[dict[str, str]] = []
+        for name in chain:
+            if name == "bedrock":
+                if self.bedrock_model:
+                    self.providers.append({"name": "bedrock", "kind": "bedrock"})
+            elif name in OPENAI_PROVIDER_CONFIG:
+                base_env, base_default, key_env, model_env = OPENAI_PROVIDER_CONFIG[name]
+                base_url = os.getenv(base_env, base_default)
+                api_key = os.getenv(key_env, "")
+                model = os.getenv(model_env, "")
+                if base_url and api_key and model:
+                    self.providers.append(
+                        {"name": name, "kind": "openai", "base_url": base_url, "api_key": api_key, "model": model}
+                    )
 
     @property
     def available(self) -> bool:
-        return bool(self.bedrock_model)
+        return bool(self.providers)
 
     def respond(
         self,
@@ -57,7 +92,7 @@ class LLMPersonaAgent:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Practitioner says: {practitioner_message}"},
         ]
-        raw = self._complete_bedrock(messages)
+        raw = self._complete(messages)
 
         parsed = self._parse_response(raw)
 
@@ -117,6 +152,28 @@ class LLMPersonaAgent:
             scenario_id=scenario.scenario_id,
             scenario_version=scenario.version,
         )
+
+    def _complete(self, messages: list[dict[str, str]]) -> str:
+        last_exc: Exception | None = None
+        for provider in self.providers:
+            try:
+                if provider["kind"] == "bedrock":
+                    return self._complete_bedrock(messages)
+                return self._complete_openai(provider, messages)
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("LLM provider %s failed: %s", provider["name"], exc)
+        raise last_exc if last_exc is not None else RuntimeError("no LLM provider configured")
+
+    def _complete_openai(self, provider: dict[str, str], messages: list[dict[str, str]]) -> str:
+        response = httpx.post(
+            f"{provider['base_url'].rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {provider['api_key']}"},
+            json={"model": provider["model"], "messages": messages, "temperature": 0.7, "max_tokens": 300},
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
 
     def _build_bedrock_request(self, messages: list[dict[str, str]]) -> dict[str, Any]:
         """Build a Bedrock Converse request from the persona's message list.

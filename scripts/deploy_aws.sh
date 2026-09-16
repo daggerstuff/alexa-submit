@@ -67,6 +67,8 @@ source_config_json() {
     "${MCP_ALLOWED_ORIGINS:-http://127.0.0.1:*,http://localhost:*}" \
     "${MCP_API_KEY:-}" "${MCP_RATE_LIMIT_REQUESTS:-60}" "${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}" \
     "${INFERENCE_PROVIDER:-mock}" "${BEDROCK_MODEL_ID:-}" "${AWS_REGION:-us-east-1}" \
+    "${NIM_BASE_URL:-https://integrate.api.nvidia.com/v1}" "${NIM_API_KEY:-}" "${NIM_MODEL:-}" \
+    "${CLOUDFLARE_BASE_URL:-}" "${CLOUDFLARE_API_KEY:-}" "${CLOUDFLARE_MODEL:-}" \
     "${SESSION_TTL_SECONDS:-1800}" "${SESSION_MAX_SESSIONS:-1000}" \
     "${SESSION_DB_PATH:-/tmp/sessions.db}" <<'PY'
 import json
@@ -74,6 +76,8 @@ import sys
 
 (image, role_arn, allowed_hosts, allowed_origins, api_key, rate_limit, rate_window,
  inference_provider, bedrock_model_id, aws_region,
+ nim_base_url, nim_api_key, nim_model,
+ cloudflare_base_url, cloudflare_api_key, cloudflare_model,
  session_ttl, session_max, session_db_path) = sys.argv[1:]
 
 config = {
@@ -94,6 +98,12 @@ config = {
                 "INFERENCE_PROVIDER": inference_provider,
                 "BEDROCK_MODEL_ID": bedrock_model_id,
                 "AWS_REGION": aws_region,
+                "NIM_BASE_URL": nim_base_url,
+                "NIM_API_KEY": nim_api_key,
+                "NIM_MODEL": nim_model,
+                "CLOUDFLARE_BASE_URL": cloudflare_base_url,
+                "CLOUDFLARE_API_KEY": cloudflare_api_key,
+                "CLOUDFLARE_MODEL": cloudflare_model,
                 "SESSION_TTL_SECONDS": session_ttl,
                 "SESSION_MAX_SESSIONS": session_max,
                 "SESSION_DB_PATH": session_db_path,

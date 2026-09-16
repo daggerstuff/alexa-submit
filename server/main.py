@@ -12,7 +12,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
-from server.agents.llm_persona import LLMPersonaAgent
+from server.agents.llm_persona import KNOWN_PROVIDERS, LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import JsonFormatter, registry
 from server.scenarios import ScenarioDefinition, get_scenario
@@ -126,7 +126,9 @@ class SimulationOrchestrator:
         self.learner_store = LearnerStore(path) if path else None
         if patient_agent is not None:
             self.patient_agent = patient_agent
-        elif os.getenv("INFERENCE_PROVIDER", "mock") == "bedrock":
+        elif {p.strip().lower() for p in os.getenv("INFERENCE_PROVIDER", "mock").split(",") if p.strip()} & set(
+            KNOWN_PROVIDERS
+        ):
             self.patient_agent = LLMPersonaAgent()
         else:
             self.patient_agent = PatientPersonaAgent()

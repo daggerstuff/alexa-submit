@@ -10,6 +10,7 @@ from server.scenarios import CHEST_PAIN_BASIC
 def _agent() -> LLMPersonaAgent:
     agent = LLMPersonaAgent()
     agent.bedrock_model = "qwen/qwen3-30b-a3b-instruct"
+    agent.providers = [{"name": "bedrock", "kind": "bedrock"}]
     return agent
 
 

@@ -37,6 +37,11 @@ jobs:
         env:
           DEPLOY_TAG: ${{ github.sha }}
           MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
-          INFERENCE_PROVIDER: mock
+          INFERENCE_PROVIDER: ${{ vars.INFERENCE_PROVIDER || 'mock' }}
           BEDROCK_MODEL_ID: ${{ secrets.BEDROCK_MODEL_ID }}
+          NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
+          NIM_MODEL: ${{ secrets.NIM_MODEL }}
+          CLOUDFLARE_BASE_URL: ${{ secrets.CLOUDFLARE_BASE_URL }}
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          CLOUDFLARE_MODEL: ${{ secrets.CLOUDFLARE_MODEL }}
         run: bash scripts/deploy_aws.sh

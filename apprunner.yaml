@@ -41,10 +41,26 @@ run:
       value: "/tmp/sessions.db"
     - name: INFERENCE_PROVIDER
       value: mock
-    # Bedrock provider (used when INFERENCE_PROVIDER=bedrock). Requires a
-    # Bedrock model/inference-profile ID plus AWS credentials in the task role.
+    - name: INFERENCE_TIMEOUT
+      value: "15"
+    # Bedrock provider (used when INFERENCE_PROVIDER includes "bedrock"). Requires
+    # a Bedrock model/inference-profile ID plus AWS credentials in the task role.
     - name: BEDROCK_MODEL_ID
       value: ""
     - name: AWS_REGION
       value: us-east-1
+    # NVIDIA NIM (OpenAI-compatible fallback).
+    - name: NIM_BASE_URL
+      value: https://integrate.api.nvidia.com/v1
+    - name: NIM_API_KEY
+      value: "" # deploy_aws.sh injects $NIM_API_KEY.
+    - name: NIM_MODEL
+      value: ""
+    # Cloudflare Workers AI (OpenAI-compatible fallback).
+    - name: CLOUDFLARE_BASE_URL
+      value: ""
+    - name: CLOUDFLARE_API_KEY
+      value: "" # deploy_aws.sh injects $CLOUDFLARE_API_KEY.
+    - name: CLOUDFLARE_MODEL
+      value: ""
   port: 8001
