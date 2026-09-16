@@ -1,0 +1,112 @@
+{
+  "scenario_id": "suicide-risk-screening-advanced",
+  "version": "1.0.0",
+  "difficulty": "advanced",
+  "title": "Adult with thoughts of being better off dead",
+  "goal": "You are the clinician. Screen an adult with thoughts of death: ask directly about suicidal ideation, plan, means, and intent, identify protective factors, then agree on a safety step.",
+  "opening": "I have not been myself. Lately I keep thinking the people around me would be better off without me.",
+  "safety_terms": ["kill", "suicide", "end my life", "hurt myself", "harm myself", "death", "gun", "pills", "plan", "means"],
+  "pitfalls": ["you will be fine", "you'll be fine", "things aren't that bad", "don't worry", "cheer up", "snap out of it", "get over it", "it's just a phase", "you're just tired", "everyone feels down"],
+  "disclosures": [
+    {
+      "fact_id": "ideation-frequency",
+      "trigger_terms": ["thought", "think", "suicide", "suicidal", "better off", "death", "wake up"],
+      "response": "Most days I do not want to wake up. The thought has crossed my mind more than once, and it is getting harder to push away.",
+      "emotional_state": "hopeless"
+    },
+    {
+      "fact_id": "plan",
+      "trigger_terms": ["plan", "method", "how would", "intend", "pictur", "imagine"],
+      "response": "I have not made a firm plan, but I keep picturing driving my car into the lake. I have not told anyone else.",
+      "emotional_state": "ashamed"
+    },
+    {
+      "fact_id": "means-access",
+      "trigger_terms": ["means", "gun", "weapon", "pills", "access", "stockpile", "car", "key"],
+      "response": "There is a handgun in the house. It was my late husband's, locked in the closet, but I know where the key is.",
+      "emotional_state": "fearful"
+    },
+    {
+      "fact_id": "intent-imminence",
+      "trigger_terms": ["when", "soon", "tonight", "next", "intend", "act", "likely", "how close"],
+      "response": "If I am honest, this week has felt harder. I do not want to act, but I am afraid of how low it could get.",
+      "emotional_state": "afraid"
+    },
+    {
+      "fact_id": "protective-factors",
+      "trigger_terms": ["reason", "protect", "hope", "family", "grandchild", "support", "keep going", "religion", "live for"],
+      "response": "My granddaughter is my reason. She stays with me on weekends, and I do not want her to be the one who finds me.",
+      "emotional_state": "tender"
+    },
+    {
+      "fact_id": "prior-attempt",
+      "trigger_terms": ["attempt", "before", "past", "hospital", "overdose", "previous"],
+      "response": "About ten years ago I took too many pills and was hospitalized. It scares me that those thoughts are coming back.",
+      "emotional_state": "frightened"
+    },
+    {
+      "fact_id": "substance-use",
+      "trigger_terms": ["alcohol", "drink", "drug", "substance", "wine", "beer"],
+      "response": "I have been drinking more evenings than not. It numbs the thoughts for a little while.",
+      "emotional_state": "flat"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes permission before the sensitive questions.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and ask permission: 'These next questions are sensitive — is it okay to ask directly?'"
+    },
+    {
+      "metric_id": "direct_inquiry",
+      "name": "Direct ideation inquiry",
+      "trigger_terms": ["suicide", "suicidal", "thoughts of", "harm yourself", "kill yourself", "hurt yourself", "better off", "ending your life", "death"],
+      "rationale": "Asks about suicidal ideation directly and without euphemism.",
+      "max_score": 4,
+      "coaching_hint": "Ask directly: 'Have you been having thoughts of ending your life?'"
+    },
+    {
+      "metric_id": "plan_means",
+      "name": "Plan and means assessment",
+      "trigger_terms": ["plan", "method", "means", "gun", "weapon", "pills", "access", "how would", "key", "stockpile"],
+      "rationale": "Assesses whether a plan exists and access to lethal means.",
+      "max_score": 4,
+      "coaching_hint": "Assess plan and means: 'Do you have a plan, and is there anything in the home you could use?'"
+    },
+    {
+      "metric_id": "intent_timing",
+      "name": "Intent and imminence",
+      "trigger_terms": ["intend", "act", "soon", "tonight", "when", "likely", "how close", "next"],
+      "rationale": "Clarifies intent to act and how imminent the risk is.",
+      "max_score": 4,
+      "coaching_hint": "Clarify intent and timing: 'Do you intend to act, and how soon?'"
+    },
+    {
+      "metric_id": "protective",
+      "name": "Protective factors and support",
+      "trigger_terms": ["reason", "protect", "hope", "family", "support", "grandchild", "keep going", "live for", "religion"],
+      "rationale": "Identifies reasons for living and available support.",
+      "max_score": 4,
+      "coaching_hint": "Explore protective factors: 'What has kept you safe so far, and who supports you?'"
+    },
+    {
+      "metric_id": "safety_plan",
+      "name": "Safety plan and next step",
+      "trigger_terms": ["safety", "crisis", "emergency", "hotline", "number", "remove", "next step", "hospital", "stay with", "call"],
+      "rationale": "Agrees on a concrete safety step, including means restriction and a crisis contact.",
+      "max_score": 4,
+      "coaching_hint": "Make a safety plan: 'Let's agree on a next step and a number to call if it worsens.'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Checks understanding and confirms the immediate safety step.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the safety step and check understanding before ending."
+    }
+  ]
+}

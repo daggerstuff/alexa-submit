@@ -1,0 +1,112 @@
+{
+  "scenario_id": "stroke-fast-intermediate",
+  "version": "1.0.0",
+  "difficulty": "intermediate",
+  "title": "Sudden arm weakness and slurred speech",
+  "goal": "You are the clinician. Assess a possible stroke: establish the exact onset time, test face, arm, and speech, and confirm urgent emergency escalation.",
+  "opening": "Something is wrong. My face feels funny and my arm will not move the way it should.",
+  "safety_terms": ["unresponsive", "collapse", "severe", "can't breathe", "cannot breathe", "seizure", "passed out", "worst headache"],
+  "pitfalls": ["wait and see", "sleep it off", "go home", "nothing serious", "it's just stress", "just anxiety", "take it easy", "you'll be fine", "see how it feels tomorrow"],
+  "disclosures": [
+    {
+      "fact_id": "onset-time",
+      "trigger_terms": ["when", "started", "time", "onset", "begin", "notice"],
+      "response": "It started about forty minutes ago, right after I got up from the couch.",
+      "emotional_state": "frightened"
+    },
+    {
+      "fact_id": "last-known-well",
+      "trigger_terms": ["last well", "last known", "exactly", "clock", "minute", "hour", "normal"],
+      "response": "My wife wrote down that I was completely normal at 3:15. It is now about 3:55.",
+      "emotional_state": "urgent"
+    },
+    {
+      "fact_id": "face-droop",
+      "trigger_terms": ["face", "smile", "droop", "mouth"],
+      "response": "My mouth feels like it is drooping on the right side. I can see it in the mirror.",
+      "emotional_state": "scared"
+    },
+    {
+      "fact_id": "arm-weakness",
+      "trigger_terms": ["arm", "lift", "weak", "move", "strength", "leg"],
+      "response": "I can barely lift my right arm, and my right leg feels heavy and clumsy.",
+      "emotional_state": "alarmed"
+    },
+    {
+      "fact_id": "speech-slurring",
+      "trigger_terms": ["speech", "talk", "slur", "words", "speak", "language", "understand", "repeat"],
+      "response": "My words are coming out slurred. My wife says I sound drunk, but I have not had anything to drink.",
+      "emotional_state": "embarrassed"
+    },
+    {
+      "fact_id": "associated-symptoms",
+      "trigger_terms": ["headache", "vision", "dizzy", "numb", "balance", "walk", "nausea"],
+      "response": "My vision is a little blurry on one side, and I felt dizzy when I stood up.",
+      "emotional_state": "unsteady"
+    },
+    {
+      "fact_id": "risk-factors",
+      "trigger_terms": ["blood pressure", "hypertension", "smoke", "diabet", "heart", "atrial", "cholesterol", "history", "medication"],
+      "response": "I have high blood pressure, and I take a blood thinner for atrial fibrillation. I also smoked for years.",
+      "emotional_state": "worried"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes rapport under time pressure.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself quickly and keep the patient calm while you assess."
+    },
+    {
+      "metric_id": "onset_time",
+      "name": "Onset time (last known well)",
+      "trigger_terms": ["when", "started", "time", "onset", "last well", "last known", "begin", "minute", "hour", "clock", "exactly"],
+      "rationale": "Establishes the exact time the patient was last normal, which drives the emergency response.",
+      "max_score": 4,
+      "coaching_hint": "Pin down the exact onset time: 'When were you last completely normal?'"
+    },
+    {
+      "metric_id": "fast_face",
+      "name": "Facial droop assessment",
+      "trigger_terms": ["face", "smile", "droop", "mouth"],
+      "rationale": "Tests for facial asymmetry.",
+      "max_score": 4,
+      "coaching_hint": "Check the face: 'Can you smile for me — any drooping?'"
+    },
+    {
+      "metric_id": "fast_arm",
+      "name": "Arm and leg weakness",
+      "trigger_terms": ["arm", "lift", "weak", "move", "strength", "leg"],
+      "rationale": "Tests for unilateral limb weakness.",
+      "max_score": 4,
+      "coaching_hint": "Test limb strength: 'Raise both arms and hold them up — does one drift down?'"
+    },
+    {
+      "metric_id": "fast_speech",
+      "name": "Speech and language",
+      "trigger_terms": ["speech", "talk", "slur", "words", "speak", "language", "understand", "repeat"],
+      "rationale": "Tests for slurred speech or trouble finding or understanding words.",
+      "max_score": 4,
+      "coaching_hint": "Assess speech: 'Repeat a short phrase — any slurring or trouble finding words?'"
+    },
+    {
+      "metric_id": "escalation",
+      "name": "Urgent escalation",
+      "trigger_terms": ["emergency", "911", "urgent", "hospital", "ambulance", "now", "immediately", "stroke", "clot", "call"],
+      "rationale": "Recognizes the time-critical presentation and activates emergency evaluation.",
+      "max_score": 4,
+      "coaching_hint": "Recognize urgency: 'This needs emergency activation right now.'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Confirms the emergency plan with the patient and any bystanders.",
+      "max_score": 4,
+      "coaching_hint": "Confirm the emergency plan and check understanding before ending."
+    }
+  ]
+}

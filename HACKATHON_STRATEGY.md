@@ -76,7 +76,7 @@ The official judging criteria are equally weighted across tech implementation, d
 
 **Design** is addressed by keeping the tool surface small and meaningful. The learner should not need to understand internal session mechanics. The agent should guide the conversation, keep spoken responses concise, and reserve detailed evaluation for the end of the simulation.
 
-**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a seven-scenario library across `basic`/`advanced` difficulty, plus cross-session learner progress (per-metric mastery, improvement detection, and a recommended next focus), and can grow to educator-authored rubrics, cohort reporting, and accessibility-oriented voice practice without changing the core MCP contract.
+**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a ten-scenario library across `basic`/`intermediate`/`advanced` difficulty, plus cross-session learner progress (per-metric mastery, improvement detection, and a recommended next focus), and can grow to educator-authored rubrics, cohort reporting, and accessibility-oriented voice practice without changing the core MCP contract.
 
 **Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, safe educational boundaries, and cross-session learner memory with adaptive coaching. This goes beyond a single-turn health-information bot or a basic MCP wrapper.
 
@@ -129,7 +129,7 @@ This repository existed before the hackathon window as a local FastAPI clinical-
 - An optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with JSON-mode responses, tolerant parsing, automatic retry, and a deterministic fallback.
 - Bearer/API-key auth (constant-time comparison) and proxy-safe per-IP rate limiting on the public endpoint.
 - Session lifecycle controls: idle TTL, a bounded session cache with LRU eviction, and optional SQLite persistence (WAL) so state survives process restarts.
-- Seven authorable scenarios across `basic`/`advanced` difficulty (chest pain basic + advanced, abdominal pain, depression screening, migraine, back pain, syncope) defined as validated JSON data, with an authoring guide (`SCENARIOS.md`).
+- Ten authorable scenarios across `basic`/`intermediate`/`advanced` difficulty (chest pain basic + advanced, abdominal pain, depression screening, migraine, back pain, syncope, suicide-risk screening, pediatric fever, stroke FAST) defined as validated JSON data, with an authoring guide (`SCENARIOS.md`).
 - Observability: structured JSON request logs, per-request IDs, and unauthenticated `/health`, `/ready`, and `/metrics` (Prometheus) endpoints.
 - A public AWS deployment (ECR + App Runner, us-east-2).
 - CI (lint + test) and an automated deploy pipeline (GitHub Actions → ECR → App Runner), a full test suite, and the submission documents (`README.md`, `TOOLS.md`, `PRODUCT_FEEDBACK.md`, demo materials).
@@ -143,7 +143,7 @@ This submission also claims the Open Source mini-challenge through the "create a
 - **Contribution URL:** https://github.com/daggerstuff/alexa-submit
 - **Project repository URL:** https://github.com/daggerstuff/alexa-submit
 - **GitHub username:** daggerstuff
-- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator that returns coaching suggestions and a spoken takeaway, seven authorable scenarios across difficulty levels, an optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with deterministic fallback, bearer/API-key auth plus per-IP rate limiting, and optional SQLite session persistence.
+- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator that returns coaching suggestions and a spoken takeaway, ten authorable scenarios across difficulty levels, an optional LLM patient persona (Featherless `Qwen/Qwen2.5-14B-Instruct`) with deterministic fallback, bearer/API-key auth plus per-IP rate limiting, and optional SQLite session persistence.
 - **How it works:** `list_simulation_scenarios`, `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, and `end_simulation` run over `/mcp`; each session holds scenario state and a transcript; patient turns are scenario-constrained; evaluation returns rubric scores with transcript evidence.
 - **Why it matters:** It gives clinical learners a repeatable, safe, evidence-linked surface for practicing patient interviews, and it demonstrates a stateful multi-tool Alexa+ workflow rather than a single-turn Q&A bot.
 

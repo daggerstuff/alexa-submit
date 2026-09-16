@@ -176,7 +176,7 @@ Alexa+ agent
 **Slide content:**
 
 **For:** Clinical learners, simulation programs, and communication-skills educators  
-**Now:** Seven scenarios across basic and advanced difficulty, one MCP workflow, evidence-linked feedback  
+**Now:** Ten scenarios across basic, intermediate, and advanced difficulty, one MCP workflow, cross-session learner progress, and evidence-linked feedback  
 **Next:** Educator-authored scenarios, rubric libraries, cohort reporting, and optional constrained model augmentation
 
 **Speaker script — 15 seconds:**

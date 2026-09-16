@@ -19,6 +19,7 @@ Start an educational patient communication simulation session.
 | --- | --- | --- | --- | --- |
 | `session_id` | string (maxLength=128) | yes | — | Stable application session identifier. |
 | `scenario_id` | string (maxLength=128) | no | `chest-pain-basic` | Scenario id to start; defaults to chest-pain-basic. |
+| `learner_id` | string | null | no | — | Optional stable learner identifier for cross-session progress tracking. |
 
 Output: structured `SimulationResponse`.
 
@@ -32,6 +33,7 @@ Send the learner's next practitioner utterance and receive the simulated patient
 | `practitioner_message` | string (maxLength=4000) | yes | — | The learner's next utterance. |
 | `client_event_id` | string | null | no | — | Idempotency key; a retried key is not reprocessed. |
 | `scenario_id` | string | null | no | — | Must match the session's scenario when provided. |
+| `learner_id` | string | null | no | — | Optional stable learner identifier for cross-session progress tracking. |
 
 Output: structured `SimulationResponse`.
 
@@ -43,6 +45,7 @@ Evaluate the current session using the active scenario's versioned rubric.
 | --- | --- | --- | --- | --- |
 | `session_id` | string (maxLength=128) | yes | — | Stable application session identifier. |
 | `scenario_id` | string | null | no | — | Must match the session's scenario when provided. |
+| `learner_id` | string | null | no | — | Optional stable learner identifier for cross-session progress tracking. |
 
 Output: structured `SimulationResponse`.
 
@@ -54,5 +57,6 @@ End a simulation and return its final evidence-linked evaluation.
 | --- | --- | --- | --- | --- |
 | `session_id` | string (maxLength=128) | yes | — | Stable application session identifier. |
 | `scenario_id` | string | null | no | — | Must match the session's scenario when provided. |
+| `learner_id` | string | null | no | — | Optional stable learner identifier for cross-session progress tracking. |
 
 Output: structured `SimulationResponse`.

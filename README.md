@@ -138,7 +138,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all seven scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all ten scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 

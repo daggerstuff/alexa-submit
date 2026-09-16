@@ -1,0 +1,98 @@
+{
+  "scenario_id": "pediatric-fever-basic",
+  "version": "1.0.0",
+  "difficulty": "basic",
+  "title": "Infant with fever (caregiver interview)",
+  "goal": "You are the clinician. Assess a febrile infant with the caregiver: cover temperature and timing, hydration, associated symptoms, and red flags, then confirm next steps.",
+  "opening": "My baby has had a fever since last night and I am worried. She is only eight months old.",
+  "safety_terms": ["seizure", "unresponsive", "lethargic", "limp", "struggling to breathe", "can't breathe", "blue", "stiff neck", "dehydrated", "rash"],
+  "pitfalls": ["it's just a virus", "you're overreacting", "don't worry", "wait it out", "give her a cold bath", "no big deal", "all babies get fevers"],
+  "disclosures": [
+    {
+      "fact_id": "fever-measurement",
+      "trigger_terms": ["temperature", "how high", "fever", "measure", "thermometer", "number", "degree"],
+      "response": "It was 39.2 under the arm this morning. I gave her paracetamol and it came down a little, but it is climbing again.",
+      "emotional_state": "anxious"
+    },
+    {
+      "fact_id": "onset-duration",
+      "trigger_terms": ["when", "started", "how long", "onset", "begin", "duration"],
+      "response": "It started last night around dinner. She felt hot when I picked her up.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "feeding-hydration",
+      "trigger_terms": ["drink", "feed", "breast", "formula", "bottle", "wet diaper", "urine", "hydrat", "fluids", "output"],
+      "response": "She is drinking less than usual, and her last wet diaper was maybe six hours ago. That is not like her.",
+      "emotional_state": "concerned"
+    },
+    {
+      "fact_id": "associated-symptoms",
+      "trigger_terms": ["cough", "runny nose", "vomit", "rash", "ear", "breath", "cry", "sleep", "symptoms"],
+      "response": "She has a runny nose and has been crying more than usual. No rash, and no vomiting.",
+      "emotional_state": "tired"
+    },
+    {
+      "fact_id": "behavior-energy",
+      "trigger_terms": ["alert", "play", "smile", "lethargic", "energy", "interact", "normal self", "limp", "drowsy"],
+      "response": "She is quieter than her normal self, but she will still smile and reach for her toy. She is not limp.",
+      "emotional_state": "hopeful"
+    },
+    {
+      "fact_id": "red-flag-history",
+      "trigger_terms": ["seizure", "convuls", "breathing", "stiff", "neck", "rash", "history", "premature", "vaccin"],
+      "response": "No seizures, and her breathing looks normal to me. She was born at term and has had all her vaccinations.",
+      "emotional_state": "calm"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "rapport",
+      "name": "Introduction and consent",
+      "trigger_terms": ["name", "consent", "permission"],
+      "rationale": "Introduces self and establishes rapport with the caregiver.",
+      "max_score": 4,
+      "coaching_hint": "Introduce yourself and acknowledge the caregiver's concern."
+    },
+    {
+      "metric_id": "fever_timing",
+      "name": "Fever quantification and timing",
+      "trigger_terms": ["temperature", "how high", "fever", "measure", "thermometer", "number", "degree", "when", "started", "how long", "onset", "begin", "duration"],
+      "rationale": "Quantifies the fever and establishes onset and duration.",
+      "max_score": 4,
+      "coaching_hint": "Quantify the fever: 'What was her temperature, how did you measure it, and when did it start?'"
+    },
+    {
+      "metric_id": "hydration",
+      "name": "Hydration and output",
+      "trigger_terms": ["drink", "feed", "breast", "formula", "bottle", "wet diaper", "urine", "hydrat", "fluids", "output"],
+      "rationale": "Assesses feeding, fluid intake, and urine output.",
+      "max_score": 4,
+      "coaching_hint": "Assess hydration: 'How much is she drinking, and how many wet diapers today?'"
+    },
+    {
+      "metric_id": "associated",
+      "name": "Associated symptoms",
+      "trigger_terms": ["cough", "runny nose", "vomit", "rash", "ear", "breath", "cry", "sleep", "symptoms"],
+      "rationale": "Asks about cough, breathing, rash, vomiting, and behavior.",
+      "max_score": 4,
+      "coaching_hint": "Ask about associated symptoms: 'Any cough, breathing trouble, rash, vomiting, or unusual crying?'"
+    },
+    {
+      "metric_id": "red_flags",
+      "name": "Red-flag screening",
+      "trigger_terms": ["seizure", "convuls", "lethargic", "limp", "drowsy", "stiff", "neck", "rash", "breathing", "alert", "play", "interact"],
+      "rationale": "Screens for the red flags that need urgent evaluation.",
+      "max_score": 4,
+      "coaching_hint": "Screen for red flags: 'Any breathing trouble, unusual drowsiness, rash, or seizures?'"
+    },
+    {
+      "metric_id": "closed_loop",
+      "name": "Shared next-step confirmation",
+      "trigger_terms": ["understand", "questions", "next step", "plan", "agree"],
+      "rationale": "Confirms the plan and checks the caregiver's understanding.",
+      "max_score": 4,
+      "coaching_hint": "Confirm next steps and check the caregiver's understanding before ending."
+    }
+  ]
+}

@@ -50,10 +50,11 @@ Streamable HTTP.
 > scoring.
 >
 > **How it works:**
-> - **Seven authorable scenarios** spanning basic→advanced difficulty (chest pain,
->   abdominal pain, depression screening, migraine, back pain, syncope, and an
->   advanced diabetic chest-pain case), each with a clinical goal, a patient
->   persona, disclosure rules, safety terms, and a scoring rubric.
+> - **Ten authorable scenarios** spanning basic→advanced difficulty (chest pain,
+>   abdominal pain, depression screening, migraine, back pain, syncope, a
+>   diabetic chest-pain case, suicide-risk screening, pediatric fever, and
+>   stroke FAST), each with a clinical goal, a patient persona, disclosure
+>   rules, safety terms, and a scoring rubric.
 > - **Stateful sessions** hold scenario state and a transcript across turns; the
 >   patient only discloses facts whose trigger terms appear in the learner's
 >   question.
@@ -129,7 +130,7 @@ Streamable HTTP.
 > - Bearer/API-key auth and proxy-safe per-IP rate limiting.
 > - Session lifecycle controls, a bounded cache with LRU eviction, and optional
 >   SQLite persistence.
-> - Seven authorable scenarios across basic/advanced difficulty.
+> - Ten authorable scenarios across basic/intermediate/advanced difficulty.
 > - Observability (`/health`, `/ready`, `/metrics`), CI, and an automated deploy
 >   pipeline (GitHub Actions → ECR → App Runner).
 
@@ -146,7 +147,7 @@ were added during the window.)
 - **GitHub username:** daggerstuff
 - **What was done:** built a self-hosted MCP server (MCP `2025-11-25`,
   Streamable HTTP) exposing a clinical-communication simulation as five
-  agent-callable tools, with a versioned evidence-linked evaluator, seven
+  agent-callable tools, with a versioned evidence-linked evaluator, ten
   authorable scenarios, an optional LLM patient persona, and security +
   persistence.
 - **How it works:** the five tools run over `/mcp`; each session holds scenario
