@@ -121,7 +121,7 @@ wait_for_running() {
   local arn="$1"
   echo "Waiting for service to reach RUNNING..."
   for _ in $(seq 1 40); do
-    local status
+    local status op_status
     # A transient credential-refresh failure must not abort the deploy: the
     # create/update call already succeeded server-side. Warn and keep polling.
     if ! status=$(aws apprunner describe-service --service-arn "$arn" --region "$REGION" --query Service.Status --output text 2>/dev/null); then
@@ -129,9 +129,24 @@ wait_for_running() {
       sleep 30
       continue
     fi
-    echo "  status=$status"
+    # A failed deployment leaves the service RUNNING on the previous image
+    # (App Runner rolls back), so Service.Status alone would falsely report
+    # success. Also inspect the latest operation.
+    op_status=$(aws apprunner list-operations --service-arn "$arn" --region "$REGION" --query "OperationSummaryList[0].Status" --output text 2>/dev/null || echo "")
+    echo "  status=$status operation=${op_status:-n/a}"
+    case "$op_status" in
+      FAILED|ROLLBACK_*)
+        echo "Deployment failed (operation=$op_status); the previous image is still live." >&2
+        return 1
+        ;;
+    esac
     case "$status" in
-      RUNNING) return 0 ;;
+      RUNNING)
+        case "$op_status" in
+          ""|SUCCEEDED) return 0 ;;
+          *) sleep 30; continue ;;
+        esac
+        ;;
       CREATE_FAILED|UPDATE_FAILED|DELETED) echo "Service entered $status" >&2; return 1 ;;
     esac
     sleep 30
