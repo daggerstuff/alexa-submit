@@ -70,8 +70,8 @@ Streamable HTTP.
 >   recommended next focus — so Alexa+ can greet a returning learner and steer
 >   their next practice session (a context-aware, state-across-sessions
 >   workflow).
-> - **Optional LLM persona** (Amazon Bedrock Converse, NVIDIA NIM, or Cloudflare
->   Workers AI, tried as a fallback chain) with JSON-mode responses, a tolerant
+> - **Optional LLM persona** (Amazon Bedrock Converse or Cloudflare Workers AI,
+>   tried as a fallback chain) with JSON-mode responses, a tolerant
 >   parser, per-provider retry, and a deterministic fallback.
 > - **Production posture:** bearer/API-key auth, per-IP rate limiting, idle TTL
 >   with a bounded session cache, optional SQLite persistence, structured JSON
@@ -146,8 +146,8 @@ Regenerate them from `demo-v2.mp4` with
 > - Voice-tuned persona: the LLM patient persona is prompted and validated for
 >   spoken delivery (short first-person sentences, no lists or role-break), with
 >   a deterministic fallback when output would not read aloud naturally.
-> - An optional LLM patient persona (Amazon Bedrock Converse, NVIDIA NIM, or
->   Cloudflare Workers AI, tried as a fallback chain) with JSON-mode responses,
+> - An optional LLM patient persona (Amazon Bedrock Converse or Cloudflare
+>   Workers AI, tried as a fallback chain) with JSON-mode responses,
 >   tolerant parsing, per-provider retry, and a deterministic fallback.
 > - Bearer/API-key auth and proxy-safe per-IP rate limiting.
 > - Session lifecycle controls, a bounded cache with LRU eviction, and optional

@@ -22,7 +22,6 @@ This document satisfies the product-feedback and friction-log submission require
 | AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint |
 | AWS ECR                | —          | Container image registry                      |
 | Amazon Bedrock         | —          | Optional LLM persona via Converse API (AWS Builder mini-challenge) |
-| NVIDIA NIM             | —          | Optional OpenAI-compatible LLM persona fallback |
 | Cloudflare Workers AI  | —          | Optional OpenAI-compatible LLM persona fallback |
 | GitHub Actions         | —          | CI (lint + test) and deploy pipeline          |
 | Remotion               | 4.0.484    | Demo video (synthetic terminal recording)     |
@@ -51,7 +50,7 @@ This document satisfies the product-feedback and friction-log submission require
 ### AWS (Bedrock + App Runner + ECR + GitHub Actions)
 
 - Amazon Bedrock's Converse API gives the LLM persona one provider-agnostic request/response shape; a single `bedrock-runtime` client call covers text completion with explicit `maxTokens` and adaptive retry.
-- The persona's provider chain (`bedrock`, `nim`, `cloudflare`) abstracts three backends behind one completion seam — Bedrock Converse plus two OpenAI-compatible `/chat/completions` hosts — so a provider outage degrades to the next configured provider instead of dropping to the deterministic script.
+- The persona's provider chain (`bedrock`, `cloudflare`) abstracts two backends behind one completion seam — Bedrock Converse plus an OpenAI-compatible `/chat/completions` host — so a provider outage degrades to the next configured provider instead of dropping to the deterministic script.
 - App Runner took the container and gave us a TLS endpoint with no load-balancer or ingress configuration; the `/mcp` Streamable HTTP endpoint passed the full MCP flow on the first successful push.
 - ECR with a unique tag per deploy made builds deterministic and rollback simple; a `latest`-style tag would have let stale images deploy silently.
 - GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline.
@@ -96,7 +95,7 @@ This document satisfies the product-feedback and friction-log submission require
 
 We would also build with Pydantic again. Its models made the simulation contracts self-documenting, and the `Field` constraints catch malformed input before it reaches the orchestrator.
 
-We would build with **Alexa+** again: voice-first clinical practice is a strong fit for the MCP tool surface, and the missing piece is local testing tooling rather than the platform itself. We would build with **AWS** again — App Runner + ECR gave a zero-config TLS deploy, and **Bedrock** is a clean swap-in for the persona when AWS is the deployment target; NIM and Cloudflare Workers AI cover the same role off-AWS.
+We would build with **Alexa+** again: voice-first clinical practice is a strong fit for the MCP tool surface, and the missing piece is local testing tooling rather than the platform itself. We would build with **AWS** again — App Runner + ECR gave a zero-config TLS deploy, and **Bedrock** is a clean swap-in for the persona when AWS is the deployment target; Cloudflare Workers AI covers the same role off-AWS.
 
 ---
 

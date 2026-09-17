@@ -28,7 +28,7 @@ flowchart LR
     M --> O["SimulationOrchestrator"]
     O --> S["Scenario registry · scenarios_data/*.json"]
     O --> P["PatientPersonaAgent · deterministic"]
-    O --> L["LLMPersonaAgent · Bedrock / NIM / Cloudflare"]
+    O --> L["LLMPersonaAgent · Bedrock / Cloudflare"]
     O --> E["ClinicalEvaluatorAgent · rubric + coaching"]
     O --> D["SessionStore · memory / SQLite"]
 ```
@@ -75,23 +75,18 @@ See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_T
 
 `server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
 
-`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using **Amazon Bedrock's Converse API** or an **OpenAI-compatible provider** (NVIDIA NIM, Cloudflare Workers AI), with automatic fallback across whichever providers you configure. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when no provider is configured, every provider fails, or the output would not read aloud naturally.
+`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using **Amazon Bedrock's Converse API** or an **OpenAI-compatible provider** (Cloudflare Workers AI), with automatic fallback across whichever providers you configure. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when no provider is configured, every provider fails, or the output would not read aloud naturally.
 
 `INFERENCE_PROVIDER` is a comma-separated fallback chain, tried in order; the first provider that succeeds wins:
 
 ```bash
-INFERENCE_PROVIDER=bedrock,nim,cloudflare
+INFERENCE_PROVIDER=bedrock,cloudflare
 
 # Amazon Bedrock (Converse API)
 BEDROCK_MODEL_ID=qwen/qwen3-30b-a3b-instruct   # verify with: aws bedrock list-foundation-models
 AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=...   # or rely on an instance role
 export AWS_SECRET_ACCESS_KEY=...
-
-# NVIDIA NIM (OpenAI-compatible)
-NIM_BASE_URL=https://integrate.api.nvidia.com/v1
-NIM_API_KEY=...
-NIM_MODEL=...
 
 # Cloudflare Workers AI (OpenAI-compatible)
 CLOUDFLARE_BASE_URL=https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1
@@ -175,11 +170,11 @@ The script builds the Docker image, pushes it to ECR, and creates or updates an 
 
 `.github/workflows/ci.yml` runs `ruff check` and `pytest` on every push to `master` and every pull request.
 
-`.github/workflows/deploy.yml` gates on the same tests, then builds and redeploys to App Runner on a `v*` tag (or manual dispatch). It authenticates with GitHub OIDC into AWS:
+`.github/workflows/deploy.yml` gates on the same tests, then builds and redeploys to App Runner on every push to `master`, on a `v*` tag, or via manual dispatch. It authenticates with GitHub OIDC into AWS:
 
 1. Create an IAM role whose trust policy allows the GitHub repo (via an OIDC identity provider), and attach permissions for ECR push plus App Runner create/update.
 2. Store the role ARN in the `AWS_DEPLOY_ROLE_ARN` repository secret.
-3. Add `MCP_API_KEY` as a repository secret, plus any persona credentials you want the deploy to use — `BEDROCK_MODEL_ID`, `NIM_API_KEY`/`NIM_MODEL`, and `CLOUDFLARE_BASE_URL`/`CLOUDFLARE_API_KEY`/`CLOUDFLARE_MODEL`. Set the `INFERENCE_PROVIDER` chain (e.g. `bedrock,nim,cloudflare`) as the `INFERENCE_PROVIDER` repository variable.
+3. Add `MCP_API_KEY` as a repository secret, plus any persona credentials you want the deploy to use — `BEDROCK_MODEL_ID`, and `CLOUDFLARE_BASE_URL`/`CLOUDFLARE_API_KEY`/`CLOUDFLARE_MODEL`. Set the `INFERENCE_PROVIDER` chain (e.g. `bedrock,cloudflare`) as the `INFERENCE_PROVIDER` repository variable.
 
 The deploy workflow runs the same `scripts/deploy_aws.sh` used for manual deploys, tagged with the commit SHA.
 
