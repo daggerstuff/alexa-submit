@@ -85,7 +85,7 @@ config = {
         "ImageIdentifier": image,
         "ImageRepositoryType": "ECR",
         "ImageConfiguration": {
-            "Port": 8001,
+            "Port": "8001",
             "StartCommand": "python -m server.mcp_server",
             "RuntimeEnvironmentVariables": {
                 "MCP_HOST": "0.0.0.0",
