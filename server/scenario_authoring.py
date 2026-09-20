@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from server.rapport import RAPPORT_CEILING
 from server.scenarios import ScenarioDefinition
 from server.schemas.validation import ScenarioValidation
+from server.voice import EMOTION_PROSODY
 
 _KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -78,6 +79,11 @@ def _warnings(scenario: ScenarioDefinition) -> list[str]:
             warnings.append(
                 f"disclosure '{rule.fact_id}' rapport_required={rule.rapport_required} exceeds the "
                 f"rapport ceiling ({RAPPORT_CEILING}); it can never be reached."
+            )
+        if rule.emotional_state.strip().lower() not in EMOTION_PROSODY:
+            warnings.append(
+                f"disclosure '{rule.fact_id}' emotional_state '{rule.emotional_state}' is unknown to the "
+                f"voice layer; it will read with neutral prosody."
             )
     for metric in scenario.metrics:
         if not metric.trigger_terms:

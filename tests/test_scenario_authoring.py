@@ -119,6 +119,18 @@ def test_validate_warns_empty_trigger_terms() -> None:
     assert any("no trigger_terms" in warning for warning in result.warnings)
 
 
+def test_validate_warns_unknown_emotional_state() -> None:
+    result = validate_scenario(
+        _raw(
+            disclosures=[
+                {"fact_id": "pain", "trigger_terms": ["pain"], "response": "It hurts.", "emotional_state": "flummoxed"}
+            ]
+        )
+    )
+    assert result.valid
+    assert any("unknown to the voice layer" in warning for warning in result.warnings)
+
+
 def test_create_rejects_builtin_id(tmp_path) -> None:
     orch = SimulationOrchestrator(db_path=str(tmp_path / "db.sqlite"), patient_agent=PatientPersonaAgent())
     with pytest.raises(ValueError, match="reserved"):

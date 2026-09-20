@@ -12,7 +12,7 @@ from server.observability import registry
 from server.rapport import clamp_rapport, rapport_delta
 from server.scenarios import DisclosureRule, ScenarioDefinition, matches_term
 from server.schemas.validation import PatientResponse
-from server.voice import speak
+from server.voice import EMOTION_PROSODY, speak
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -165,11 +165,7 @@ class LLMPersonaAgent:
             state.disclosed_facts.add(volunteer.fact_id)
             content = f"{content} {volunteer.response}".strip()
 
-        emotion = parsed.get("emotional_state", state.last_emotional_state)
-        if volunteer is not None:
-            emotion = volunteer.emotional_state
-        elif not isinstance(emotion, str) or not emotion.strip():
-            emotion = state.last_emotional_state
+        emotion = self._resolve_emotion(parsed, state, volunteer, withheld, allowed_facts)
         state.last_emotional_state = emotion
 
         safety_note = None
@@ -199,6 +195,32 @@ class LLMPersonaAgent:
             if rule.rapport_required > 0 and state.rapport >= rule.rapport_required:
                 return rule
         return None
+
+    @staticmethod
+    def _resolve_emotion(
+        parsed: dict[str, Any],
+        state: PatientState,
+        volunteer: DisclosureRule | None,
+        withheld: list[str],
+        allowed_facts: set[str],
+    ) -> str:
+        """Pick the persona's emotional state, bounding the LLM to the known vocabulary.
+
+        A turn that withholds a trust-gated fact and discloses nothing else reads
+        ``guarded`` — mirroring the deterministic persona so both tell the same
+        rapport story. Otherwise the LLM's emotion is kept only when the voice
+        layer knows how to pronounce it; anything unrecognized falls back to the
+        last known-good state, so the returned emotion is always voice-mapped.
+        """
+        if volunteer is not None:
+            return volunteer.emotional_state
+        if withheld and not allowed_facts:
+            return "guarded"
+        emotion = parsed.get("emotional_state", state.last_emotional_state)
+        if not isinstance(emotion, str) or not emotion.strip():
+            return state.last_emotional_state
+        lowered = emotion.strip().lower()
+        return lowered if lowered in EMOTION_PROSODY else state.last_emotional_state
 
     def _complete(self, messages: list[dict[str, str]]) -> str:
         last_exc: Exception | None = None
