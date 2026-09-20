@@ -1,6 +1,6 @@
 {
   "scenario_id": "chest-pain-basic",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "difficulty": "basic",
   "title": "Adult with acute chest pressure",
   "goal": "You are the clinician. Assess a patient with acute chest pressure: ask about location, onset, associated symptoms, medications, and safety, then confirm next steps.",
@@ -36,7 +36,8 @@
       "fact_id": "smoking-history",
       "trigger_terms": ["smoke", "smoking", "tobacco"],
       "response": "I used to smoke, but I quit around five years ago.",
-      "emotional_state": "reflective"
+      "emotional_state": "reflective",
+      "rapport_required": 1
     }
   ],
   "metrics": [

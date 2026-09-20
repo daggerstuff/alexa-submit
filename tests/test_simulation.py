@@ -13,7 +13,7 @@ def test_session_flow_and_versioned_rubric() -> None:
     session_id = "test-session"
     start = orchestrator.handle(SimulationRequest(session_id=session_id, action=SimulationAction.start))
     assert start.status == "active"
-    assert start.scenario_version == "1.1.0"
+    assert start.scenario_version == "1.2.0"
 
     message = orchestrator.handle(
         SimulationRequest(
@@ -38,7 +38,7 @@ def test_session_flow_and_versioned_rubric() -> None:
 
     evaluation = orchestrator.handle(SimulationRequest(session_id=session_id, action=SimulationAction.evaluate))
     result = evaluation.evaluation
-    assert result.rubric_version == "1.1.0"
+    assert result.rubric_version == "1.2.0"
     assert result.max_score == 20
     assert any(item.metric_id == "closed_loop" for item in result.metrics)
 

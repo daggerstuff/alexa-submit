@@ -64,6 +64,7 @@ def _state_to_dict(state: PatientState) -> dict[str, Any]:
         "turn_count": state.turn_count,
         "disclosed_facts": sorted(state.disclosed_facts),
         "last_emotional_state": state.last_emotional_state,
+        "rapport": state.rapport,
     }
 
 
@@ -74,6 +75,7 @@ def _state_from_dict(data: dict[str, Any]) -> PatientState:
         turn_count=int(data["turn_count"]),
         disclosed_facts=set(data["disclosed_facts"]),
         last_emotional_state=data["last_emotional_state"],
+        rapport=int(data.get("rapport", 0)),
     )
 
 
@@ -417,11 +419,15 @@ class SimulationOrchestrator:
             session.transcript.append(self._turn(Role.patient, patient.content))
             response = self._response(request, session, patient=patient)
         elif request.action == SimulationAction.evaluate:
-            evaluation = self.evaluator_agent.evaluate(session.transcript, session.scenario)
+            evaluation = self.evaluator_agent.evaluate(
+                session.transcript, session.scenario, set(session.patient_state.disclosed_facts)
+            )
             session.status = "evaluated"
             response = self._response(request, session, evaluation=evaluation)
         elif request.action == SimulationAction.end:
-            evaluation = self.evaluator_agent.evaluate(session.transcript, session.scenario)
+            evaluation = self.evaluator_agent.evaluate(
+                session.transcript, session.scenario, set(session.patient_state.disclosed_facts)
+            )
             session.status = "ended"
             learner_id = request.learner_id or session.learner_id
             learner_progress = self._record_progress(learner_id, session, evaluation) if learner_id else None

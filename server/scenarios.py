@@ -31,7 +31,13 @@ def matches_term(term: str, text: str) -> bool:
 
 
 class DisclosureRule(BaseModel):
-    """A patient fact disclosed only when a trigger term matches the utterance."""
+    """A patient fact disclosed only when a trigger term matches the utterance.
+
+    `rapport_required` gates a stigma- or trust-sensitive fact behind the
+    session rapport score: the patient withholds it until rapport reaches that
+    level, then may volunteer it unprompted. 0 (the default) behaves as before —
+    triggered purely by terms, never withheld.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -39,6 +45,7 @@ class DisclosureRule(BaseModel):
     trigger_terms: tuple[str, ...]
     response: str
     emotional_state: str
+    rapport_required: int = Field(default=0, ge=0)
 
 
 class MetricDefinition(BaseModel):

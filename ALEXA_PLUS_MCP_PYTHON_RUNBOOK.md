@@ -146,7 +146,7 @@ The serialized result should preserve the fields that matter to the Alexa+ exper
   "request_id": "generated-correlation-id",
   "session_id": "demo-1",
   "scenario_id": "chest-pain-basic",
-  "scenario_version": "1.1.0",
+  "scenario_version": "1.2.0",
   "action": "message",
   "patient": {
     "content": "I am a little short of breath, but I can still speak in full sentences.",

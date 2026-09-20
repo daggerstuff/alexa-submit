@@ -41,6 +41,8 @@ class PatientResponse(BaseModel):
     emotional_state: str
     disclosed_facts: list[str] = Field(default_factory=list)
     safety_note: str | None = None
+    rapport: int = 0
+    withheld_facts: list[str] = Field(default_factory=list)
     scenario_id: str
     scenario_version: str
 
@@ -70,6 +72,9 @@ class EvaluationResult(BaseModel):
     improvements: list[str] = Field(default_factory=list)
     coaching: list[CoachingSuggestion] = Field(default_factory=list)
     safety_flags: list[str] = Field(default_factory=list)
+    rapport_score: int = 0
+    rapport_low: int = 0
+    withheld_facts: list[str] = Field(default_factory=list)
     summary: str = ""
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 

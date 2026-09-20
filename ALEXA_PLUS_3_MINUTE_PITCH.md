@@ -114,7 +114,7 @@ Alexa+ agent
 
 **Slide content:**
 
-- Scenario version: `chest-pain-basic / 1.1.0`
+- Scenario version: `chest-pain-basic / 1.2.0`
 - Disclosure rules control what can be revealed.
 - Patient state preserves disclosed facts and emotional continuity.
 - Unknown questions receive a bounded fallback response.

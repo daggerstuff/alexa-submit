@@ -168,7 +168,7 @@ def test_mcp_full_simulation_workflow() -> None:
             },
         )
         assert evaluation["evaluation"] is not None
-        assert evaluation["evaluation"]["rubric_version"] == "1.1.0"
+        assert evaluation["evaluation"]["rubric_version"] == "1.2.0"
         assert evaluation["status"] == "evaluated"
 
         # End simulation — should lock session

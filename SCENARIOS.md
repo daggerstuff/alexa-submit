@@ -10,7 +10,7 @@ first** (tests and the demo depend on it).
 ```jsonc
 {
   "scenario_id": "chest-pain-basic",   // unique, kebab-case, stable across versions
-  "version": "1.1.0",                  // SemVer; change it when the rubric changes
+  "version": "1.2.0",                  // SemVer; change it when the rubric changes
   "difficulty": "basic",               // basic | intermediate | advanced
   "title": "Adult with acute chest pressure",
   "goal": "You are the clinician. Assess…",  // spoken to the learner on start
@@ -51,6 +51,42 @@ allows a trailing suffix, so `"medication"` matches `"medications"` and
   "emotional_state": "concerned"
 }
 ```
+
+### Rapport and trust-gated disclosure
+
+Disclosures can be gated on the practitioner's **rapport** with the patient — a
+per-session integer that starts at `0`, moves by `±1` per turn, and is clamped to
+`[-3, +3]`. Each practitioner utterance is scored by `rapport_delta`:
+
+1. Negative phrases (the `RAPPORT_NEGATIVE` lexicon plus the scenario's
+   `pitfalls`) are checked **first**; if any match, rapport drops by one and
+   positive matches are ignored (negative wins).
+2. Otherwise, warm phrases (`RAPPORT_POSITIVE`) raise it by one.
+3. Anything neutral leaves it unchanged.
+
+A disclosure rule gains an optional `rapport_required` (integer `>= 0`, default
+`0`):
+
+- `0` — disclosed only when a `trigger_term` matches (unchanged behaviour).
+- `> 0` — **withheld** until rapport reaches that value, then the patient may
+  volunteer it **without** a matching trigger term.
+
+```jsonc
+{
+  "fact_id": "smoking-history",
+  "trigger_terms": ["smoke", "smoking", "tobacco", "nicotine"],
+  "response": "I used to smoke, but I quit around five years ago.",
+  "emotional_state": "reflective",
+  "rapport_required": 1
+}
+```
+
+A learner who opens cold ("Do you smoke?") gets a guarded deflection and the fact
+is reported in `withheld_facts`; once they warm up (a name, permission, or
+empathy), the patient volunteers it unprompted. The evaluator replays rapport
+across the transcript and reports the final `rapport_score`, the lowest
+`rapport_low`, and any facts that stayed in `withheld_facts` — so the learner
+keeps credit for the clinical ask while the trust lesson is surfaced separately.
 
 ### Metric definition
 

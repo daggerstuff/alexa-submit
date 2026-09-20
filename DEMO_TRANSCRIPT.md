@@ -28,7 +28,7 @@ end_simulation             — end and return the final evaluation
 
 ```
 start_simulation(session_id="demo-1", scenario_id="chest-pain-basic")
-→ scenario chest-pain-basic v1.1.0
+→ scenario chest-pain-basic v1.2.0
 ```
 
 **Patient:** "Hello. I have been having pressure in my chest and I am worried."
@@ -56,7 +56,7 @@ start_simulation(session_id="demo-1", scenario_id="chest-pain-basic")
 ## 5. Evaluate
 
 ```
-evaluate_simulation(session_id="demo-1") → rubric v1.1.0, 8/20
+evaluate_simulation(session_id="demo-1") → rubric v1.2.0, 8/20
 ```
 
 | Metric | Score | Matched terms | Evidence |
