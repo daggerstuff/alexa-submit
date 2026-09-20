@@ -155,3 +155,51 @@ class LearnerStore:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+
+class ScenarioStore:
+    """SQLite-backed persistence for educator-authored scenarios.
+
+    Mirrors ``LearnerStore``: rows store the raw scenario definition JSON and
+    the orchestrator owns pydantic (de)serialization. Custom scenarios survive
+    process restarts within a container; point ``SESSION_DB_PATH`` at mounted EFS
+    (or swap for DynamoDB) to survive redeploys across instances.
+    """
+
+    def __init__(self, path: str) -> None:
+        self._lock = threading.Lock()
+        self._conn = sqlite3.connect(path, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS custom_scenarios (
+                scenario_id TEXT PRIMARY KEY,
+                definition TEXT NOT NULL
+            )
+            """
+        )
+        self._conn.commit()
+
+    def upsert(self, scenario_id: str, definition: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO custom_scenarios (scenario_id, definition) VALUES (?, ?) "
+                "ON CONFLICT(scenario_id) DO UPDATE SET definition = excluded.definition",
+                (scenario_id, json.dumps(definition)),
+            )
+            self._conn.commit()
+
+    def list(self) -> dict[str, dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT scenario_id, definition FROM custom_scenarios").fetchall()
+        return {scenario_id: json.loads(definition) for scenario_id, definition in rows}
+
+    def delete(self, scenario_id: str) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM custom_scenarios WHERE scenario_id = ?", (scenario_id,))
+            self._conn.commit()
+
+    def close(self) -> None:
+        with self._lock:
+            self._conn.close()

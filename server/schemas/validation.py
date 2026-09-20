@@ -137,3 +137,29 @@ class SimulationResponse(BaseModel):
     status: Literal["active", "evaluated", "ended"]
     learner_progress: LearnerProgress | None = None
     disclaimer: str = "Educational simulation only; do not use for real patient care."
+
+
+class ScenarioValidation(BaseModel):
+    """Structured result of validating an educator-authored scenario definition."""
+
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    scenario_id: str = ""
+    version: str = ""
+    title: str = ""
+    disclosure_count: int = 0
+    metric_count: int = 0
+    max_score: int = 0
+
+
+class CreateScenarioResult(BaseModel):
+    scenario_id: str
+    version: str
+    title: str
+    status: Literal["created", "updated"]
+
+
+class DeleteScenarioResult(BaseModel):
+    scenario_id: str
+    status: Literal["deleted", "not_found"]

@@ -100,7 +100,41 @@ MIGRAINE_BASIC = SCENARIOS["migraine-basic"]
 BACK_PAIN_BASIC = SCENARIOS["back-pain-basic"]
 
 
+# Educator-authored scenarios registered at runtime (persisted via ScenarioStore
+# and re-registered on startup). They overlay the built-in library without
+# mutating it: built-in ids stay reserved, and custom ids are checked against
+# them so a runtime scenario can never shadow a shipped one.
+_custom: dict[str, ScenarioDefinition] = {}
+
+
+def register_custom_scenario(scenario: ScenarioDefinition) -> bool:
+    """Register a runtime scenario; returns True if it overwrote an existing custom id."""
+    if scenario.scenario_id in SCENARIOS:
+        raise ValueError(f"scenario_id '{scenario.scenario_id}' is reserved by a built-in scenario")
+    existed = scenario.scenario_id in _custom
+    _custom[scenario.scenario_id] = scenario
+    return existed
+
+
+def remove_custom_scenario(scenario_id: str) -> bool:
+    """Remove a runtime scenario; returns False when the id was not a custom scenario."""
+    return _custom.pop(scenario_id, None) is not None
+
+
+def custom_scenarios() -> dict[str, ScenarioDefinition]:
+    return dict(_custom)
+
+
+def all_scenarios() -> dict[str, ScenarioDefinition]:
+    """Built-in scenarios first, then runtime (educator-authored) scenarios."""
+    merged = dict(SCENARIOS)
+    merged.update(_custom)
+    return merged
+
+
 def get_scenario(scenario_id: str) -> ScenarioDefinition:
+    if scenario_id in _custom:
+        return _custom[scenario_id]
     try:
         return SCENARIOS[scenario_id]
     except KeyError as exc:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -15,9 +16,12 @@ from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
 from server.agents.llm_persona import KNOWN_PROVIDERS, LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import JsonFormatter, registry
-from server.scenarios import ScenarioDefinition, get_scenario
+from server.scenario_authoring import validate_scenario
+from server.scenarios import ScenarioDefinition, get_scenario, register_custom_scenario, remove_custom_scenario
 from server.schemas.validation import (
     CohortProgress,
+    CreateScenarioResult,
+    DeleteScenarioResult,
     EvaluationResult,
     LearnerProgress,
     LearnerSummary,
@@ -29,7 +33,7 @@ from server.schemas.validation import (
     SimulationResponse,
     TranscriptTurn,
 )
-from server.storage import LearnerStore, SessionStore
+from server.storage import LearnerStore, ScenarioStore, SessionStore
 from server.voice import speak
 
 logger = logging.getLogger("alexa_clinical_sim")
@@ -127,6 +131,8 @@ class SimulationOrchestrator:
         self.store = SessionStore(path) if path else None
         self.learners: dict[str, dict[str, Any]] = {}
         self.learner_store = LearnerStore(path) if path else None
+        self.scenario_store = ScenarioStore(path) if path else None
+        self._load_custom_scenarios()
         if patient_agent is not None:
             self.patient_agent = patient_agent
         elif {p.strip().lower() for p in os.getenv("INFERENCE_PROVIDER", "mock").split(",") if p.strip()} & set(
@@ -136,6 +142,43 @@ class SimulationOrchestrator:
         else:
             self.patient_agent = PatientPersonaAgent()
         self.evaluator_agent = ClinicalEvaluatorAgent()
+
+    def _load_custom_scenarios(self) -> None:
+        """Re-register persisted educator-authored scenarios on startup."""
+        if self.scenario_store is None:
+            return
+        for scenario_id, record in self.scenario_store.list().items():
+            try:
+                register_custom_scenario(ScenarioDefinition.model_validate(record))
+            except ValueError as exc:
+                logger.warning("Skipping stored custom scenario %s: %s", scenario_id, exc)
+
+    def create_scenario(self, raw: str) -> CreateScenarioResult:
+        """Validate and register an educator-authored scenario, persisting it."""
+        validation = validate_scenario(raw)
+        if not validation.valid:
+            raise ValueError(f"Scenario is invalid: {'; '.join(validation.errors)}")
+        data = json.loads(raw)
+        scenario = ScenarioDefinition.model_validate(data)
+        with self._registry_lock:
+            existed = register_custom_scenario(scenario)
+            if self.scenario_store is not None:
+                self.scenario_store.upsert(scenario.scenario_id, data)
+        registry.incr("custom_scenarios_created_total")
+        return CreateScenarioResult(
+            scenario_id=scenario.scenario_id,
+            version=scenario.version,
+            title=scenario.title,
+            status="updated" if existed else "created",
+        )
+
+    def delete_scenario(self, scenario_id: str) -> DeleteScenarioResult:
+        """Remove an educator-authored scenario; built-in scenarios cannot be deleted."""
+        with self._registry_lock:
+            removed = remove_custom_scenario(scenario_id)
+            if self.scenario_store is not None:
+                self.scenario_store.delete(scenario_id)
+        return DeleteScenarioResult(scenario_id=scenario_id, status="deleted" if removed else "not_found")
 
     def _session_lock(self, session_id: str) -> threading.RLock:
         with self._session_locks_guard:

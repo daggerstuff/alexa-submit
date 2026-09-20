@@ -149,6 +149,27 @@ terms as `matched_terms`, so every score is self-explanatory.
 4. Re-run `uv run pytest -q` — the loader validates every file at import time, and
    `test_mcp_protocol.py` asserts the full scenario set.
 
+## Authoring at runtime (educator tools)
+
+Educators can author scenarios without a code deploy through three MCP tools:
+
+- `validate_scenario(scenario_json)` — parse and check a definition **without**
+  creating it. Returns `errors` (schema violations, which block creation) and
+  `warnings` (authoring smells that still parse):
+  - non-kebab-case `scenario_id`;
+  - empty `opening` or `goal`;
+  - duplicate `fact_id` or `metric_id`;
+  - a disclosure or metric with no `trigger_terms`;
+  - `rapport_required` above the rapport ceiling (3) — unreachable.
+- `create_scenario(scenario_json)` — validate and register the scenario so it can
+  be started immediately. Persists across restarts, returns `created` or
+  `updated`, and rejects ids that collide with a built-in scenario.
+- `delete_scenario(scenario_id)` — remove a custom scenario; built-ins cannot be
+  deleted.
+
+Runtime scenarios appear in `list_simulation_scenarios` with `source: "custom"`
+and are selected by `scenario_id` in `start_simulation` exactly like built-ins.
+
 ## Safety
 
 Scenarios are educational simulation only. Write responses that model a patient

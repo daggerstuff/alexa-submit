@@ -20,10 +20,14 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from server._version import __version__
 from server.main import orchestrator
 from server.observability import registry, render_prometheus, request_id_var
-from server.scenarios import SCENARIOS
+from server.scenario_authoring import validate_scenario as validate_scenario_definition
+from server.scenarios import SCENARIOS, all_scenarios
 from server.schemas.validation import (
     CohortProgress,
+    CreateScenarioResult,
+    DeleteScenarioResult,
     LearnerProgress,
+    ScenarioValidation,
     SimulationAction,
     SimulationRequest,
     SimulationResponse,
@@ -60,6 +64,7 @@ class ScenarioListItem(BaseModel):
     title: str
     difficulty: str
     metric_ids: list[str]
+    source: str = "builtin"
 
 
 class ScenarioListResult(BaseModel):
@@ -96,11 +101,52 @@ def list_simulation_scenarios() -> ScenarioListResult:
                 title=scenario.title,
                 difficulty=scenario.difficulty,
                 metric_ids=[metric.metric_id for metric in scenario.metrics],
+                source="builtin" if scenario.scenario_id in SCENARIOS else "custom",
             )
-            for scenario in SCENARIOS.values()
+            for scenario in all_scenarios().values()
         ],
         disclaimer="Educational simulation only; do not use for real patient care.",
     )
+
+
+@mcp.tool(
+    description=(
+        "Validate an educator-authored scenario definition (JSON) without creating it. "
+        "Returns schema errors (which block creation) and authoring warnings such as "
+        "unreachable rapport gates or duplicate fact/metric ids."
+    ),
+    structured_output=True,
+)
+def validate_scenario(
+    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.")],
+) -> ScenarioValidation:
+    return validate_scenario_definition(scenario_json)
+
+
+@mcp.tool(
+    description=(
+        "Validate and register an educator-authored scenario so it can be started in a new "
+        "session. Persists across restarts and rejects scenario ids that collide with built-ins."
+    ),
+    structured_output=True,
+)
+def create_scenario(
+    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.")],
+) -> CreateScenarioResult:
+    try:
+        return orchestrator.create_scenario(scenario_json)
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool(
+    description="Remove a previously created custom scenario. Built-in scenarios cannot be deleted.",
+    structured_output=True,
+)
+def delete_scenario(
+    scenario_id: Annotated[str, Field(description="The custom scenario id to delete.", max_length=128)],
+) -> DeleteScenarioResult:
+    return orchestrator.delete_scenario(scenario_id)
 
 
 @mcp.tool(
