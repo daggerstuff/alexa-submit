@@ -17,7 +17,13 @@ from server.agents.llm_persona import KNOWN_PROVIDERS, LLMPersonaAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.observability import JsonFormatter, registry
 from server.scenario_authoring import validate_scenario
-from server.scenarios import ScenarioDefinition, get_scenario, register_custom_scenario, remove_custom_scenario
+from server.scenarios import (
+    ScenarioDefinition,
+    get_scenario,
+    is_builtin_scenario,
+    register_custom_scenario,
+    remove_custom_scenario,
+)
 from server.schemas.validation import (
     CohortProgress,
     CreateScenarioResult,
@@ -174,6 +180,8 @@ class SimulationOrchestrator:
 
     def delete_scenario(self, scenario_id: str) -> DeleteScenarioResult:
         """Remove an educator-authored scenario; built-in scenarios cannot be deleted."""
+        if is_builtin_scenario(scenario_id):
+            return DeleteScenarioResult(scenario_id=scenario_id, status="builtin")
         with self._registry_lock:
             removed = remove_custom_scenario(scenario_id)
             if self.scenario_store is not None:

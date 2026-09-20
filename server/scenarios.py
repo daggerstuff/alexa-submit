@@ -121,6 +121,10 @@ def remove_custom_scenario(scenario_id: str) -> bool:
     return _custom.pop(scenario_id, None) is not None
 
 
+def is_builtin_scenario(scenario_id: str) -> bool:
+    return scenario_id in SCENARIOS
+
+
 def custom_scenarios() -> dict[str, ScenarioDefinition]:
     return dict(_custom)
 

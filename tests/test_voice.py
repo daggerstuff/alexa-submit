@@ -3,9 +3,9 @@ from __future__ import annotations
 from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.main import SimulationOrchestrator
-from server.scenarios import CHEST_PAIN_BASIC
+from server.scenarios import CHEST_PAIN_BASIC, SCENARIOS
 from server.schemas.validation import Role, SimulationAction, SimulationRequest, TranscriptTurn
-from server.voice import NEUTRAL_PROSODY, prosody_for, speak, spoken_evaluation, ssml_escape
+from server.voice import EMOTION_PROSODY, NEUTRAL_PROSODY, prosody_for, speak, spoken_evaluation, ssml_escape
 
 
 def _state() -> PatientState:
@@ -69,3 +69,17 @@ def test_spoken_evaluation_helper() -> None:
     out = spoken_evaluation(8, 20, "Strong: Symptom characterization.")
     assert out.startswith('<speak><prosody rate="medium" pitch="medium">You scored 8 out of 20. ')
     assert "Strong: Symptom characterization." in out
+
+
+def test_every_library_emotional_state_has_prosody() -> None:
+    states = {rule.emotional_state for scenario in SCENARIOS.values() for rule in scenario.disclosures}
+    states.update({"anxious", "guarded", "distressed"})  # opening line + persona policy emissions
+    missing = sorted(state for state in states if state not in EMOTION_PROSODY)
+    assert missing == [], f"emotional states missing a prosody mapping: {missing}"
+
+
+def test_speak_strips_xml_illegal_control_characters() -> None:
+    out = speak("It hurts\x00 here.\x08", "anxious")
+    assert "\x00" not in out
+    assert "\x08" not in out
+    assert "It hurts here." in out

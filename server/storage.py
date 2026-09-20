@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 from typing import Any
+
+logger = logging.getLogger("alexa_clinical_sim")
 
 
 class SessionStore:
@@ -193,7 +196,13 @@ class ScenarioStore:
     def list(self) -> dict[str, dict[str, Any]]:
         with self._lock:
             rows = self._conn.execute("SELECT scenario_id, definition FROM custom_scenarios").fetchall()
-        return {scenario_id: json.loads(definition) for scenario_id, definition in rows}
+        scenarios: dict[str, dict[str, Any]] = {}
+        for scenario_id, definition in rows:
+            try:
+                scenarios[scenario_id] = json.loads(definition)
+            except json.JSONDecodeError:
+                logger.warning("Skipping unparseable custom scenario %s", scenario_id)
+        return scenarios
 
     def delete(self, scenario_id: str) -> None:
         with self._lock:

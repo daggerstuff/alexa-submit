@@ -151,7 +151,24 @@ def test_delete_custom_and_builtin(tmp_path) -> None:
     orch.create_scenario(_raw(scenario_id="custom-chest"))
     assert orch.delete_scenario("custom-chest").status == "deleted"
     assert orch.delete_scenario("custom-chest").status == "not_found"
-    assert orch.delete_scenario("chest-pain-basic").status == "not_found"
+    assert orch.delete_scenario("chest-pain-basic").status == "builtin"
+
+
+def test_scenario_store_skips_corrupt_rows(tmp_path) -> None:
+    from server.storage import ScenarioStore
+
+    store = ScenarioStore(str(tmp_path / "db.sqlite"))
+    store.upsert("good", {"scenario_id": "good", "version": "1.0.0"})
+    with store._lock:
+        store._conn.execute(
+            "INSERT INTO custom_scenarios (scenario_id, definition) VALUES (?, ?)",
+            ("bad", "{not json"),
+        )
+        store._conn.commit()
+
+    listed = store.list()
+    assert "good" in listed
+    assert "bad" not in listed
 
 
 def test_custom_scenario_persists_across_orchestrators(tmp_path) -> None:

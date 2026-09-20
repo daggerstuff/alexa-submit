@@ -16,7 +16,7 @@ class ClinicalEvaluatorAgent:
     In addition to the rubric, the evaluator replays the session's rapport: each
     practitioner turn shifts the patient's trust by at most one step, and the
     result reports the final trust level, the lowest point reached, and the
-    trust-gated facts the patient never disclosed.
+    trust-gated facts the learner probed but the patient never disclosed.
     """
 
     def evaluate(
@@ -71,8 +71,22 @@ class ClinicalEvaluatorAgent:
         ]
         rapport_score, rapport_low = self._replay_rapport(scenario, practitioner_turns)
         disclosed = disclosed_facts or set()
+        # "Withheld" means the learner actually probed a trust-gated fact (a
+        # trigger term matched) but rapport kept it hidden. A gated fact the
+        # learner never asked about is simply not covered — not withheld.
+        probed = {
+            rule.fact_id
+            for rule in scenario.disclosures
+            if any(
+                matches_term(term, turn.content.lower())
+                for turn in practitioner_turns
+                for term in rule.trigger_terms
+            )
+        }
         withheld_facts = sorted(
-            rule.fact_id for rule in scenario.disclosures if rule.rapport_required > 0 and rule.fact_id not in disclosed
+            rule.fact_id
+            for rule in scenario.disclosures
+            if rule.rapport_required > 0 and rule.fact_id in probed and rule.fact_id not in disclosed
         )
         summary = self._summary(metrics, coaching, safety_flags, rapport_low, withheld_facts)
         return EvaluationResult(

@@ -118,7 +118,7 @@ def list_simulation_scenarios() -> ScenarioListResult:
     structured_output=True,
 )
 def validate_scenario(
-    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.")],
+    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.", max_length=100_000)],
 ) -> ScenarioValidation:
     return validate_scenario_definition(scenario_json)
 
@@ -131,7 +131,7 @@ def validate_scenario(
     structured_output=True,
 )
 def create_scenario(
-    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.")],
+    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.", max_length=100_000)],
 ) -> CreateScenarioResult:
     try:
         return orchestrator.create_scenario(scenario_json)

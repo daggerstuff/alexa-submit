@@ -102,3 +102,13 @@ def test_rapport_survives_a_full_session() -> None:
         )
     )
     assert "smoking-history" in warm.patient.disclosed_facts
+
+
+def test_evaluator_reports_withheld_only_when_probed() -> None:
+    evaluator = ClinicalEvaluatorAgent()
+    # Never asked about smoking -> not "withheld", just not covered.
+    unprobed = evaluator.evaluate([_turn("Where is the pain?")], CHEST_PAIN_BASIC)
+    assert unprobed.withheld_facts == []
+    # Asked coldly -> rapport kept it hidden, so it is withheld.
+    probed = evaluator.evaluate([_turn("Do you smoke?")], CHEST_PAIN_BASIC)
+    assert "smoking-history" in probed.withheld_facts

@@ -162,4 +162,4 @@ class CreateScenarioResult(BaseModel):
 
 class DeleteScenarioResult(BaseModel):
     scenario_id: str
-    status: Literal["deleted", "not_found"]
+    status: Literal["deleted", "not_found", "builtin"]
