@@ -39,6 +39,7 @@ class TranscriptTurn(BaseModel):
 class PatientResponse(BaseModel):
     content: str
     emotional_state: str
+    ssml: str = ""
     disclosed_facts: list[str] = Field(default_factory=list)
     safety_note: str | None = None
     rapport: int = 0
@@ -76,6 +77,7 @@ class EvaluationResult(BaseModel):
     rapport_low: int = 0
     withheld_facts: list[str] = Field(default_factory=list)
     summary: str = ""
+    spoken_summary: str = ""
     disclaimer: str = "Simulation feedback is educational and is not a substitute for supervised clinical assessment."
 
 

@@ -12,6 +12,7 @@ from server.observability import registry
 from server.rapport import clamp_rapport, rapport_delta
 from server.scenarios import DisclosureRule, ScenarioDefinition, matches_term
 from server.schemas.validation import PatientResponse
+from server.voice import speak
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -180,6 +181,7 @@ class LLMPersonaAgent:
         return PatientResponse(
             content=content,
             emotional_state=emotion,
+            ssml=speak(content, emotion),
             disclosed_facts=sorted(state.disclosed_facts),
             safety_note=safety_note,
             rapport=state.rapport,

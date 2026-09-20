@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from server.rapport import clamp_rapport, rapport_delta
 from server.scenarios import DisclosureRule, ScenarioDefinition, matches_term
 from server.schemas.validation import PatientResponse
+from server.voice import speak
 
 
 @dataclass
@@ -84,6 +85,7 @@ class PatientPersonaAgent:
         return PatientResponse(
             content=content,
             emotional_state=emotion,
+            ssml=speak(content, emotion),
             disclosed_facts=sorted(state.disclosed_facts),
             safety_note=safety_note,
             rapport=state.rapport,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from server.rapport import clamp_rapport, rapport_delta
 from server.scenarios import ScenarioDefinition, matches_term
 from server.schemas.validation import CoachingSuggestion, EvaluationResult, MetricScore, Role, TranscriptTurn
+from server.voice import spoken_evaluation
 
 
 class ClinicalEvaluatorAgent:
@@ -73,6 +74,7 @@ class ClinicalEvaluatorAgent:
         withheld_facts = sorted(
             rule.fact_id for rule in scenario.disclosures if rule.rapport_required > 0 and rule.fact_id not in disclosed
         )
+        summary = self._summary(metrics, coaching, safety_flags, rapport_low, withheld_facts)
         return EvaluationResult(
             rubric_version=scenario.version,
             overall_score=total,
@@ -85,7 +87,8 @@ class ClinicalEvaluatorAgent:
             rapport_score=rapport_score,
             rapport_low=rapport_low,
             withheld_facts=withheld_facts,
-            summary=self._summary(metrics, coaching, safety_flags, rapport_low, withheld_facts),
+            summary=summary,
+            spoken_summary=spoken_evaluation(total, maximum, summary),
         )
 
     @staticmethod

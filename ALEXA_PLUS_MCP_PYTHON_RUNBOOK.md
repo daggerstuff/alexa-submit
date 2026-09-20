@@ -151,17 +151,20 @@ The serialized result should preserve the fields that matter to the Alexa+ exper
   "patient": {
     "content": "I am a little short of breath, but I can still speak in full sentences.",
     "emotional_state": "concerned",
+    "ssml": "<speak><prosody rate=\"medium\" pitch=\"medium\">I am a little short of breath, but I can still speak in full sentences.</prosody></speak>",
     "disclosed_facts": ["chest-pressure", "dyspnea"],
     "safety_note": null,
+    "rapport": 0,
+    "withheld_facts": [],
     "scenario_id": "chest-pain-basic",
-    "scenario_version": "1.1.0"
+    "scenario_version": "1.2.0"
   },
   "status": "active",
   "disclaimer": "Educational simulation only; do not use for real patient care."
 }
 ```
 
-The spoken adapter should use `patient.content`. The remaining fields are useful for agent reasoning, UI display, evaluation, logging, and safety handling.
+The spoken adapter should speak `patient.ssml` (SSML with emotion-driven prosody — `emotional_state` maps to rate/pitch/volume), and fall back to `patient.content` for engines without SSML. `evaluation.spoken_summary` is the parallel SSML read-back of the evaluation's `summary`. The remaining fields are useful for agent reasoning, UI display, logging, and safety handling.
 
 ## 8. Run Streamable HTTP on a single MCP endpoint
 
@@ -293,13 +296,13 @@ User asks to practice a clinical conversation
     -> choose or ask the user to choose a scenario
     -> create a stable application session_id
     -> call start_simulation
-    -> speak the patient content
+    -> speak the patient ssml (fall back to content)
     -> for each learner turn:
          call send_practitioner_turn
-         speak patient.content
+         speak patient.ssml (fall back to patient.content)
     -> when the learner asks for feedback:
          call evaluate_simulation or end_simulation
-         summarize strengths and improvements
+         summarize strengths and improvements (speak evaluation.spoken_summary)
 ```
 
 The agent should not narrate raw internal fields unless useful. It should speak the patient’s content during the interaction and present structured feedback at the end. The disclaimer should be shown or spoken at the beginning and included in final feedback.

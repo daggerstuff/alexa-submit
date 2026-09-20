@@ -30,6 +30,7 @@ from server.schemas.validation import (
     TranscriptTurn,
 )
 from server.storage import LearnerStore, SessionStore
+from server.voice import speak
 
 logger = logging.getLogger("alexa_clinical_sim")
 if not logger.handlers:
@@ -391,6 +392,7 @@ class SimulationOrchestrator:
                 patient = PatientResponse(
                     content=session.scenario.opening,
                     emotional_state="anxious",
+                    ssml=speak(session.scenario.opening, "anxious"),
                     disclosed_facts=[],
                     safety_note=None,
                     scenario_id=session.scenario.scenario_id,
