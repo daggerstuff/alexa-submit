@@ -1,0 +1,91 @@
+{
+  "scenario_id": "panic-attack-basic",
+  "version": "1.0.0",
+  "title": "Adult with an acute panic episode",
+  "opening": "I feel like I can't breathe, and my heart is pounding. I think something is really wrong with me.",
+  "goal": "You are the clinician. Assess the episode, rule out cardiac red flags, and help the patient feel safe.",
+  "difficulty": "basic",
+  "safety_terms": ["collapse", "chest pain", "can't breathe", "passed out", "fainted"],
+  "pitfalls": ["calm down", "you're fine", "it's all in your head", "nothing is wrong", "snap out of it"],
+  "disclosures": [
+    {
+      "fact_id": "onset-context",
+      "trigger_terms": ["when", "started", "happen", "trigger"],
+      "response": "It started about an hour ago, out of nowhere, while I was sitting at my desk.",
+      "emotional_state": "anxious"
+    },
+    {
+      "fact_id": "palpitations",
+      "trigger_terms": ["heart", "pounding", "racing", "palpitation"],
+      "response": "My heart is racing so hard I thought I might pass out.",
+      "emotional_state": "scared"
+    },
+    {
+      "fact_id": "breathing",
+      "trigger_terms": ["breathe", "breath", "short", "air", "suffocat"],
+      "response": "I can't catch my breath. It feels like I'm suffocating.",
+      "emotional_state": "scared"
+    },
+    {
+      "fact_id": "fear-of-dying",
+      "trigger_terms": ["die", "dying", "heart attack", "wrong with me"],
+      "response": "I'm terrified this is a heart attack and I'm going to die.",
+      "emotional_state": "frightened"
+    },
+    {
+      "fact_id": "energy-drinks",
+      "trigger_terms": ["energy drink", "caffeine", "coffee", "drink", "cram"],
+      "response": "I did have three energy drinks this morning... I was cramming for an exam all night.",
+      "emotional_state": "embarrassed",
+      "rapport_required": 1
+    },
+    {
+      "fact_id": "prior-episodes",
+      "trigger_terms": ["before", "ever", "prior", "episode"],
+      "response": "This has happened twice before, and both times it went away on its own.",
+      "emotional_state": "reflective"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "onset-context",
+      "name": "Onset and context",
+      "trigger_terms": ["when", "started", "trigger", "happen", "before"],
+      "rationale": "Explores when the episode began and what was happening at the time.",
+      "max_score": 4,
+      "coaching_hint": "Ask when it started and what was happening just before."
+    },
+    {
+      "metric_id": "cardiac-red-flags",
+      "name": "Cardiac red flags",
+      "trigger_terms": ["heart", "chest pain", "collapse", "passed out", "faint", "exertion"],
+      "rationale": "Rules out dangerous cardiac features of the presentation.",
+      "max_score": 4,
+      "coaching_hint": "Ask about chest pain, fainting, or symptoms on exertion."
+    },
+    {
+      "metric_id": "breathing",
+      "name": "Breathing characterization",
+      "trigger_terms": ["breathe", "breath", "air", "suffocat", "short"],
+      "rationale": "Characterizes the breathing difficulty.",
+      "max_score": 4,
+      "coaching_hint": "Characterize the breathlessness: how does it feel, and does anything help?"
+    },
+    {
+      "metric_id": "reassurance",
+      "name": "Reassurance and safety",
+      "trigger_terms": ["safe", "not a heart attack", "going to be okay", "here with you", "we'll figure", "take your time"],
+      "rationale": "Provides calming, non-dismissive reassurance.",
+      "max_score": 4,
+      "coaching_hint": "Offer calming reassurance without dismissing the symptoms."
+    },
+    {
+      "metric_id": "next-step",
+      "name": "Shared next step",
+      "trigger_terms": ["next", "follow up", "plan", "slow breathing", "deep breath", "we'll", "we can"],
+      "rationale": "Agrees on a concrete next step with the patient.",
+      "max_score": 4,
+      "coaching_hint": "Agree a next step, like slow breathing together or follow-up."
+    }
+  ]
+}

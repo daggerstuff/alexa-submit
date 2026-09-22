@@ -70,7 +70,8 @@ source_config_json() {
     "${NIM_BASE_URL:-https://integrate.api.nvidia.com/v1}" "${NIM_API_KEY:-}" "${NIM_MODEL:-}" \
     "${CLOUDFLARE_BASE_URL:-}" "${CLOUDFLARE_API_KEY:-}" "${CLOUDFLARE_MODEL:-}" \
     "${SESSION_TTL_SECONDS:-1800}" "${SESSION_MAX_SESSIONS:-1000}" \
-    "${SESSION_DB_PATH:-/tmp/sessions.db}" <<'PY'
+    "${SESSION_DB_PATH:-/tmp/sessions.db}" \
+    "${MCP_EXPOSE_AUTHORING_TOOLS:-0}" <<'PY'
 import json
 import sys
 
@@ -78,7 +79,7 @@ import sys
  inference_provider, bedrock_model_id, aws_region,
  nim_base_url, nim_api_key, nim_model,
  cloudflare_base_url, cloudflare_api_key, cloudflare_model,
- session_ttl, session_max, session_db_path) = sys.argv[1:]
+ session_ttl, session_max, session_db_path, authoring_tools) = sys.argv[1:]
 
 config = {
     "ImageRepository": {
@@ -107,6 +108,7 @@ config = {
                 "SESSION_TTL_SECONDS": session_ttl,
                 "SESSION_MAX_SESSIONS": session_max,
                 "SESSION_DB_PATH": session_db_path,
+                "MCP_EXPOSE_AUTHORING_TOOLS": authoring_tools,
             },
         },
     },

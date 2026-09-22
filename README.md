@@ -33,7 +33,7 @@ flowchart LR
     O --> D["SessionStore · memory / SQLite"]
 ```
 
-The MCP server is **text-in/text-out**. Voice is supplied by the Alexa+ agent, which provides automatic speech recognition (ASR) and text-to-speech (TTS) natively; this project does not reimplement a speech stack. The "voice-first" framing refers to the Alexa+ surface, not to embedded TTS/ASR here.
+The MCP server is **text-in, SSML-out**. Voice is supplied by the Alexa+ agent (ASR on the way in, TTS on the way out); this project does not reimplement a speech stack. Instead, every patient response carries an `ssml` field and every evaluation carries a `spoken_summary`, each with emotional prosody (rate, pitch, volume) so Alexa's TTS reads the patient's state — guarded, distressed, relieved — out loud. The "voice-first" framing refers to the Alexa+ surface and this SSML handoff, not to embedded TTS/ASR here.
 
 ## Quick start
 
@@ -57,25 +57,28 @@ For a hosted development demo, put the MCP endpoint behind HTTPS and an authenti
 
 ## MCP tool surface
 
-The MCP server exposes five agent-callable tools:
+The MCP server exposes eight agent-callable tools:
 
-| Tool                        | Purpose                                                             |
-| --------------------------- | ------------------------------------------------------------------- |
-| `list_simulation_scenarios` | Lists scenario IDs, versions, titles, and rubric metric IDs         |
-| `start_simulation`          | Starts a scenario and returns the patient opening response          |
-| `send_practitioner_turn`    | Processes a learner utterance and returns the next patient response |
-| `evaluate_simulation`       | Returns evidence-linked rubric feedback without ending the session  |
-| `end_simulation`            | Returns the final evaluation and locks the session                  |
+| Tool                        | Purpose                                                                           |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `list_simulation_scenarios` | Lists scenario IDs, versions, titles, rubric metric IDs, and source (built-in or custom) |
+| `start_simulation`          | Starts a scenario and returns the patient opening response                        |
+| `send_practitioner_turn`    | Processes a learner utterance and returns the next patient response               |
+| `evaluate_simulation`       | Returns evidence-linked rubric feedback without ending the session                |
+| `end_simulation`            | Returns the final evaluation and locks the session                                |
+| `validate_scenario`         | Validates an educator-authored scenario JSON without creating it (read-only)      |
+| `create_scenario`           | Registers a custom scenario, persisted across restarts (gated)                    |
+| `delete_scenario`           | Removes a custom scenario (gated)                                                 |
 
 These tools are deliberately higher-level than internal REST routes. An Alexa+ agent can orchestrate a complete session without knowing the implementation details of transcript storage or scenario matching. Every session tool also accepts an optional `learner_id`; when supplied, the coach remembers that learner across sessions (see below).
 
-See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; when `MCP_EXPOSE_LEARNER_TOOLS=true` is set, `get_learner_progress` is registered; and when `MCP_EXPOSE_COHORT_TOOLS=true` is set, `list_cohort_progress` is registered. They are off by default because they reveal session/learner identifiers to any API-key holder.
+See `TOOLS.md` for the generated parameter reference. When `MCP_EXPOSE_SESSION_TOOLS=true` is set, two additional gated tools (`list_sessions`, `delete_session`) are registered for agent-side session management; when `MCP_EXPOSE_LEARNER_TOOLS=true` is set, `get_learner_progress` is registered; and when `MCP_EXPOSE_COHORT_TOOLS=true` is set, `list_cohort_progress` is registered. They are off by default because they reveal session/learner identifiers to any API-key holder. `create_scenario` and `delete_scenario` are likewise gated behind `MCP_EXPOSE_AUTHORING_TOOLS=true` because they mutate persistent server state; `validate_scenario` stays always-on because it is read-only.
 
 ## Scenario and evaluator model
 
-`server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules.
+`server/scenarios.py` is the scenario registry. Each `ScenarioDefinition` contains a stable scenario ID, version, opening statement, disclosure rules, safety terms, and rubric metrics. Scenarios are authored as JSON in `server/scenarios_data/`; see `SCENARIOS.md` for the schema and grading rules. Built-in scenarios are read-only; educators can author additional scenarios at runtime through the gated `create_scenario` tool, validated by `server/scenario_authoring.py` and persisted in the scenario store so they survive restarts.
 
-`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts and emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using **Amazon Bedrock's Converse API** or an **OpenAI-compatible provider** (Cloudflare Workers AI), with automatic fallback across whichever providers you configure. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints, is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when no provider is configured, every provider fails, or the output would not read aloud naturally.
+`PatientPersonaAgent` applies disclosure rules to the active scenario and tracks disclosed facts, emotional state, and a per-session rapport score. Rapport moves ±1 each turn (floor −3, ceiling +3): warm, non-judgmental phrasing earns trust, dismissive phrasing costs it, and some facts carry a `rapport_required` gate — the patient withholds them until rapport reaches the threshold, then volunteers them unprompted. Each response reports `rapport`, `withheld_facts`, and an `ssml` read-back with prosody matched to the emotional state. An optional LLM-backed adapter (`LLMPersonaAgent`) can generate more natural patient responses using **Amazon Bedrock's Converse API** or an **OpenAI-compatible provider** (Cloudflare Workers AI), with automatic fallback across whichever providers you configure. The scenario registry — not the model — remains the authority over which facts may be disclosed. The LLM adapter enforces scenario constraints (including the rapport gates), is prompted and validated for spoken delivery (short first-person sentences, no lists or role-break), and falls back to the deterministic agent when no provider is configured, every provider fails, or the output would not read aloud naturally.
 
 `INFERENCE_PROVIDER` is a comma-separated fallback chain, tried in order; the first provider that succeeds wins:
 
@@ -96,7 +99,7 @@ CLOUDFLARE_MODEL=...
 
 The Bedrock path uses the Converse API (`bedrock-runtime`) with an explicit `maxTokens` and adaptive retry; the OpenAI-compatible path posts to `/chat/completions` with the provider's bearer token. Providers left unconfigured are skipped.
 
-`ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, matched terms, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, concrete coaching suggestions, and an educational disclaimer.
+`ClinicalEvaluatorAgent` produces `MetricScore` objects containing a metric ID, score, maximum score, matched terms, transcript evidence, and rationale. The final evaluation includes the rubric version, overall score, strengths, improvements, concrete coaching suggestions, and an educational disclaimer. It also replays the session's rapport arc and reports `rapport_score`, `rapport_low` (trust that fell below zero), any `withheld_facts` the learner never unlocked, and a `spoken_summary` — a score-prefixed SSML read-back the Alexa+ agent can speak directly.
 
 ## Session persistence
 
@@ -136,7 +139,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all twelve scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, rapport tracking and trust-gated disclosures, voice/SSML prosody mapping, scenario authoring validation, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all thirteen scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 
@@ -193,6 +196,7 @@ alexa-clinical-sim/
 ├── README.md
 ├── HACKATHON_STRATEGY.md
 ├── PRODUCT_FEEDBACK.md
+├── FRICTION_LOG.md
 ├── SUBMISSION.md
 ├── DEMO_TRANSCRIPT.md
 ├── ALEXA_PLUS_3_MINUTE_PITCH.md
@@ -220,6 +224,9 @@ alexa-clinical-sim/
 │   ├── observability.py
 │   ├── storage.py
 │   ├── scenarios.py
+│   ├── rapport.py
+│   ├── voice.py
+│   ├── scenario_authoring.py
 │   ├── scenarios_data/
 │   ├── _version.py
 │   ├── agents/
@@ -238,7 +245,12 @@ alexa-clinical-sim/
     ├── test_mcp_security.py
     ├── test_llm_persona.py
     ├── test_llm_persona_bedrock.py
+    ├── test_llm_persona_emotion.py
     ├── test_evaluator.py
+    ├── test_rapport.py
+    ├── test_voice.py
+    ├── test_scenario_authoring.py
+    ├── test_authoring_tools.py
     ├── test_session_lifecycle.py
     ├── test_observability.py
     ├── test_persistence.py

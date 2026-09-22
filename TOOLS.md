@@ -11,6 +11,36 @@ No input parameters.
 
 Output: structured `ScenarioListResult`.
 
+## `validate_scenario`
+
+Validate an educator-authored scenario definition (JSON) without creating it. Returns schema errors (which block creation) and authoring warnings such as unreachable rapport gates or duplicate fact/metric ids.
+
+| Parameter | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `scenario_json` | string (maxLength=100000) | yes | — | A scenario definition as a JSON string. |
+
+Output: structured `ScenarioValidation`.
+
+## `create_scenario`
+
+Validate and register an educator-authored scenario so it can be started in a new session. Persists across restarts and rejects scenario ids that collide with built-ins.
+
+| Parameter | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `scenario_json` | string (maxLength=100000) | yes | — | A scenario definition as a JSON string. |
+
+Output: structured `CreateScenarioResult`.
+
+## `delete_scenario`
+
+Remove a previously created custom scenario. Built-in scenarios cannot be deleted.
+
+| Parameter | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `scenario_id` | string (maxLength=128) | yes | — | The custom scenario id to delete. |
+
+Output: structured `DeleteScenarioResult`.
+
 ## `start_simulation`
 
 Start an educational patient communication simulation session.

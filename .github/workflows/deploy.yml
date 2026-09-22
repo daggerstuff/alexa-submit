@@ -39,6 +39,7 @@ jobs:
         env:
           DEPLOY_TAG: ${{ github.sha }}
           MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
+          MCP_EXPOSE_AUTHORING_TOOLS: "1"
           INFERENCE_PROVIDER: ${{ vars.INFERENCE_PROVIDER || 'mock' }}
           BEDROCK_MODEL_ID: ${{ secrets.BEDROCK_MODEL_ID }}
           NIM_API_KEY: ${{ secrets.NIM_API_KEY }}

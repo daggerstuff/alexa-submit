@@ -141,17 +141,21 @@ terms as `matched_terms`, so every score is self-explanatory.
 
 ## Adding a scenario
 
-1. Copy an existing file to the next numeric prefix (e.g. `13-<id>.json`).
+1. Copy an existing file to the next numeric prefix (e.g. `14-<id>.json`).
 2. Choose a unique `scenario_id`; set `difficulty`, write the `goal` and opening
    line, then the disclosures and metrics.
 3. Keep `safety_terms` aligned with the presentation's red flags and add
    `pitfalls` for the dismissal phrases learners most often fall into.
 4. Re-run `uv run pytest -q` — the loader validates every file at import time, and
-   `test_mcp_protocol.py` asserts the full scenario set.
+   `test_scenario_library.py` asserts the full scenario set (its count plus a
+   sample of scenario ids).
 
 ## Authoring at runtime (educator tools)
 
-Educators can author scenarios without a code deploy through three MCP tools:
+Educators can author scenarios without a code deploy through three MCP tools.
+`validate_scenario` is always registered (it is read-only); `create_scenario`
+and `delete_scenario` mutate persistent server state and are gated behind
+`MCP_EXPOSE_AUTHORING_TOOLS=true`.
 
 - `validate_scenario(scenario_json)` — parse and check a definition **without**
   creating it. Returns `errors` (schema violations, which block creation) and
@@ -160,7 +164,9 @@ Educators can author scenarios without a code deploy through three MCP tools:
   - empty `opening` or `goal`;
   - duplicate `fact_id` or `metric_id`;
   - a disclosure or metric with no `trigger_terms`;
-  - `rapport_required` above the rapport ceiling (3) — unreachable.
+  - `rapport_required` above the rapport ceiling (3) — unreachable;
+  - an `emotional_state` the voice layer doesn't know — it would read with
+    neutral prosody.
 - `create_scenario(scenario_json)` — validate and register the scenario so it can
   be started immediately. Persists across restarts, returns `created` or
   `updated`, and rejects ids that collide with a built-in scenario.

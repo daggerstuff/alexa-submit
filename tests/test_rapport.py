@@ -4,7 +4,7 @@ from server.agents.clinical_evaluator import ClinicalEvaluatorAgent
 from server.agents.patient_persona import PatientPersonaAgent, PatientState
 from server.main import SimulationOrchestrator
 from server.rapport import clamp_rapport, rapport_delta
-from server.scenarios import CHEST_PAIN_BASIC
+from server.scenarios import CHEST_PAIN_BASIC, get_scenario
 from server.schemas.validation import Role, SimulationAction, SimulationRequest, TranscriptTurn
 
 
@@ -112,3 +112,14 @@ def test_evaluator_reports_withheld_only_when_probed() -> None:
     # Asked coldly -> rapport kept it hidden, so it is withheld.
     probed = evaluator.evaluate([_turn("Do you smoke?")], CHEST_PAIN_BASIC)
     assert "smoking-history" in probed.withheld_facts
+
+
+def test_panic_attack_scenario_rapport_gate() -> None:
+    scenario = get_scenario("panic-attack-basic")
+    agent = PatientPersonaAgent()
+    state = PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version)
+    cold = agent.respond(state, scenario, "Have you had any energy drinks?")
+    assert "energy-drinks" in cold.withheld_facts
+    assert cold.emotional_state == "guarded"
+    warm = agent.respond(state, scenario, "I'm sorry, that sounds terrifying. Take your time.")
+    assert "energy-drinks" in warm.disclosed_facts

@@ -76,7 +76,7 @@ The official judging criteria are equally weighted across tech implementation, d
 
 **Design** is addressed by keeping the tool surface small and meaningful. The learner should not need to understand internal session mechanics. The agent should guide the conversation, keep spoken responses concise, and reserve detailed evaluation for the end of the simulation.
 
-**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a twelve-scenario library across `basic`/`intermediate`/`advanced` difficulty, cross-session learner progress (per-metric mastery, improvement detection, and a recommended next focus), and a gated cohort view for faculty, and can grow to educator-authored rubrics and accessibility-oriented voice practice without changing the core MCP contract.
+**Potential impact** is addressed by focusing on clinical learners, simulation programs, faculty coaches, and communication-skills educators. The product already ships a thirteen-scenario library across `basic`/`intermediate`/`advanced` difficulty, educator-authored scenarios, a rapport model with voice-first SSML delivery, cross-session learner progress (per-metric mastery, improvement detection, and a recommended next focus), and a gated cohort view for faculty, and can grow to educator-authored rubrics and deeper accessibility-oriented voice practice without changing the core MCP contract.
 
 **Quality of idea** is addressed by combining a stateful cross-turn interaction, scenario-constrained patient behavior, evidence-linked evaluation, safe educational boundaries, and cross-session learner memory with adaptive coaching. This goes beyond a single-turn health-information bot or a basic MCP wrapper.
 
@@ -122,7 +122,7 @@ Before submitting, complete the following items:
 
 This repository existed before the hackathon window as a local FastAPI clinical-simulation prototype: a mock `/alexa` passthrough and a deterministic patient Q&A, with no MCP surface and no deployment. The meaningful update made during the hackathon window is the Alexa+ integration itself, built from that prototype:
 
-- A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing five tools.
+- A self-hosted MCP server (`server/mcp_server.py`) implementing MCP `2025-11-25` over Streamable HTTP, exposing six core tools plus gated authoring and analytics tools.
 - A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation — graded with partial credit and per-metric matched-term evidence.
 - A coaching loop: every evaluation returns concrete next-step questions for metrics not yet demonstrated.
 - Cross-session learner progress: an optional `learner_id` persists per-metric mastery, per-session improvement, and a recommended next focus across sessions, surfaced in the `end_simulation` response and via a gated `get_learner_progress` tool.
@@ -143,7 +143,7 @@ This submission also claims the Open Source mini-challenge through the "create a
 - **Contribution URL:** https://github.com/daggerstuff/alexa-submit
 - **Project repository URL:** https://github.com/daggerstuff/alexa-submit
 - **GitHub username:** daggerstuff
-- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as five agent-callable tools, with a versioned evidence-linked evaluator that returns coaching suggestions and a spoken takeaway, twelve authorable scenarios across difficulty levels, cross-session learner progress with a gated cohort view, an optional LLM patient persona (Amazon Bedrock Converse or Cloudflare Workers AI, tried as a fallback chain) with deterministic fallback, bearer/API-key auth plus per-IP rate limiting, and optional SQLite session persistence.
+- **What was done:** Built a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP) that exposes a clinical-communication simulation as six core agent-callable tools (plus gated authoring and analytics tools), with a versioned evidence-linked evaluator that returns coaching suggestions and a spoken takeaway, thirteen authorable scenarios across difficulty levels, a rapport model with voice-first SSML delivery, cross-session learner progress with a gated cohort view, an optional LLM patient persona (Amazon Bedrock Converse or Cloudflare Workers AI, tried as a fallback chain) with deterministic fallback, bearer/API-key auth plus per-IP rate limiting, and optional SQLite session persistence.
 - **How it works:** `list_simulation_scenarios`, `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, and `end_simulation` run over `/mcp`; each session holds scenario state and a transcript; patient turns are scenario-constrained; evaluation returns rubric scores with transcript evidence.
 - **Why it matters:** It gives clinical learners a repeatable, safe, evidence-linked surface for practicing patient interviews, and it demonstrates a stateful multi-tool Alexa+ workflow rather than a single-turn Q&A bot.
 

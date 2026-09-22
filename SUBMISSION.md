@@ -43,19 +43,20 @@ Streamable HTTP.
 > first.
 >
 > **What it is:** a self-hosted MCP server (MCP `2025-11-25`, Streamable HTTP)
-> exposing five agent-callable tools — `list_simulation_scenarios`,
-> `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`, and
-> `end_simulation`. Alexa+ supplies the voice (ASR/TTS) and the conversation
-> loop; the MCP server supplies the patient, the scenario rules, and the
-> scoring.
+> exposing six core agent-callable tools — `list_simulation_scenarios`,
+> `start_simulation`, `send_practitioner_turn`, `evaluate_simulation`,
+> `end_simulation`, and `validate_scenario` — plus gated authoring tools
+> (`create_scenario`, `delete_scenario`). Alexa+ supplies the voice (ASR/TTS)
+> and the conversation loop; the MCP server supplies the patient, the scenario
+> rules, and the scoring.
 >
 > **How it works:**
-> - **Twelve authorable scenarios** spanning basic→advanced difficulty (chest
+> - **Thirteen authorable scenarios** spanning basic→advanced difficulty (chest
 >   pain, abdominal pain, depression screening, migraine, back pain, syncope, a
 >   diabetic chest-pain case, suicide-risk screening, pediatric fever, stroke
->   FAST, medication reconciliation, and alcohol screening), each with a
->   clinical goal, a patient persona, disclosure rules, safety terms, and a
->   scoring rubric.
+>   FAST, medication reconciliation, alcohol screening, and panic attack), each
+>   with a clinical goal, a patient persona, disclosure rules, safety terms, and
+>   a scoring rubric.
 > - **Stateful sessions** hold scenario state and a transcript across turns; the
 >   patient only discloses facts whose trigger terms appear in the learner's
 >   question.
@@ -132,7 +133,8 @@ Regenerate them from `demo-v2.mp4` with
 > made during the submission period is the Alexa+ integration itself:
 >
 > - A self-hosted MCP server (`server/mcp_server.py`) implementing MCP
->   `2025-11-25` over Streamable HTTP, exposing five tools.
+>   `2025-11-25` over Streamable HTTP, exposing six core tools plus gated
+>   authoring and analytics tools.
 > - A stateful, scenario-constrained simulation engine with versioned,
 >   evidence-linked rubric evaluation (partial credit + matched-term evidence).
 > - A coaching loop that returns concrete next-step questions for metrics not yet
@@ -152,7 +154,7 @@ Regenerate them from `demo-v2.mp4` with
 > - Bearer/API-key auth and proxy-safe per-IP rate limiting.
 > - Session lifecycle controls, a bounded cache with LRU eviction, and optional
 >   SQLite persistence.
-> - Twelve authorable scenarios across basic/intermediate/advanced difficulty.
+> - Thirteen authorable scenarios across basic/intermediate/advanced difficulty.
 > - Observability (`/health`, `/ready`, `/metrics`), CI, and an automated deploy
 >   pipeline (GitHub Actions → ECR → App Runner).
 
@@ -168,11 +170,12 @@ were added during the window.)
 - **Project repository URL:** https://github.com/daggerstuff/alexa-submit
 - **GitHub username:** daggerstuff
 - **What was done:** built a self-hosted MCP server (MCP `2025-11-25`,
-  Streamable HTTP) exposing a clinical-communication simulation as five
-  agent-callable tools, with a versioned evidence-linked evaluator, twelve
-  authorable scenarios, cross-session learner progress, an optional LLM patient
-  persona, and security + persistence.
-- **How it works:** the five tools run over `/mcp`; each session holds scenario
+  Streamable HTTP) exposing a clinical-communication simulation as six core
+  agent-callable tools (plus gated authoring and analytics tools), with a
+  versioned evidence-linked evaluator, thirteen authorable scenarios,
+  cross-session learner progress, an optional LLM patient persona, and security
+  + persistence.
+- **How it works:** the core tools run over `/mcp`; each session holds scenario
   state and a transcript; the patient is scenario-constrained; evaluation
   returns rubric scores with transcript evidence.
 - **Why it matters:** repeatable, safe, evidence-linked interview practice for

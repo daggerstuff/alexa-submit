@@ -123,30 +123,35 @@ def validate_scenario(
     return validate_scenario_definition(scenario_json)
 
 
-@mcp.tool(
-    description=(
-        "Validate and register an educator-authored scenario so it can be started in a new "
-        "session. Persists across restarts and rejects scenario ids that collide with built-ins."
-    ),
-    structured_output=True,
-)
-def create_scenario(
-    scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.", max_length=100_000)],
-) -> CreateScenarioResult:
-    try:
-        return orchestrator.create_scenario(scenario_json)
-    except ValueError as exc:
-        raise ToolError(str(exc)) from exc
+# Mutating authoring tools are opt-in: they alter persistent server state, so
+# they follow the same gating pattern as the session/learner/cohort tools and
+# are only registered when explicitly enabled. `validate_scenario` above stays
+# always-on because it is read-only.
+if os.getenv("MCP_EXPOSE_AUTHORING_TOOLS", "").lower() in ("1", "true", "yes"):
 
+    @mcp.tool(
+        description=(
+            "Validate and register an educator-authored scenario so it can be started in a new "
+            "session. Persists across restarts and rejects scenario ids that collide with built-ins."
+        ),
+        structured_output=True,
+    )
+    def create_scenario(
+        scenario_json: Annotated[str, Field(description="A scenario definition as a JSON string.", max_length=100_000)],
+    ) -> CreateScenarioResult:
+        try:
+            return orchestrator.create_scenario(scenario_json)
+        except ValueError as exc:
+            raise ToolError(str(exc)) from exc
 
-@mcp.tool(
-    description="Remove a previously created custom scenario. Built-in scenarios cannot be deleted.",
-    structured_output=True,
-)
-def delete_scenario(
-    scenario_id: Annotated[str, Field(description="The custom scenario id to delete.", max_length=128)],
-) -> DeleteScenarioResult:
-    return orchestrator.delete_scenario(scenario_id)
+    @mcp.tool(
+        description="Remove a previously created custom scenario. Built-in scenarios cannot be deleted.",
+        structured_output=True,
+    )
+    def delete_scenario(
+        scenario_id: Annotated[str, Field(description="The custom scenario id to delete.", max_length=128)],
+    ) -> DeleteScenarioResult:
+        return orchestrator.delete_scenario(scenario_id)
 
 
 @mcp.tool(
@@ -155,8 +160,13 @@ def delete_scenario(
 )
 def start_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
-    scenario_id: Annotated[str, Field(description="Scenario id to start; defaults to chest-pain-basic.", max_length=128)] = "chest-pain-basic",
-    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
+    scenario_id: Annotated[
+        str, Field(description="Scenario id to start; defaults to chest-pain-basic.", max_length=128)
+    ] = "chest-pain-basic",
+    learner_id: Annotated[
+        str | None,
+        Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128),
+    ] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
@@ -175,9 +185,16 @@ def start_simulation(
 def send_practitioner_turn(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
     practitioner_message: Annotated[str, Field(description="The learner's next utterance.", max_length=4000)],
-    client_event_id: Annotated[str | None, Field(description="Idempotency key; a retried key is not reprocessed.", max_length=128)] = None,
-    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
-    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
+    client_event_id: Annotated[
+        str | None, Field(description="Idempotency key; a retried key is not reprocessed.", max_length=128)
+    ] = None,
+    scenario_id: Annotated[
+        str | None, Field(description="Must match the session's scenario when provided.", max_length=128)
+    ] = None,
+    learner_id: Annotated[
+        str | None,
+        Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128),
+    ] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
@@ -197,8 +214,13 @@ def send_practitioner_turn(
 )
 def evaluate_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
-    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
-    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
+    scenario_id: Annotated[
+        str | None, Field(description="Must match the session's scenario when provided.", max_length=128)
+    ] = None,
+    learner_id: Annotated[
+        str | None,
+        Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128),
+    ] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
@@ -216,8 +238,13 @@ def evaluate_simulation(
 )
 def end_simulation(
     session_id: Annotated[str, Field(description="Stable application session identifier.", max_length=128)],
-    scenario_id: Annotated[str | None, Field(description="Must match the session's scenario when provided.", max_length=128)] = None,
-    learner_id: Annotated[str | None, Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128)] = None,
+    scenario_id: Annotated[
+        str | None, Field(description="Must match the session's scenario when provided.", max_length=128)
+    ] = None,
+    learner_id: Annotated[
+        str | None,
+        Field(description="Optional stable learner identifier for cross-session progress tracking.", max_length=128),
+    ] = None,
 ) -> SimulationResponse:
     return _handle(
         SimulationRequest(
