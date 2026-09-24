@@ -33,7 +33,7 @@ This document satisfies the product-feedback and friction-log submission require
 
 ### MCP Python SDK
 
-- The `MCPServer` class and `@mcp.tool()` decorator make tool registration concise and readable. Defining five tools with typed parameters and structured output took under 100 lines of code.
+- The `MCPServer` class and `@mcp.tool()` decorator make tool registration concise and readable — each of the eight tools is a short decorated function with typed parameters and structured output.
 - The `streamable_http_app()` factory is testable with Starlette's `TestClient`, which let us write integration tests that exercise the full MCP protocol (initialize → initialized → tools/list → tools/call) without starting a separate process.
 - `TransportSecuritySettings` with DNS rebinding protection, allowed hosts, and allowed origins is a sensible default for local development.
 - The SDK correctly handles session negotiation via `MCP-Session-Id` headers. The test confirms that the server returns a session ID on `initialize` and accepts it on subsequent requests.

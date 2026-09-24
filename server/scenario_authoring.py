@@ -66,6 +66,11 @@ def _warnings(scenario: ScenarioDefinition) -> list[str]:
         warnings.append("opening is empty; the patient will not greet the learner.")
     if not scenario.goal.strip():
         warnings.append("goal is empty; the learner will not be told their objective.")
+    if scenario.opening_emotional_state.strip().lower() not in EMOTION_PROSODY:
+        warnings.append(
+            f"opening_emotional_state '{scenario.opening_emotional_state}' is unknown to the voice "
+            f"layer; it will read with neutral prosody."
+        )
 
     for duplicate in _duplicates([rule.fact_id for rule in scenario.disclosures]):
         warnings.append(f"duplicate fact_id '{duplicate}' across disclosures; only one will ever fire.")

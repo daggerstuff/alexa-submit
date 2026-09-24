@@ -123,3 +123,18 @@ def test_panic_attack_scenario_rapport_gate() -> None:
     assert cold.emotional_state == "guarded"
     warm = agent.respond(state, scenario, "I'm sorry, that sounds terrifying. Take your time.")
     assert "energy-drinks" in warm.disclosed_facts
+
+
+def test_teen_vaping_scenario_rapport_gate() -> None:
+    scenario = get_scenario("teen-vaping-basic")
+    agent = PatientPersonaAgent()
+    state = PatientState(scenario_id=scenario.scenario_id, scenario_version=scenario.version)
+    cold = agent.respond(state, scenario, "Have you been vaping?")
+    assert "vaping" in cold.withheld_facts
+    assert cold.emotional_state == "guarded"
+    warm = agent.respond(
+        state,
+        scenario,
+        "I'm sorry this is awkward. This stays between us, and I'm not here to judge. Take your time.",
+    )
+    assert "vaping" in warm.disclosed_facts

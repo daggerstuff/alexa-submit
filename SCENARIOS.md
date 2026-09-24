@@ -141,7 +141,7 @@ terms as `matched_terms`, so every score is self-explanatory.
 
 ## Adding a scenario
 
-1. Copy an existing file to the next numeric prefix (e.g. `14-<id>.json`).
+1. Copy an existing file to the next numeric prefix (e.g. `15-<id>.json`).
 2. Choose a unique `scenario_id`; set `difficulty`, write the `goal` and opening
    line, then the disclosures and metrics.
 3. Keep `safety_terms` aligned with the presentation's red flags and add

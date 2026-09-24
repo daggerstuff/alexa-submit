@@ -10,7 +10,7 @@ def setup_function() -> None:
 
 
 def test_library_covers_all_difficulties() -> None:
-    assert len(SCENARIOS) == 13
+    assert len(SCENARIOS) == 14
     difficulties = {scenario.difficulty for scenario in SCENARIOS.values()}
     assert difficulties == {"basic", "intermediate", "advanced"}
     for scenario_id in (

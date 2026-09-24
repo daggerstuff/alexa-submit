@@ -70,6 +70,7 @@ class ScenarioDefinition(BaseModel):
     version: str
     title: str
     opening: str
+    opening_emotional_state: str = "anxious"
     goal: str = ""
     difficulty: Literal["basic", "intermediate", "advanced"] = "basic"
     pitfalls: tuple[str, ...] = ()

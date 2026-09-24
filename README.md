@@ -127,7 +127,7 @@ A gated `list_cohort_progress` tool (`MCP_EXPOSE_COHORT_TOOLS=true`) aggregates 
 
 ## Security boundaries
 
-The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy.
+The MCP transport runs on `127.0.0.1` by default, following the Streamable HTTP guidance to bind local servers to localhost. The MCP endpoint supports an optional `MCP_API_KEY` (accepted as `Authorization: Bearer <key>` or `X-API-Key: <key>`) and per-client rate limiting via `MCP_RATE_LIMIT_REQUESTS` and `MCP_RATE_LIMIT_WINDOW_SECONDS` (both default to disabled locally). For a public demo, set `MCP_API_KEY`, enable rate limiting, add HTTPS and strict origin validation, and put the endpoint behind an authenticated reverse proxy. The in-memory rate limiter and session cache assume a single App Runner instance; if you scale past one worker, move both to a shared store.
 
 Session IDs cannot switch scenarios, ended sessions reject further messages, and client event IDs prevent duplicate processing after retries.
 
@@ -139,7 +139,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, rapport tracking and trust-gated disclosures, voice/SSML prosody mapping, scenario authoring validation, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all thirteen scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, rapport tracking and trust-gated disclosures, voice/SSML prosody mapping, scenario authoring validation, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all fourteen scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 

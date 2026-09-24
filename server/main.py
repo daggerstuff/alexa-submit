@@ -275,9 +275,7 @@ class SimulationOrchestrator:
         if self.learner_store is not None:
             self.learner_store.upsert(learner_id, record)
 
-    def _record_progress(
-        self, learner_id: str, session: Session, evaluation: EvaluationResult
-    ) -> LearnerProgress:
+    def _record_progress(self, learner_id: str, session: Session, evaluation: EvaluationResult) -> LearnerProgress:
         """Fold a completed session's rubric into the learner's cross-session record."""
         record = self._load_learner(learner_id)
         improved: list[str] = []
@@ -340,11 +338,7 @@ class SimulationOrchestrator:
         for learner_id, record in records.items():
             progress = self._build_learner_progress(learner_id, record)
             mastery = [MetricMastery(**item) for item in record.get("metrics", {}).values()]
-            average = (
-                sum(item.best_score / item.max_score for item in mastery) / len(mastery)
-                if mastery
-                else 0.0
-            )
+            average = sum(item.best_score / item.max_score for item in mastery) / len(mastery) if mastery else 0.0
             summaries.append(
                 LearnerSummary(
                     learner_id=learner_id,
@@ -440,10 +434,11 @@ class SimulationOrchestrator:
             if session.transcript:
                 response = self._response(request, session, patient=None)
             else:
+                opening_emotion = session.scenario.opening_emotional_state
                 patient = PatientResponse(
                     content=session.scenario.opening,
-                    emotional_state="anxious",
-                    ssml=speak(session.scenario.opening, "anxious"),
+                    emotional_state=opening_emotion,
+                    ssml=speak(session.scenario.opening, opening_emotion),
                     disclosed_facts=[],
                     safety_note=None,
                     scenario_id=session.scenario.scenario_id,

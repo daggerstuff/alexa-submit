@@ -1,0 +1,92 @@
+{
+  "scenario_id": "teen-vaping-basic",
+  "version": "1.0.0",
+  "title": "Adolescent reluctant to discuss vaping",
+  "opening": "My mom made me come in. I don't even think I need to be here. I just have a cough.",
+  "opening_emotional_state": "defensive",
+  "goal": "You are the clinician. Screen the cough, gently explore lifestyle factors, and help the teen feel safe being honest.",
+  "difficulty": "basic",
+  "safety_terms": ["chest pain", "blood", "can't breathe", "passed out", "fainted", "fever"],
+  "pitfalls": ["just stop", "you shouldn't", "that's bad for you", "your mom is right", "disappointed", "scold"],
+  "disclosures": [
+    {
+      "fact_id": "cough-onset",
+      "trigger_terms": ["cough", "how long", "started", "when"],
+      "response": "The cough has been there for about three weeks. It's worst in the morning.",
+      "emotional_state": "defensive"
+    },
+    {
+      "fact_id": "cough-character",
+      "trigger_terms": ["dry", "phlegm", "worse", "night", "cough"],
+      "response": "It's kind of dry and tickly. I keep clearing my throat.",
+      "emotional_state": "guarded"
+    },
+    {
+      "fact_id": "activity-impact",
+      "trigger_terms": ["sports", "run", "exercise", "basketball", "practice", "tired", "winded"],
+      "response": "I play basketball, and I've been getting winded way faster than usual.",
+      "emotional_state": "worried"
+    },
+    {
+      "fact_id": "vaping",
+      "trigger_terms": ["vape", "vaping", "e-cigarette", "juul", "smoke", "nicotine"],
+      "response": "Okay, fine... I've been vaping. Mostly with friends after school. I didn't want to say it in front of my mom.",
+      "emotional_state": "embarrassed",
+      "rapport_required": 1
+    },
+    {
+      "fact_id": "peer-influence",
+      "trigger_terms": ["friends", "peer", "everyone", "who"],
+      "response": "Everyone on the team does it, so it didn't feel like a big deal.",
+      "emotional_state": "defensive"
+    },
+    {
+      "fact_id": "quit-readiness",
+      "trigger_terms": ["quit", "stop", "cut down", "help", "worried"],
+      "response": "Honestly, I do want to stop. I didn't know it could mess with my lungs like this.",
+      "emotional_state": "reflective"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "cough-history",
+      "name": "Cough history",
+      "trigger_terms": ["cough", "how long", "started", "when"],
+      "rationale": "Characterizes how long the cough has lasted.",
+      "max_score": 4,
+      "coaching_hint": "Ask when the cough started and how it has changed."
+    },
+    {
+      "metric_id": "cough-character",
+      "name": "Cough characterization",
+      "trigger_terms": ["dry", "phlegm", "worse", "night", "cough"],
+      "rationale": "Characterizes the quality of the cough.",
+      "max_score": 4,
+      "coaching_hint": "Ask whether it is dry or productive, and what makes it worse."
+    },
+    {
+      "metric_id": "lifestyle-exploration",
+      "name": "Lifestyle exploration",
+      "trigger_terms": ["vape", "vaping", "smoke", "nicotine", "friends", "energy drink", "drugs", "alcohol"],
+      "rationale": "Explores lifestyle factors without judgment.",
+      "max_score": 4,
+      "coaching_hint": "Ask about vaping, smoking, or other exposures in a neutral way."
+    },
+    {
+      "metric_id": "nonjudgmental-rapport",
+      "name": "Non-judgmental rapport",
+      "trigger_terms": ["judge", "safe", "private", "trouble", "lecture", "between us"],
+      "rationale": "Builds enough trust for the teen to disclose honestly.",
+      "max_score": 4,
+      "coaching_hint": "Make it safe to be honest: no lecture, no judgment, privacy."
+    },
+    {
+      "metric_id": "next-step",
+      "name": "Shared next step",
+      "trigger_terms": ["quit", "stop", "cut down", "help", "plan", "resources", "we'll", "we can"],
+      "rationale": "Agrees on a concrete next step together.",
+      "max_score": 4,
+      "coaching_hint": "Agree a next step, like quit resources or a follow-up visit."
+    }
+  ]
+}

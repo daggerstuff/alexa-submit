@@ -51,10 +51,11 @@ Streamable HTTP.
 > rules, and the scoring.
 >
 > **How it works:**
-> - **Thirteen authorable scenarios** spanning basic→advanced difficulty (chest
+> - **Fourteen authorable scenarios** spanning basic→advanced difficulty (chest
 >   pain, abdominal pain, depression screening, migraine, back pain, syncope, a
 >   diabetic chest-pain case, suicide-risk screening, pediatric fever, stroke
->   FAST, medication reconciliation, alcohol screening, and panic attack), each
+>   FAST, medication reconciliation, alcohol screening, panic attack, and
+>   adolescent vaping), each
 >   with a clinical goal, a patient persona, disclosure rules, safety terms, and
 >   a scoring rubric.
 > - **Stateful sessions** hold scenario state and a transcript across turns; the
@@ -154,7 +155,7 @@ Regenerate them from `demo-v2.mp4` with
 > - Bearer/API-key auth and proxy-safe per-IP rate limiting.
 > - Session lifecycle controls, a bounded cache with LRU eviction, and optional
 >   SQLite persistence.
-> - Thirteen authorable scenarios across basic/intermediate/advanced difficulty.
+> - Fourteen authorable scenarios across basic/intermediate/advanced difficulty.
 > - Observability (`/health`, `/ready`, `/metrics`), CI, and an automated deploy
 >   pipeline (GitHub Actions → ECR → App Runner).
 
@@ -172,7 +173,7 @@ were added during the window.)
 - **What was done:** built a self-hosted MCP server (MCP `2025-11-25`,
   Streamable HTTP) exposing a clinical-communication simulation as six core
   agent-callable tools (plus gated authoring and analytics tools), with a
-  versioned evidence-linked evaluator, thirteen authorable scenarios,
+  versioned evidence-linked evaluator, fourteen authorable scenarios,
   cross-session learner progress, an optional LLM patient persona, and security
   + persistence.
 - **How it works:** the core tools run over `/mcp`; each session holds scenario
