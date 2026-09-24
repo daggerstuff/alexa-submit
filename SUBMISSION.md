@@ -221,7 +221,7 @@ All three submission artifacts live in
 ```bash
 ./scripts/initialize.sh
 ./scripts/start_mcp_server.sh        # http://127.0.0.1:8001/mcp
-.venv/bin/pytest                     # 74 tests, incl. full MCP-protocol flow + learner progress
+.venv/bin/pytest                     # 137 tests, incl. full MCP-protocol flow + learner progress
 ```
 
 **Live (auth-protected):**

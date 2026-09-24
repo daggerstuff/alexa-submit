@@ -201,7 +201,6 @@ alexa-clinical-sim/
 ├── DEMO_TRANSCRIPT.md
 ├── ALEXA_PLUS_3_MINUTE_PITCH.md
 ├── ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md
-├── UPGRADE_PLAN.md
 ├── SCENARIOS.md
 ├── TOOLS.md
 ├── apprunner.yaml
@@ -240,19 +239,27 @@ alexa-clinical-sim/
 │   ├── deploy_aws.sh
 │   └── gen_tool_reference.py
 └── tests/
-    ├── test_simulation.py
-    ├── test_mcp_protocol.py
-    ├── test_mcp_security.py
+    ├── test_authoring_tools.py
+    ├── test_cohort_reporting.py
+    ├── test_concurrency.py
+    ├── test_error_handling.py
+    ├── test_evaluator.py
+    ├── test_learner_progress.py
     ├── test_llm_persona.py
     ├── test_llm_persona_bedrock.py
     ├── test_llm_persona_emotion.py
-    ├── test_evaluator.py
-    ├── test_rapport.py
-    ├── test_voice.py
-    ├── test_scenario_authoring.py
-    ├── test_authoring_tools.py
-    ├── test_session_lifecycle.py
+    ├── test_llm_persona_providers.py
+    ├── test_llm_persona_voice.py
+    ├── test_mcp_protocol.py
+    ├── test_mcp_security.py
     ├── test_observability.py
     ├── test_persistence.py
-    └── test_session_tools.py
+    ├── test_rapport.py
+    ├── test_scenario_authoring.py
+    ├── test_scenario_library.py
+    ├── test_session_lifecycle.py
+    ├── test_session_tools.py
+    ├── test_simulation.py
+    ├── test_trigger_matching.py
+    └── test_voice.py
 ```
