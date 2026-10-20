@@ -42,6 +42,10 @@ jobs:
           MCP_EXPOSE_AUTHORING_TOOLS: "1"
           INFERENCE_PROVIDER: ${{ vars.INFERENCE_PROVIDER || 'mock' }}
           BEDROCK_MODEL_ID: ${{ secrets.BEDROCK_MODEL_ID }}
+          # Bedrock Guardrails on the persona's primary path (see FRICTION_LOG.md
+          # entry 4 and PRODUCT_FEEDBACK.md). Version is pinned, never DRAFT.
+          BEDROCK_GUARDRAIL_ID: ${{ secrets.BEDROCK_GUARDRAIL_ID }}
+          BEDROCK_GUARDRAIL_VERSION: ${{ vars.BEDROCK_GUARDRAIL_VERSION || '1' }}
           NIM_API_KEY: ${{ secrets.NIM_API_KEY }}
           NIM_MODEL: ${{ secrets.NIM_MODEL }}
           CLOUDFLARE_BASE_URL: ${{ secrets.CLOUDFLARE_BASE_URL }}

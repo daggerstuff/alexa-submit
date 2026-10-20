@@ -42,13 +42,28 @@ class LLMPersonaAgent:
     INFERENCE_PROVIDER (comma-separated); the first that succeeds wins. Falls
     back to the deterministic PatientPersonaAgent when no provider is
     configured or every provider fails. The scenario registry — not the model —
-    remains the authority over which facts may be disclosed.
+    remains the authority over which facts may be disclosed. When
+    BEDROCK_GUARDRAIL_ID is set, every Bedrock turn is assessed by that
+    guardrail, and a blocked turn degrades to the deterministic persona rather
+    than surfacing partial content.
     """
 
     def __init__(self) -> None:
         chain = [p.strip().lower() for p in os.getenv("INFERENCE_PROVIDER", "mock").split(",") if p.strip()]
         self.bedrock_model = os.getenv("BEDROCK_MODEL_ID", "")
         self.aws_region = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
+        # Bedrock Guardrails applied to every Converse turn when configured.
+        # A numbered version is pinned (never DRAFT, which can change silently);
+        # trace stays disabled in production because enabled trace echoes the
+        # content that tripped a filter back in the API response.
+        self.bedrock_guardrail_id = os.getenv("BEDROCK_GUARDRAIL_ID", "")
+        self.bedrock_guardrail_version = os.getenv("BEDROCK_GUARDRAIL_VERSION", "1")
+        self.bedrock_guardrail_trace = os.getenv("BEDROCK_GUARDRAIL_TRACE", "").lower() in ("1", "true", "yes")
+        if self.bedrock_guardrail_trace:
+            logger.warning(
+                "BEDROCK_GUARDRAIL_TRACE is enabled; guardrail trace output includes the content "
+                "that triggered a filter. Use only for debugging, never in production."
+            )
         self.fallback = PatientPersonaAgent()
         try:
             self.timeout = float(os.getenv("INFERENCE_TIMEOUT", "15"))
@@ -249,16 +264,26 @@ class LLMPersonaAgent:
 
         Converse has no `system` role in `messages`; system prompts are passed
         in the dedicated `system` list instead. `maxTokens` is set explicitly
-        (unset values reserve the model's full quota and can throttle).
+        (unset values reserve the model's full quota and can throttle). When a
+        guardrail is configured it is applied blanket-style via `guardrailConfig`,
+        so both the practitioner utterance and the persona's reply are assessed
+        on every turn.
         """
         system_texts = [m["content"] for m in messages if m.get("role") == "system"]
         user_texts = [m["content"] for m in messages if m.get("role") != "system"]
-        return {
+        request: dict[str, Any] = {
             "modelId": self.bedrock_model,
             "messages": [{"role": "user", "content": [{"text": text}]} for text in user_texts],
             "system": [{"text": text} for text in system_texts],
             "inferenceConfig": {"maxTokens": 300, "temperature": 0.7},
         }
+        if self.bedrock_guardrail_id:
+            request["guardrailConfig"] = {
+                "guardrailIdentifier": self.bedrock_guardrail_id,
+                "guardrailVersion": self.bedrock_guardrail_version,
+                "trace": "enabled" if self.bedrock_guardrail_trace else "disabled",
+            }
+        return request
 
     def _bedrock_client(self) -> Any:
         """Lazily build a bedrock-runtime client (boto3 is an optional dependency)."""
@@ -274,7 +299,18 @@ class LLMPersonaAgent:
     def _complete_bedrock(self, messages: list[dict[str, str]]) -> str:
         client = self._bedrock_client()
         response = client.converse(**self._build_bedrock_request(messages))
-        return response["output"]["message"]["content"][0]["text"]
+        stop_reason = response.get("stopReason", "")
+        if stop_reason == "guardrail_intervened":
+            # The guardrail blocked the turn: no content is returned and the
+            # response must never be surfaced. Count it, then let the provider
+            # chain degrade to the deterministic persona.
+            registry.incr("bedrock_guardrail_interventions_total")
+            raise RuntimeError("Bedrock Guardrail intervened; no persona content was produced")
+        content = response["output"]["message"]["content"]
+        if not content:
+            registry.incr("bedrock_guardrail_interventions_total")
+            raise RuntimeError("Bedrock returned no content blocks (guardrail or content filter)")
+        return content[0]["text"]
 
     def _build_system_prompt(self, state: PatientState, scenario: ScenarioDefinition) -> str:
         disclosure_lines = []
