@@ -63,10 +63,14 @@ $DOCKER push "$ECR_URI/$REPO_NAME:$IMAGE_TAG"
 # the process command line. Keep this env list in sync with apprunner.yaml.
 source_config_json() {
   local allowed_hosts="$1"
-  python3 - "$ECR_URI/$REPO_NAME:$IMAGE_TAG" "$ACCESS_ROLE_ARN" "$allowed_hosts" \
-    "${MCP_ALLOWED_ORIGINS:-http://127.0.0.1:*,http://localhost:*}" \
+  # Browsers send an Origin header on same-origin POST fetches, so the served
+  # simulator page (/simulator) can only call /mcp when the App Runner origin is
+  # in the allowlist — not just localhost.
+  local allowed_origins="${2:-${MCP_ALLOWED_ORIGINS:-http://127.0.0.1:*,http://localhost:*}}"
+  python3 - "$ECR_URI/$REPO_NAME:$IMAGE_TAG" "$ACCESS_ROLE_ARN" "$allowed_hosts" "$allowed_origins" \
     "${MCP_API_KEY:-}" "${MCP_RATE_LIMIT_REQUESTS:-60}" "${MCP_RATE_LIMIT_WINDOW_SECONDS:-60}" \
     "${INFERENCE_PROVIDER:-mock}" "${BEDROCK_MODEL_ID:-}" "${AWS_REGION:-us-east-1}" \
+    "${BEDROCK_GUARDRAIL_ID:-}" "${BEDROCK_GUARDRAIL_VERSION:-1}" "${BEDROCK_GUARDRAIL_TRACE:-0}" \
     "${NIM_BASE_URL:-https://integrate.api.nvidia.com/v1}" "${NIM_API_KEY:-}" "${NIM_MODEL:-}" \
     "${CLOUDFLARE_BASE_URL:-}" "${CLOUDFLARE_API_KEY:-}" "${CLOUDFLARE_MODEL:-}" \
     "${SESSION_TTL_SECONDS:-1800}" "${SESSION_MAX_SESSIONS:-1000}" \
@@ -77,6 +81,7 @@ import sys
 
 (image, role_arn, allowed_hosts, allowed_origins, api_key, rate_limit, rate_window,
  inference_provider, bedrock_model_id, aws_region,
+ bedrock_guardrail_id, bedrock_guardrail_version, bedrock_guardrail_trace,
  nim_base_url, nim_api_key, nim_model,
  cloudflare_base_url, cloudflare_api_key, cloudflare_model,
  session_ttl, session_max, session_db_path, authoring_tools) = sys.argv[1:]
@@ -99,6 +104,9 @@ config = {
                 "INFERENCE_PROVIDER": inference_provider,
                 "BEDROCK_MODEL_ID": bedrock_model_id,
                 "AWS_REGION": aws_region,
+                "BEDROCK_GUARDRAIL_ID": bedrock_guardrail_id,
+                "BEDROCK_GUARDRAIL_VERSION": bedrock_guardrail_version,
+                "BEDROCK_GUARDRAIL_TRACE": bedrock_guardrail_trace,
                 "NIM_BASE_URL": nim_base_url,
                 "NIM_API_KEY": nim_api_key,
                 "NIM_MODEL": nim_model,
@@ -180,19 +188,33 @@ if [ -z "$SERVICE_ARN" ]; then
   wait_for_running "$SERVICE_ARN"
 fi
 
-echo "=== Pinning host allowlist to the service URL ==="
+echo "=== Pinning host + origin allowlists to the service URL ==="
 SERVICE_URL=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --region "$REGION" --query Service.ServiceUrl --output text)
 SERVICE_HOST="${SERVICE_URL#https://}"
 SERVICE_HOST="${SERVICE_HOST#http://}"
 echo "Service host: $SERVICE_HOST"
 {
   printf '{"ServiceArn":"%s","SourceConfiguration":' "$SERVICE_ARN"
-  source_config_json "${SERVICE_HOST},${SERVICE_HOST}:*"
+  source_config_json "${SERVICE_HOST},${SERVICE_HOST}:*" "https://${SERVICE_HOST}"
   printf '}'
 } > "$INPUT_FILE"
 aws apprunner update-service --cli-input-json "file://$INPUT_FILE" --region "$REGION" >/dev/null
 wait_for_running "$SERVICE_ARN"
 
+echo "=== Warming up the service ==="
+# The first request after an update can land on a cold instance while the Python
+# process imports the MCP SDK and scenario library; for a voice interaction
+# that latency lands directly on the learner. Probe /ready so the first real
+# turn does not pay it.
+for _ in $(seq 1 10); do
+  if curl -fsS "${SERVICE_URL}/ready" >/dev/null 2>&1; then
+    echo "Service warm: ${SERVICE_URL}/ready → ok"
+    break
+  fi
+  sleep 3
+done
+
 echo "=== Done ==="
 echo "MCP endpoint: https://$SERVICE_HOST/mcp"
+echo "Simulator:    https://$SERVICE_HOST/simulator"
 echo "Check status: aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION"

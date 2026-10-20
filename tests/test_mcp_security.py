@@ -83,3 +83,27 @@ def test_rate_limit_uses_rightmost_forwarded_hop_when_trusted() -> None:
         assert _initialize(client, **{"x-forwarded-for": "9.9.9.9, 2.2.2.2"}).status_code == 429
         # Different rightmost hop is a different client -> allowed.
         assert _initialize(client, **{"x-forwarded-for": "1.1.1.1, 3.3.3.3"}).status_code == 200
+
+
+def test_same_origin_browser_client_rejected_until_origin_allowed() -> None:
+    """Browsers send Origin on same-origin POST fetches (the /simulator page).
+
+    The Streamable HTTP transport's DNS-rebinding protection rejects any
+    Origin not in the allow-list with 403, so a served first-party web client
+    only works when its own origin is allow-listed — the pinning
+    scripts/deploy_aws.sh now does. This pins that contract.
+    """
+    with _secured_client() as client:
+        allowed = _initialize(client, origin="http://testserver")
+        assert allowed.status_code == 200
+
+    with _secured_client(allowed_origins="http://127.0.0.1:*") as client:
+        denied = _initialize(client, origin="https://9jj4zdyhu2.us-east-2.awsapprunner.com")
+        assert denied.status_code == 403
+        assert "Invalid Origin" in denied.text
+
+    # With the service origin pinned (as the deploy script now does), the
+    # served page's calls pass.
+    with _secured_client(allowed_origins="https://9jj4zdyhu2.us-east-2.awsapprunner.com") as client:
+        served = _initialize(client, origin="https://9jj4zdyhu2.us-east-2.awsapprunner.com")
+        assert served.status_code == 200

@@ -32,6 +32,7 @@ from server.schemas.validation import (
     SimulationRequest,
     SimulationResponse,
 )
+from server.simulator import simulator_response
 
 logger = logging.getLogger("alexa_clinical_sim")
 
@@ -437,14 +438,26 @@ def _observability_response(path: str) -> JSONResponse | PlainTextResponse | Non
     return None
 
 
-def _with_observability(app: Any) -> Any:
-    """Serve unauthenticated GET /health, /ready, /metrics around the MCP app."""
+def _with_public_pages(app: Any, mcp_path: str) -> Any:
+    """Serve public GET routes around the MCP app.
+
+    ``/health``, ``/ready``, and ``/metrics`` stay unauthenticated for
+    orchestrators, and the browser simulator is served at ``/simulator``
+    (with ``/`` redirecting to it) so the voice experience is reachable in
+    one click. The simulator page itself carries no data; every MCP call it
+    makes still passes the auth middleware guarding ``/mcp``.
+    """
 
     async def wrapper(scope: Any, receive: Any, send: Any) -> None:
         if scope["type"] == "http" and scope["method"].upper() == "GET":
-            response = _observability_response(scope.get("path", ""))
-            if response is not None:
-                await response(scope, receive, send)
+            path = scope.get("path", "")
+            observability = _observability_response(path)
+            if observability is not None:
+                await observability(scope, receive, send)
+                return
+            page = simulator_response(path, mcp_path)
+            if page is not None:
+                await page(scope, receive, send)
                 return
         await app(scope, receive, send)
 
@@ -487,7 +500,7 @@ def create_app(
     )
     limiter = RateLimiter(limit, window) if limit > 0 else None
     app.add_middleware(SecurityMiddleware, api_key=key, limiter=limiter, trust_proxy=trust_proxy)
-    return _with_observability(app)
+    return _with_public_pages(app, path)
 
 
 if __name__ == "__main__":

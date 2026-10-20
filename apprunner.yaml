@@ -19,8 +19,11 @@ run:
     # scripts/deploy_aws.sh pins this automatically from the ServiceUrl.
     - name: MCP_ALLOWED_HOSTS
       value: "<service-host>,<service-host>:*"
+    # Same-origin POST fetches send an Origin header, so the served browser
+    # simulator (/simulator) needs the App Runner origin in the allowlist too.
+    # scripts/deploy_aws.sh pins this to https://<service-host> automatically.
     - name: MCP_ALLOWED_ORIGINS
-      value: http://127.0.0.1:*,http://localhost:*
+      value: "https://<service-host>,http://127.0.0.1:*,http://localhost:*"
     # App Runner terminates TLS at its load balancer and appends the real client
     # IP as the rightmost X-Forwarded-For hop; trust it for rate limiting.
     - name: MCP_TRUST_PROXY
@@ -47,6 +50,14 @@ run:
     # a Bedrock model/inference-profile ID plus AWS credentials in the task role.
     - name: BEDROCK_MODEL_ID
       value: ""
+    # Bedrock Guardrails applied to every Converse turn when set. Pin a numbered
+    # version (never DRAFT); keep trace disabled in production.
+    - name: BEDROCK_GUARDRAIL_ID
+      value: ""
+    - name: BEDROCK_GUARDRAIL_VERSION
+      value: "1"
+    - name: BEDROCK_GUARDRAIL_TRACE
+      value: "0"
     - name: AWS_REGION
       value: us-east-1
     # NVIDIA NIM (OpenAI-compatible fallback).
