@@ -12,8 +12,9 @@ Every tool is called over the MCP `tools/call` method with the session's
 ## Video structure (demo-v2, ≈1:20)
 
 The rendered demo (`demo-video/src/DemoVideo.tsx`) opens with the problem card,
-then shows the **voice experience** for the first 45 seconds — the same page a
-judge can open at `https://…awsapprunner.com/simulator`:
+then shows the **voice experience** for the first 45 seconds — the same page the
+server serves at `GET /simulator` (locally at `http://127.0.0.1:8001/simulator`,
+and at the App Runner URL once the v0.4.0 deploy lands — see SUBMISSION.md §11):
 
 | Beat | Time | What is shown |
 | --- | ---: | --- |

@@ -290,10 +290,19 @@ Chrome/Edge recommended for the microphone).
 
 **Live (auth-protected):**
 
-- Endpoint: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp`
-- Voice simulator: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/simulator`
-  — enter the `MCP_API_KEY` in the page's API-key field (it is stored locally
-  in the browser and sent as `Authorization: Bearer` + `X-API-Key`).
-- The endpoints require an `MCP_API_KEY` (not published in the repo). The
-  demo video shows the live flow end-to-end; the unauthenticated local path
-  above is fully functional for judging and testing.
+- MCP endpoint: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp`
+- The endpoint requires an `MCP_API_KEY` (not published in the repo).
+
+**Live-deployment status (Oct 20, 2026):** the live endpoint is currently
+serving the **pre-upgrade build (v0.3.0)** — the full MCP tool flow works
+there, but `/simulator` is not live yet. The v0.4.0 image (voice simulator,
+origin-allow-list pinning, Guardrails plumbing, post-deploy warm-up) is
+built, tested, and pushed to ECR, but the deployment is blocked by an
+**AWS account restriction** on new instance provisioning (`Account
+638175140335 is temporarily restricted` on App Runner operations; the
+container itself is verified healthy — the exact ECR image serves all
+endpoints locally, and CI passed its 152-test gate). Once the account
+restriction is cleared (AWS console → billing/payment), any push to `master`
+redeploys automatically, or run `scripts/deploy_aws.sh`; `GET /health` flips
+to `"version": "0.4.0"` and `/simulator` goes live. The local path above is
+fully functional for judging and testing in the meantime.
