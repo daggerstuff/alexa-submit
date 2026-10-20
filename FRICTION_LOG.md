@@ -46,7 +46,7 @@ archive in
 | Field | Value |
 | --- | --- |
 | **Task attempted** | Give an Alexa+ agent a compact, low-latency tool surface: the agent discovers six tools, then runs a scenario. |
-| **Steps taken** | 1. Register six tools with `@mcp.tool(structured_output=True)` returning typed Pydantic models (`server/mcp_server.py`). 2. Measure the wire cost of discovery by calling `tools/list` through the transport (asserted in `tests/test_mcp_protocol.py`). |
+| **Steps taken** | 1. Register six tools with `@mcp.tool(structured_output=True)` returning typed Pydantic models (`server/mcp_server.py`). 2. Measure the wire cost of discovery by calling `tools/list` through the transport and summing the response (the discovery flow is exercised end-to-end in `tests/test_mcp_protocol.py`). |
 | **Expected result** | A tool listing scales with the tool *inputs* (short strings) plus a brief description of the result shape. |
 | **Actual result** | Measured **30,628 bytes** for the six-tool `tools/list` response, of which **29,477 bytes (96%) is JSON Schema**. The largest single tool, `send_practitioner_turn`, weighs 7,346 bytes because its `structuredContent` schema embeds the full nested `SimulationResponse` — transcript turns, evaluation metrics, evidence, coaching, learner progress — recursively described on a tool whose arguments are two short strings. An agent pays this discovery cost on every session before a single clinical turn, and the schema competes with conversation history for prompt budget. |
 | **Severity** | Medium — a schema-serialization latency and token-budget cost on every agent session; scales linearly as tools are added. |

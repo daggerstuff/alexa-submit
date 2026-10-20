@@ -281,7 +281,7 @@ All three submission artifacts live in the repo:
 ./scripts/start_mcp_server.sh        # http://127.0.0.1:8001/mcp
 # then open the voice simulator in a browser:
 open http://127.0.0.1:8001/simulator # (or just visit http://127.0.0.1:8001/ — it redirects)
-.venv/bin/pytest                     # 151 tests, incl. full MCP-protocol flow + SSE stream + simulator page
+.venv/bin/pytest                     # 152 tests, incl. full MCP-protocol flow + SSE stream + simulator page
 ```
 
 The simulator needs no setup: pick a scenario, press **Start**, and speak or
