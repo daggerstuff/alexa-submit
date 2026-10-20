@@ -274,3 +274,137 @@ def test_mcp_depression_screening_scenario() -> None:
         assert evaluation["evaluation"]["rubric_version"] == "1.0.0"
         metric_ids = {m["metric_id"] for m in evaluation["evaluation"]["metrics"]}
         assert "risk" in metric_ids
+
+
+def test_initialize_negotiates_required_protocol_versions() -> None:
+    """The track requires MCP 2025-11-25 or later over Streamable HTTP.
+
+    The server must echo 2025-11-25 when the client offers it, keep older
+    supported revisions working, and counter-offer its newest handshake
+    version to newer clients instead of failing.
+    """
+    with _make_client() as client:
+        for requested, expected in (("2025-11-25", "2025-11-25"), ("2025-06-18", "2025-06-18")):
+            response = client.post(
+                "/mcp",
+                headers={"accept": "application/json, text/event-stream"},
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": requested,
+                        "capabilities": {},
+                        "clientInfo": {"name": "pytest-client", "version": "0.1.0"},
+                    },
+                },
+            )
+            assert response.status_code == 200
+            assert response.json()["result"]["protocolVersion"] == expected
+
+        newer = client.post(
+            "/mcp",
+            headers={"accept": "application/json, text/event-stream"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2026-07-28",
+                    "capabilities": {},
+                    "clientInfo": {"name": "pytest-client", "version": "0.1.0"},
+                },
+            },
+        )
+        assert newer.status_code == 200
+        assert newer.json()["result"]["protocolVersion"] == "2025-11-25"
+
+
+def test_unknown_session_id_is_rejected_with_404() -> None:
+    """Per the Streamable HTTP spec, an unknown/expired session id gets 404."""
+    with _make_client() as client:
+        headers = {"accept": "application/json, text/event-stream", "mcp-session-id": "deadbeef"}
+        post = client.post(
+            "/mcp",
+            headers=headers,
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+        )
+        assert post.status_code == 404
+        get = client.get("/mcp", headers={"accept": "text/event-stream", "mcp-session-id": "deadbeef"})
+        assert get.status_code == 404
+
+
+def test_streamable_http_get_opens_sse_stream() -> None:
+    """The unified endpoint also accepts GET: the server-initiated SSE stream.
+
+    A client (Alexa+ adapter, browser simulator, or SDK client) can open the
+    standalone GET stream with its Mcp-Session-Id and receive a 200 response
+    of type text/event-stream that stays open awaiting server events. The
+    TestClient portal never flushes SSE headers, so this test drives a real
+    uvicorn server over TCP, exactly like a deployed client would.
+    """
+    import socket
+    import threading
+    import time
+
+    import httpx
+    import uvicorn
+
+    from server.mcp_server import create_app
+
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    config = uvicorn.Config(create_app(), host="127.0.0.1", port=port, log_level="warning", lifespan="on")
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        for _ in range(100):
+            if server.started:
+                break
+            time.sleep(0.1)
+        assert server.started, "uvicorn failed to start"
+
+        base = f"http://127.0.0.1:{port}"
+        with httpx.Client(base_url=base, timeout=10) as client:
+            init = client.post(
+                "/mcp",
+                headers={"accept": "application/json, text/event-stream"},
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2025-11-25",
+                        "capabilities": {},
+                        "clientInfo": {"name": "pytest-client", "version": "0.1.0"},
+                    },
+                },
+            )
+            session_id = init.headers["mcp-session-id"]
+            assert init.json()["result"]["protocolVersion"] == "2025-11-25"
+
+            opened_stream = False
+            try:
+                with client.stream(
+                    "GET",
+                    "/mcp",
+                    headers={"accept": "text/event-stream", "mcp-session-id": session_id},
+                    timeout=httpx.Timeout(8.0, connect=5.0),
+                ) as stream:
+                    assert stream.status_code == 200
+                    assert stream.headers["content-type"].startswith("text/event-stream")
+                    opened_stream = True
+                    next(stream.iter_bytes())  # block until an event or timeout
+            except (httpx.ReadTimeout, StopIteration):
+                # An open, idle SSE stream is the success condition: no
+                # server-initiated notification is pending, so the read blocks
+                # until the client gives up.
+                pass
+            assert opened_stream
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
