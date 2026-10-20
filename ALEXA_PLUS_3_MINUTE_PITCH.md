@@ -18,15 +18,18 @@ The pitch is designed around the official Alexa+ judging dimensions: **technical
 
 ## Timed slide outline
 
+The delivered demo video (≈1:20) follows this arc; a live pitch should keep the
+same order — voice experience first, protocol second:
+
 | Time | Slide | Purpose | Demo or visual proof |
 |---|---:|---|---|
 | 0:00–0:15 | Cover | Establish the product and customer | Product name and one-line promise |
 | 0:15–0:35 | 1 | Frame the learner problem | Learner attempting a scenario without a live patient |
-| 0:35–0:55 | 2 | Show the Alexa+ architecture | MCP endpoint and tool list |
-| 0:55–1:30 | 3 | Demonstrate the live workflow | Scenario discovery, start, and two practitioner turns |
-| 1:30–1:55 | 4 | Prove stateful, constrained patient behavior | Progressive disclosure and preserved patient state |
-| 1:55–2:20 | 5 | Prove explainable evaluation | Metric scores with transcript evidence |
-| 2:20–2:45 | 6 | Explain trust and reliability | Versioning, idempotency, session locking, disclaimer |
+| 0:35–1:10 | 2 | Show the Alexa+ voice experience | The `/simulator` split screen: spoken turns, rapport meter, disclosed facts, live MCP inspector |
+| 1:10–1:35 | 3 | Demonstrate the live workflow | Scenario discovery, start, and practitioner turns driving real tool calls |
+| 1:35–1:55 | 4 | Prove explainable evaluation | Rubric checkboxes lighting up with matched-term evidence and the spoken takeaway |
+| 1:55–2:20 | 5 | Show the agent's protocol view | Endpoint, six tools, scenario library, safety boundary |
+| 2:20–2:45 | 6 | Explain trust and reliability | Versioning, idempotency, session locking, Guardrails, disclaimer |
 | 2:45–3:00 | 7 | Close on impact and next step | Target users, difficulty progression, hackathon fit, and product feedback |
 
 ---
@@ -66,11 +69,11 @@ The pitch is designed around the official Alexa+ judging dimensions: **technical
 **Slide content:**
 
 ```text
-Alexa+ agent
-    -> Streamable HTTP MCP endpoint
+Alexa+ agent (or the served browser simulator)
+    -> Streamable HTTP MCP endpoint (/mcp, session 2025-11-25)
     -> Clinical Conversation Coach
     -> Scenario policy + session state
-    -> Patient persona + evidence-linked evaluator
+    -> Patient persona (Bedrock + Guardrails) + evidence-linked evaluator
 ```
 
 **MCP tools shown:**
@@ -80,12 +83,15 @@ Alexa+ agent
 - `send_practitioner_turn`
 - `evaluate_simulation`
 - `end_simulation`
+- `validate_scenario`
 
 **Speaker script — 20 seconds:**
 
-“The Alexa+ integration is not a mock API hidden behind a README. The project runs a self-hosted MCP server over Streamable HTTP. Alexa+ can discover five task-oriented tools: list scenarios, start a session, send a practitioner turn, evaluate the interaction, and end the session. The agent orchestrates those tools while the server owns the scenario, transcript, and rubric state.”
+“The Alexa+ integration is not a mock API hidden behind a README. The project runs a self-hosted MCP server over Streamable HTTP. Alexa+ can discover six task-oriented tools: list scenarios, start a session, send a practitioner turn, evaluate the interaction, end the session, and validate an educator-authored scenario. The agent orchestrates those tools while the server owns the scenario, transcript, and rubric state.”
 
-**Demo cue:** Display the MCP endpoint and tool list. Show the server running at `/mcp`.
+**Demo cue:** Show the voice experience first — open `/simulator` and let the
+audience watch a spoken turn drive a real `tools/call` in the inspector pane —
+then display the MCP endpoint and tool list (`/mcp`) for the protocol view.
 
 **Judging connection:** Tech implementation and design.
 
@@ -176,7 +182,7 @@ Alexa+ agent
 **Slide content:**
 
 **For:** Clinical learners, simulation programs, and communication-skills educators  
-**Now:** Twelve scenarios across basic, intermediate, and advanced difficulty, one MCP workflow, cross-session learner progress with a faculty cohort view, and evidence-linked feedback  
+**Now:** Fourteen scenarios across basic, intermediate, and advanced difficulty, one MCP workflow, cross-session learner progress with a faculty cohort view, a browser voice simulator served by the same server, Bedrock Guardrails on the persona path, and evidence-linked feedback  
 **Next:** Educator-authored scenarios, rubric libraries, cohort reporting, and optional constrained model augmentation
 
 **Speaker script — 15 seconds:**
@@ -196,7 +202,8 @@ Before recording, verify that the video visibly demonstrates the project functio
 | Check | Expected result |
 |---|---|
 | MCP server | Starts on `127.0.0.1:8001/mcp` or a secured HTTPS deployment |
-| Tool discovery | All five simulation tools are visible to the MCP client |
+| Voice simulator | `GET /simulator` loads; the orb animates; Start begins a session |
+| Tool discovery | All six simulation tools are visible to the MCP client |
 | Scenario selection | The client calls `list_simulation_scenarios` |
 | Session start | The patient opening response is returned |
 | Learner goal | The agent speaks the scenario's learner-facing `goal` before the opening line |

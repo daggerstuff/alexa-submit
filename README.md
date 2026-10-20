@@ -17,23 +17,27 @@ See [`HACKATHON_STRATEGY.md`](HACKATHON_STRATEGY.md) for the submission strategy
 | Layer                | Responsibility                                           | Implementation                                 |
 | -------------------- | -------------------------------------------------------- | ---------------------------------------------- |
 | Alexa+/MCP transport | Expose agent-callable operations over Streamable HTTP    | `server/mcp_server.py`, `/mcp` on port 8001    |
+| Browser simulator   | Serve the multimodal Alexa+ voice experience + MCP inspector | `server/simulator.py`, `GET /simulator`  |
 | Session              | Lifecycle, transcript, retries, and scenario consistency | `SimulationOrchestrator`                       |
 | Scenario             | Facts, disclosure rules, safety terms, and rubric        | `server/scenarios.py`                          |
-| Patient policy       | Stateful, scenario-constrained responses                 | `PatientPersonaAgent`                          |
+| Patient policy       | Stateful, scenario-constrained responses                 | `PatientPersonaAgent`                           |
 | Evaluation policy    | Versioned scoring with transcript evidence               | `ClinicalEvaluatorAgent`                       |
 
 ```mermaid
 flowchart LR
     A["Alexa+ · voice ASR/TTS"] -->|"MCP 2025-11-25 · Streamable HTTP /mcp"| M["server/mcp_server.py"]
+    B["Browser simulator /simulator<br/>(Web Speech + speechSynthesis)"] -->|"same-origin fetch"| M
     M --> O["SimulationOrchestrator"]
     O --> S["Scenario registry · scenarios_data/*.json"]
     O --> P["PatientPersonaAgent · deterministic"]
-    O --> L["LLMPersonaAgent · Bedrock / Cloudflare"]
+    O --> L["LLMPersonaAgent · Bedrock + Guardrails / NIM / Cloudflare"]
     O --> E["ClinicalEvaluatorAgent · rubric + coaching"]
     O --> D["SessionStore · memory / SQLite"]
 ```
 
 The MCP server is **text-in, SSML-out**. Voice is supplied by the Alexa+ agent (ASR on the way in, TTS on the way out); this project does not reimplement a speech stack. Instead, every patient response carries an `ssml` field and every evaluation carries a `spoken_summary`, each with emotional prosody (rate, pitch, volume) so Alexa's TTS reads the patient's state — guarded, distressed, relieved — out loud. The "voice-first" framing refers to the Alexa+ surface and this SSML handoff, not to embedded TTS/ASR here.
+
+The same emotion→prosody table (`server/voice.py`) drives the browser simulator's read-aloud, so the web preview and the Alexa+ SSML handoff can never drift apart (pinned by `tests/test_simulator_ui.py`).
 
 ## Quick start
 
@@ -52,6 +56,14 @@ Start the Alexa+ MCP server:
 The script applies localhost binding, the `/mcp` path, and local host/origin allowlists by default. You can override them with `MCP_HOST`, `MCP_PORT`, `MCP_PATH`, `MCP_ALLOWED_HOSTS`, and `MCP_ALLOWED_ORIGINS`.
 
 The MCP endpoint is `http://127.0.0.1:8001/mcp`.
+
+**Then open the voice simulator in a browser** — no keys, no setup:
+
+```text
+http://127.0.0.1:8001/simulator      (visiting / redirects here)
+```
+
+Pick a scenario, press **Start**, and speak or type practitioner turns. The left pane is the Alexa+ voice experience (orb, transcript, read-aloud with matched prosody); the right pane is a live MCP inspector showing every `tools/call`, the rapport meter, disclosed facts, and the rubric lighting up on evaluation. Voice input uses the browser's Web Speech API (Chrome/Edge recommended for the microphone); everything falls back to typed turns otherwise.
 
 For a hosted development demo, put the MCP endpoint behind HTTPS and an authenticated reverse proxy. Do not expose the unauthenticated local server directly to the public internet.
 
@@ -139,7 +151,7 @@ pytest -q
 python -m compileall -q server tests
 ```
 
-The tests cover scenario versioning, patient disclosures, rapport tracking and trust-gated disclosures, voice/SSML prosody mapping, scenario authoring validation, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), all fourteen scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
+The tests cover scenario versioning, patient disclosures, rapport tracking and trust-gated disclosures, voice/SSML prosody mapping, scenario authoring validation, the graded rubric and coaching suggestions, idempotent retries, session locking, multi-topic disclosure matching, the MCP tool workflow (start → send → evaluate → end), protocol-version negotiation and unknown-session 404s, the standalone SSE GET stream over real TCP, the served simulator page (routes, tool surface, embedded prosody map), the Bedrock Guardrail wiring and intervention fallback, all fourteen scenarios, cross-session learner progress (recording, improvement detection, and adaptive focus), cohort reporting, the voice-tuned persona guard, the Bedrock request builder, and MCP API-key auth and rate limiting. The MCP server entrypoint is smoke-tested via the Streamable HTTP test app.
 
 ## Lint
 
@@ -183,9 +195,9 @@ The deploy workflow runs the same `scripts/deploy_aws.sh` used for manual deploy
 
 ## Hackathon submission requirements
 
-The Alexa+ submission includes a public GitHub repository with this source, assets, setup instructions, and `LICENSE`; a public demo video under three minutes showing the MCP tools and end-to-end simulation; a concise project description; product feedback for the MCP/Alexa+ developer experience; and a friction log with concrete setup or integration issues.
+The Alexa+ submission includes a public GitHub repository with this source, assets, setup instructions, and `LICENSE`; a public demo video under three minutes showing the project functioning on its intended interface (the `/simulator` voice experience in the first 45 seconds, then the MCP protocol flow); a concise project description; product feedback for the MCP/Alexa+/AWS developer experience; and a friction log with concrete setup or integration issues ([`FRICTION_LOG.md`](FRICTION_LOG.md), canonical).
 
-The AWS Builder mini-challenge is claimed via Amazon Bedrock (optional LLM persona), Amazon ECR, and AWS App Runner; the Open Source mini-challenge is claimed via this new public, MIT-licensed repository. See [`SUBMISSION.md`](SUBMISSION.md) for the ready-to-paste Devpost fields and [`PRODUCT_FEEDBACK.md`](PRODUCT_FEEDBACK.md) for the feedback and friction log.
+The AWS Builder mini-challenge is claimed via Amazon Bedrock (LLM persona on the primary provider chain, with Bedrock Guardrails attached to every Converse turn), Amazon ECR, AWS App Runner, and CloudWatch; the Open Source mini-challenge is claimed via this new public, MIT-licensed repository. See [`SUBMISSION.md`](SUBMISSION.md) for the ready-to-paste Devpost fields and [`PRODUCT_FEEDBACK.md`](PRODUCT_FEEDBACK.md) for the feedback and the deployment friction archive.
 
 ## Layout
 
@@ -220,6 +232,7 @@ alexa-clinical-sim/
 │   ├── requirements-dev.txt
 │   ├── main.py
 │   ├── mcp_server.py
+│   ├── simulator.py
 │   ├── observability.py
 │   ├── storage.py
 │   ├── scenarios.py
@@ -259,6 +272,7 @@ alexa-clinical-sim/
     ├── test_scenario_library.py
     ├── test_session_lifecycle.py
     ├── test_session_tools.py
+    ├── test_simulator_ui.py
     ├── test_simulation.py
     ├── test_trigger_matching.py
     └── test_voice.py

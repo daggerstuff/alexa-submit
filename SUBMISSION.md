@@ -58,6 +58,14 @@ Streamable HTTP.
 >   adolescent vaping), each
 >   with a clinical goal, a patient persona, disclosure rules, safety terms, and
 >   a scoring rubric.
+> - **A browser-based Alexa+ voice simulator** (`GET /simulator`, served by the
+>   same app): a split screen where the left pane is the voice experience —
+>   animated Alexa+ orb, spoken practitioner turns via the Web Speech API,
+>   patient replies read aloud with the same emotion→prosody mapping the server
+>   uses for SSML — and the right pane is a live MCP inspector showing every
+>   JSON-RPC call, the rapport meter, disclosed facts, and the rubric
+>   checkboxes lighting up on evaluation. Judges can run a clinical scenario in
+>   a browser in about 10 seconds with zero setup.
 > - **Stateful sessions** hold scenario state and a transcript across turns; the
 >   patient only discloses facts whose trigger terms appear in the learner's
 >   question.
@@ -72,12 +80,16 @@ Streamable HTTP.
 >   recommended next focus — so Alexa+ can greet a returning learner and steer
 >   their next practice session (a context-aware, state-across-sessions
 >   workflow).
-> - **Optional LLM persona** (Amazon Bedrock Converse or Cloudflare Workers AI,
->   tried as a fallback chain) with JSON-mode responses, a tolerant
->   parser, per-provider retry, and a deterministic fallback.
+> - **An LLM patient persona on a provider chain** — Amazon Bedrock Converse
+>   (with **Amazon Bedrock Guardrails** attached to every turn, and a safe
+>   fallback to the deterministic persona when the guardrail intervenes) with
+>   Cloudflare Workers AI as an OpenAI-compatible fallback — plus JSON-mode
+>   responses, a tolerant parser, per-provider retry, and a deterministic
+>   final fallback (`server/agents/llm_persona.py`).
 > - **Production posture:** bearer/API-key auth, per-IP rate limiting, idle TTL
 >   with a bounded session cache, optional SQLite persistence, structured JSON
->   logging, and Prometheus metrics — deployed on AWS (ECR + App Runner).
+>   logging, and Prometheus metrics — deployed on AWS (ECR + App Runner +
+>   CloudWatch).
 >
 > **Why it matters:** it gives clinical education programs a repeatable,
 > evidence-linked surface for practicing patient interviews, and it demonstrates
@@ -99,29 +111,33 @@ Streamable HTTP.
 ## 6. Demonstration video
 
 - **URL:** `<!-- PASTE YOUR PUBLIC YOUTUBE/VIMEO LINK HERE -->`
-- **File:** `demo-v2.mp4` (1:42, 1080p30) — opens with the problem, then shows a
-  live MCP flow: `tools/list` → scenario library → `start_simulation` → a
-  four-turn chest-pain conversation → graded evaluation (11/20 + spoken
-  takeaway) → the dismissal safety boundary → `end_simulation`.
+- **File:** `demo-v2.mp4` (1:20, 1080p30) — opens with the problem, then shows
+  the project functioning on its intended interface **in the first 45
+  seconds**: the `/simulator` voice experience (Alexa+ orb, spoken turns,
+  rapport meter, disclosed facts, the graded rubric with 13/20 and the spoken
+  takeaway), then the agent's protocol view: `tools/list` → the 14-scenario
+  library → the dismissal safety boundary → `end_simulation`.
 - **Upload checklist:** YouTube or Vimeo, **public**, under 3 minutes, English.
   Suggested title: *"Clinical Conversation Coach — Alexa+ MCP demo"*.
   Suggested description: *"An Alexa+ self-hosted MCP server that turns Alexa+
-  into a simulated patient for safe, repeatable clinical-conversation practice.
-  Built for the Amazon AppDev 2026 hackathon (Alexa+ track)."*
+  into a simulated patient for safe, repeatable clinical-conversation practice,
+  with a browser voice simulator served by the same server. Built for the
+  Amazon AppDev 2026 hackathon (Alexa+ track)."*
 
 ### Gallery images (for the Devpost media section)
 
-Four 1080p stills extracted from the final render are committed to
-`assets/gallery/` for the submission gallery:
+Four 1080p stills are committed to `assets/gallery/` for the submission
+gallery. After re-rendering the updated video, regenerate them from the new
+beats (timestamps from `demo-video/src/DemoVideo.tsx`):
 
-| File | Beat |
-| --- | --- |
-| `assets/gallery/01-problem.png` | The problem card ("rehearse hard conversations on real patients") |
-| `assets/gallery/02-scenarios.png` | `list_simulation_scenarios` → the scenario library |
-| `assets/gallery/03-evaluation.png` | `evaluate_simulation` → evidence-linked rubric (11/20) |
-| `assets/gallery/04-safety.png` | The dismissal safety boundary (`safety_flags: ["go home"]`) |
+| File | Beat | Suggested timestamp |
+| --- | --- | --- |
+| `assets/gallery/01-problem.png` | The problem card ("rehearse hard conversations on real patients") | ~0:04 |
+| `assets/gallery/02-scenarios.png` | The simulator voice pane + MCP inspector mid-conversation | ~0:23 |
+| `assets/gallery/03-evaluation.png` | The rubric checkboxes lighting up (13/20 + spoken takeaway) | ~0:38 |
+| `assets/gallery/04-safety.png` | The dismissal safety boundary (`safety_flags: ["go home"]`) | ~1:08 |
 
-Regenerate them from `demo-v2.mp4` with
+Regenerate with
 `ffmpeg -ss <seconds> -i demo-v2.mp4 -frames:v 1 assets/gallery/<n>-<name>.png`.
 
 ---
@@ -158,6 +174,15 @@ Regenerate them from `demo-v2.mp4` with
 > - Fourteen authorable scenarios across basic/intermediate/advanced difficulty.
 > - Observability (`/health`, `/ready`, `/metrics`), CI, and an automated deploy
 >   pipeline (GitHub Actions → ECR → App Runner).
+> - A browser-based Alexa+ multimodal simulator served at `GET /simulator` by
+>   the same app — voice input via the Web Speech API, prosody-matched TTS
+>   from the server's own emotion→prosody table, and a live MCP inspector
+>   pane showing every JSON-RPC call, the rapport meter, disclosed facts, and
+>   the rubric.
+> - Amazon Bedrock Guardrails wired into the primary persona execution path
+>   (blanket `guardrailConfig`, pinned version, safe degradation on
+>   intervention), plus the App Runner origin-allow-list pinning and
+>   post-deploy warm-up probe that make the served simulator reliable.
 
 (The pre-existing mock passthrough and placeholder skill config were removed;
 the MCP server, evaluator, security layer, LLM persona, deployment, and docs
@@ -186,12 +211,37 @@ were added during the window.)
 
 ## 9. AWS Builder mini-challenge — services used & how
 
-- **Amazon Bedrock** — optional LLM patient persona via the Converse API
-  (`bedrock-runtime`), selected with `INFERENCE_PROVIDER=bedrock`
-  (`BEDROCK_MODEL_ID` + AWS credentials). See `server/agents/llm_persona.py`.
+- **Amazon Bedrock** — the LLM patient persona via the Converse API
+  (`bedrock-runtime`), first on the provider chain, selected with
+  `INFERENCE_PROVIDER=bedrock` (`BEDROCK_MODEL_ID` + AWS credentials). See
+  `server/agents/llm_persona.py`.
+- **Amazon Bedrock Guardrails** — on the primary execution path: every
+  Converse turn carries a blanket `guardrailConfig` (pinned numbered version,
+  `trace: disabled`); a blocked turn (`stopReason: guardrail_intervened`) is
+  counted in `bedrock_guardrail_interventions_total` and degrades to the
+  deterministic persona. A guardrail is provisioned in the account
+  (`clinical-persona-guardrail`, us-east-2, version 1 — verified with
+  `ApplyGuardrail`: a jailbreak turn is blocked, clinical turns including
+  suicide-risk screening pass) and is wired into the deploy pipeline via the
+  `BEDROCK_GUARDRAIL_ID` secret. See `tests/test_llm_persona_bedrock.py` and
+  `FRICTION_LOG.md` entry 4.
+- **Live-persona note:** the live deployment currently runs the Cloudflare
+  Workers AI provider because this AWS account's Bedrock model access is not
+  yet enabled (a console-only step). The Bedrock + Guardrails path is fully
+  wired, tested, and deploy-ready: enable model access for a model (e.g. a
+  Qwen or Claude model in us-east-2), set the `BEDROCK_MODEL_ID` secret, and
+  flip the `INFERENCE_PROVIDER` variable to `bedrock,cloudflare` — one
+  deploy later the persona runs Bedrock-first with the guardrail on every
+  turn, and Cloudflare remains the fallback.
 - **Amazon ECR** — container image registry for the deploy pipeline.
-- **AWS App Runner** — managed hosting for the public `/mcp` endpoint
-  (`apprunner.yaml`, `scripts/deploy_aws.sh`).
+- **AWS App Runner** — managed hosting for the public `/mcp` endpoint **and
+  the `/simulator` voice page** (`apprunner.yaml`, `scripts/deploy_aws.sh`,
+  which pins host + origin allow-lists to the service URL and runs a
+  post-deploy `/ready` warm-up probe).
+- **Amazon CloudWatch** — structured JSON request logs from App Runner plus
+  the Prometheus `/metrics` surface (sessions, tool traffic, rate-limit and
+  guardrail counters). The full architecture diagram is in
+  `PRODUCT_FEEDBACK.md` ("AWS architecture").
 - **GitHub Actions** — CI (lint + test) and the ECR/App Runner deploy pipeline.
 
 Full "what worked / what needs work / onboarding / build again" answers are in
@@ -201,17 +251,24 @@ Full "what worked / what needs work / onboarding / build again" answers are in
 
 ## 10. Product feedback, feature requests, friction log
 
-All three submission artifacts live in
-[`PRODUCT_FEEDBACK.md`](PRODUCT_FEEDBACK.md):
+All three submission artifacts live in the repo:
 
-- **Product feedback** answers every required question for each tool/API/SDK:
-  which tools and for what, what worked well, what needs work, onboarding
-  experience (zero → hello world), and would-we-build-again (Yes/No + why).
+- **Product feedback** — [`PRODUCT_FEEDBACK.md`](PRODUCT_FEEDBACK.md) answers
+  every required question for each tool/API/SDK: which tools and for what,
+  what worked well, what needs work, onboarding experience (zero → hello
+  world), and would-we-build-again (Yes/No + why), plus the exact AWS
+  architecture (App Runner + Bedrock + Guardrails + CloudWatch).
 - **Feature requests** carry the required priority rating
   (Critical / Important / Nice-to-have).
-- **Friction log** (8 entries) includes the required fields — task attempted,
-  steps taken, expected vs. actual result, severity, workaround, and actionable
-  suggestion — for the up-to-10% Stage One bonus.
+- **Friction log** — [`FRICTION_LOG.md`](FRICTION_LOG.md) is the canonical
+  log: seven entries, each with the six required fields (task attempted,
+  steps taken, expected vs. actual result, severity, workaround referencing
+  the shipped code, and actionable suggestion), covering MCP Streamable HTTP
+  edge cases, the `tools/list` schema weight, Bedrock Guardrail and
+  Converse-streaming behavior in voice contexts, the App Runner cold start,
+  and the GitHub OIDC trust break. An earlier deployment-infrastructure
+  archive (11 rubric-formatted entries) is preserved in
+  `PRODUCT_FEEDBACK.md`, for the up-to-10% Stage One bonus.
 
 ---
 
@@ -222,12 +279,21 @@ All three submission artifacts live in
 ```bash
 ./scripts/initialize.sh
 ./scripts/start_mcp_server.sh        # http://127.0.0.1:8001/mcp
-.venv/bin/pytest                     # 137 tests, incl. full MCP-protocol flow + learner progress
+# then open the voice simulator in a browser:
+open http://127.0.0.1:8001/simulator # (or just visit http://127.0.0.1:8001/ — it redirects)
+.venv/bin/pytest                     # 151 tests, incl. full MCP-protocol flow + SSE stream + simulator page
 ```
+
+The simulator needs no setup: pick a scenario, press **Start**, and speak or
+type practitioner turns (voice input uses the browser's Web Speech API;
+Chrome/Edge recommended for the microphone).
 
 **Live (auth-protected):**
 
 - Endpoint: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp`
-- The endpoint requires an `MCP_API_KEY` (not published in the repo). The demo
-  video shows the live flow end-to-end; the unauthenticated local path above is
-  fully functional for judging and testing.
+- Voice simulator: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/simulator`
+  — enter the `MCP_API_KEY` in the page's API-key field (it is stored locally
+  in the browser and sent as `Authorization: Bearer` + `X-API-Key`).
+- The endpoints require an `MCP_API_KEY` (not published in the repo). The
+  demo video shows the live flow end-to-end; the unauthenticated local path
+  above is fully functional for judging and testing.

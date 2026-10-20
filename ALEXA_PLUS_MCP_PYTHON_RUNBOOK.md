@@ -45,7 +45,7 @@ from mcp.server.mcpserver import MCPServer
 mcp = MCPServer(
     name="clinical-conversation-coach",
     title="Clinical Conversation Coach",
-    version="0.3.0",
+    version="0.4.0",
     description=(
         "A scenario-based clinical communication simulator for educational practice."
     ),
@@ -327,6 +327,15 @@ The proxy should:
 
 Do not treat the local tunnel helper as a production deployment. It is only a development bridge.
 
+The server also serves a first-party browser page at `GET /simulator` (with `/`
+redirecting to it) — a complete Alexa+ voice-experience client for the same
+endpoint. Because browsers attach an `Origin` header to same-origin POST
+`fetch()` calls, the page's MCP calls are only accepted when its own origin is
+in `MCP_ALLOWED_ORIGINS`; `scripts/deploy_aws.sh` pins this to the service URL
+in the same step as `MCP_ALLOWED_HOSTS`. This is the pattern to copy for any
+served web client of a Streamable HTTP MCP server (see `FRICTION_LOG.md`
+entry 1).
+
 ## 16. Final Alexa+ readiness checklist
 
 | Area         | Ready when                                                                                 |
@@ -335,10 +344,10 @@ Do not treat the local tunnel helper as a production deployment. It is only a de
 | Runtime hook | `mcp_server.py` imports the SDK and calls the server at runtime                            |
 | Tools        | Tool names, descriptions, inputs, and outputs are stable                                   |
 | State        | MCP session and application simulation session are clearly separated                       |
-| Safety       | Synthetic-only demo, disclaimer, and no clinical decision claims                           |
-| Security     | Origin validation, HTTPS, and (for hosted) `MCP_API_KEY` auth plus rate limiting are enabled |
-| Tests        | Domain, tool discovery, and end-to-end MCP paths pass                                      |
-| Demo         | Three-minute video visibly shows MCP tool use and the working simulation                   |
+| Safety       | Synthetic-only demo, disclaimer, and no clinical decision claims; Bedrock persona turns guarded by Bedrock Guardrails on the primary path |
+| Security     | Origin validation (including the served page's own origin), HTTPS, and (for hosted) `MCP_API_KEY` auth plus rate limiting are enabled |
+| Tests        | Domain, tool discovery, end-to-end MCP paths (including the SSE GET stream and the served simulator page) pass |
+| Demo         | Under-3-minute video shows the voice experience on `/simulator` in the first 45 seconds, then the MCP protocol flow |
 | Repository   | Public repository contains setup instructions and an open-source license                   |
 | Feedback     | Product feedback and a concrete friction log are ready for submission                      |
 

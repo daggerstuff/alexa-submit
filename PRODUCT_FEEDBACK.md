@@ -2,7 +2,10 @@
 
 ## Amazon AppDev 2026 — Alexa+ Track
 
-This document satisfies the product-feedback and friction-log submission requirements. The rules state that friction-log entries can contribute a bonus of up to 10% during Stage One downselection [1].
+This document satisfies the product-feedback submission requirements, and —
+together with the canonical [`FRICTION_LOG.md`](FRICTION_LOG.md) — the
+friction-log requirements. The rules state that friction-log entries can
+contribute a bonus of up to 10% during Stage One downselection [1].
 
 ---
 
@@ -19,12 +22,13 @@ This document satisfies the product-feedback and friction-log submission require
 | Ruff                   | 0.16.6     | Linting and formatting                        |
 | Docker                 | —          | Containerized deployment for judges           |
 | Python                 | 3.13.15    | Runtime                                       |
-| AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint |
+| AWS App Runner         | —          | Managed hosting for the public `/mcp` endpoint and `/simulator` page |
 | AWS ECR                | —          | Container image registry                      |
-| Amazon Bedrock         | —          | Optional LLM persona via Converse API (AWS Builder mini-challenge) |
+| Amazon Bedrock         | —          | LLM patient persona via the Converse API, on the primary provider chain (AWS Builder mini-challenge) |
+| Amazon Bedrock Guardrails | —      | Blanket `guardrailConfig` on every Converse turn; blocked turns degrade to the deterministic persona |
 | Cloudflare Workers AI  | —          | Optional OpenAI-compatible LLM persona fallback |
 | GitHub Actions         | —          | CI (lint + test) and deploy pipeline          |
-| Remotion               | 4.0.484    | Demo video (synthetic terminal recording)     |
+| Remotion               | 4.0.484    | Demo video (simulated voice experience + terminal recording) |
 | ElevenLabs             | `eleven_v3`| Demo narration voice-over                     |
 
 ---
@@ -50,10 +54,11 @@ This document satisfies the product-feedback and friction-log submission require
 ### AWS (Bedrock + App Runner + ECR + GitHub Actions)
 
 - Amazon Bedrock's Converse API gives the LLM persona one provider-agnostic request/response shape; a single `bedrock-runtime` client call covers text completion with explicit `maxTokens` and adaptive retry.
-- The persona's provider chain (`bedrock`, `cloudflare`) abstracts two backends behind one completion seam — Bedrock Converse plus an OpenAI-compatible `/chat/completions` host — so a provider outage degrades to the next configured provider instead of dropping to the deterministic script.
-- App Runner took the container and gave us a TLS endpoint with no load-balancer or ingress configuration; the `/mcp` Streamable HTTP endpoint passed the full MCP flow on the first successful push.
+- **Amazon Bedrock Guardrails sits on the primary execution path, not in a branch**: when `BEDROCK_GUARDRAIL_ID` is set, every persona Converse call carries a blanket `guardrailConfig` (pinned numbered version, trace disabled), and a blocked turn (`stopReason: guardrail_intervened`) is counted, logged, and degrades to the deterministic persona instead of failing the session (`server/agents/llm_persona.py`, `tests/test_llm_persona_bedrock.py`).
+- The persona's provider chain (`bedrock`, `nim`, `cloudflare`) abstracts two backends behind one completion seam — Bedrock Converse plus an OpenAI-compatible `/chat/completions` host — so a provider outage degrades to the next configured provider instead of dropping to the deterministic script.
+- App Runner took the container and gave us a TLS endpoint with no load-balancer or ingress configuration; the `/mcp` Streamable HTTP endpoint passed the full MCP flow on the first successful push, and the same origin now also serves the `/simulator` voice experience (the deploy script pins `MCP_ALLOWED_HOSTS` *and* `MCP_ALLOWED_ORIGINS` to the service URL so the browser client is accepted).
 - ECR with a unique tag per deploy made builds deterministic and rollback simple; a `latest`-style tag would have let stale images deploy silently.
-- GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline.
+- GitHub Actions runs lint and the test suite on push, and the deploy job builds the image, pushes to ECR, and updates App Runner in one pipeline — including a post-deploy `/ready` warm-up probe so the first user request doesn't pay the cold start.
 
 ### Remotion + ElevenLabs (demo)
 
@@ -85,7 +90,40 @@ This document satisfies the product-feedback and friction-log submission require
 
 8. **Region must match the `aws login` session exactly.** A mismatched region caused silent credential-refresh failures until the deploy region was aligned with the login profile. This should be surfaced as an explicit error rather than a generic refresh failure.
 
-9. **Bedrock Converse has no native JSON-mode toggle.** The Converse API has no `response_format: json_object` equivalent; JSON output is prompt-driven. We rely on the persona's system prompt ("Return JSON only") plus a tolerant parser. A first-class structured-output option would remove the need.
+9. **Bedrock Converse has no native JSON-mode toggle.** The Converse API has no `response_format: json_object` equivalent; JSON output is prompt-driven. We rely on the persona's system prompt ("Return JSON only") plus a tolerant parser. A first-class structured-output option would remove the need — and would also let a streaming persona start TTS on the first speakable sentence (see FRICTION_LOG.md entry 5).
+
+10. **Bedrock Guardrail interventions are untyped.** A blocked Converse turn returns `stopReason: "guardrail_intervened"` and an empty content list rather than a catchable, typed error; without `trace: enabled` (unsafe for clinical content) you cannot tell which filter fired. We detect it explicitly and degrade to the deterministic persona — details in [FRICTION_LOG.md](FRICTION_LOG.md) entry 4.
+
+---
+
+## AWS architecture (AWS Builder mini-challenge)
+
+The exact AWS architecture we run on, and how to reproduce it:
+
+```text
+                        ┌────────────────────────────────────────────┐
+  Learner / judge /     │  AWS App Runner (TLS, auto-scaling)        │
+  Alexa+ agent          │  container: python:3.13-slim, uvicorn     │
+  ─────────────────►    │  GET  /simulator  → multimodal voice UI   │
+  MCP client / browser  │  POST /mcp        → Streamable HTTP        │
+                        │       (MCP 2025-11-25, Mcp-Session-Id)     │
+                        │  GET  /health /ready /metrics (public)     │
+                        │  auth: bearer/X-API-key + per-IP limits    │
+                        └───────┬───────────────────────┬────────────┘
+                                │ boto3 (bedrock-runtime) │ structured JSON logs
+                        ┌───────▼──────────┐    ┌───────▼──────────────┐
+                        │ Amazon Bedrock   │    │ Amazon CloudWatch    │
+                        │ Converse API     │    │ log groups + metrics │
+                        │ + Guardrails     │    │ (Prometheus /metrics │
+                        │ (guardrailConfig │    │  scraped by the      │
+                        │  blanket, v-pinned)│   │  platform agent)     │
+                        └──────────────────┘    └──────────────────────┘
+```
+
+- **Amazon ECR** holds one uniquely tagged image per deploy (`scripts/deploy_aws.sh`), pulled by App Runner via an instance-role trust.
+- **AWS App Runner** runs the container (`apprunner.yaml` is the template; the deploy script is authoritative and pins `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` to the service URL), terminates TLS, and scales the single stateless worker; session state lives in-process with an optional SQLite store on the instance (`SESSION_DB_PATH`).
+- **Amazon Bedrock** supplies the persona on the primary provider chain (`INFERENCE_PROVIDER=bedrock` first), with **Bedrock Guardrails** attached to every Converse call via `guardrailConfig` (numbered version pinned, `trace` disabled); an intervention is counted in `bedrock_guardrail_interventions_total` and degrades to the deterministic persona.
+- **Observability**: the server emits structured JSON request logs (App Runner ships them to CloudWatch Logs) and Prometheus metrics at `/metrics` — sessions, tool traffic, rate-limit and guardrail counters — so cohort-level health is visible in CloudWatch dashboards without any agent-side instrumentation.
 
 ---
 
@@ -101,9 +139,9 @@ We would build with **Alexa+** again: voice-first clinical practice is a strong 
 
 ## Onboarding experience
 
-- **MCP Python SDK (zero → hello world):** a working `@mcp.tool()` server over Streamable HTTP came up in under an hour from the "Build an MCP Server" guide. Getting from "hello world" to "hello world with tests" was the real climb — the test factory (`streamable_http_app()`) is not documented, so we read SDK source to write protocol-level integration tests.
+- **MCP Python SDK (zero → hello world):** a working `@mcp.tool()` server over Streamable HTTP came up in under an hour from the "Build an MCP Server" guide. Getting from "hello world" to "hello world with tests" was the real climb — the test factory (`streamable_http_app()`) is not documented, so we read SDK source to write protocol-level integration tests. The "hello world with a voice" step now ships in the repo: the served `/simulator` page is a complete browser MCP client in one HTML file, which also became our fastest way to demonstrate the protocol flow to anyone.
 - **Alexa+:** there is no local Alexa+ MCP client simulator, so we onboarded against a raw MCP client plus the hosted endpoint. The protocol flow itself (initialize → tools/list → tools/call) was unambiguous.
-- **AWS:** ECR push + App Runner deploy reached a working TLS `/mcp` endpoint in a single session; the friction was region/credential alignment and the unique-tag requirement, not the service model. Bedrock onboarding is a single `bedrock-runtime` Converse call once model access is enabled.
+- **AWS:** ECR push + App Runner deploy reached a working TLS `/mcp` endpoint in a single session; the friction was region/credential alignment and the unique-tag requirement, not the service model. Bedrock onboarding is a single `bedrock-runtime` Converse call once model access is enabled, and attaching a Guardrail is two environment variables (`BEDROCK_GUARDRAIL_ID` + a pinned version) because the guardrail config travels with every request.
 
 ---
 
@@ -116,12 +154,14 @@ We would build with **Alexa+** again: voice-first clinical practice is a strong 
 | Important    | Support mounting MCP inside an existing ASGI app  | Simplify single-process deployment                                           |
 | Nice-to-have | Add built-in `/health` endpoint option            | Container orchestration support                                              |
 | Important    | Provide an Alexa+ MCP client simulator            | Reduce the gap between MCP server development and Alexa+ integration testing |
+| Important    | Typed error + category for Bedrock Guardrail interventions | A blocked turn currently surfaces as missing content, not a catchable error |
+| Nice-to-have | App Runner readiness probe / warm-up hook         | Keep first-request cold-start latency off the user                            |
 
 ---
 
-## Friction log
+## Friction log (deployment archive)
 
-Each entry includes: specific task attempted, steps taken, expected vs. actual result, severity, workaround, and actionable suggestion.
+Each entry includes: specific task attempted, steps taken, expected vs. actual result, severity, workaround, and actionable suggestion. **The canonical submission friction log is [`FRICTION_LOG.md`](FRICTION_LOG.md)** — seven entries covering the MCP Streamable HTTP edge cases we hit shipping the voice simulator, the tools/list schema weight, Bedrock Guardrail/Converse behavior in voice contexts, the App Runner cold start, and the GitHub OIDC trust break. The entries below are the earlier deployment-infrastructure archive from the same build, kept for completeness.
 
 ### Friction 1: Pydantic version conflict blocks installation
 
@@ -218,6 +258,42 @@ Each entry includes: specific task attempted, steps taken, expected vs. actual r
 | **Severity**             | Medium — intermittent persona failures                                                                                         |
 | **Workaround**           | Added a tolerant parser that extracts the first JSON object, plus Bedrock's adaptive retry                                     |
 | **Proposed improvement** | Bedrock should offer a first-class structured-output option for the Converse API so the parser never sees trailing text.      |
+
+### Friction 9: `aws login` console session silently dies mid-build
+
+| Field                    | Value                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Attempted task**       | Authenticate the CLI with the console session (`aws login --region us-east-2`) and rely on its automatic token refresh during a deploy |
+| **Steps taken**          | 1. Run `aws login`. 2. Run `scripts/deploy_aws.sh` over a long session. 3. Observe the credential-refresh failure mid-pipeline. |
+| **Expected result**      | The session refreshes until the deploy completes                                                                              |
+| **Actual result**        | Every command failed with `CreateOAuth2Token … authorization grant is invalid, expired, revoked, or malformed`: the refresh token is bound to the browser session, so when that lapses the CLI credentials die with no explicit "re-run aws login" signal |
+| **Severity**             | Medium — blocks unattended/long-running deploys until re-authenticated                                                         |
+| **Workaround**           | `scripts/deploy_aws.sh` treats a describe-service credential failure as non-fatal (the update was already submitted) and prints the exact re-login command; automation uses a dedicated IAM credential instead |
+| **Proposed improvement** | Surface *when* the console-session CLI can no longer refresh (and why), and document that it is not intended for unattended builds. |
+
+### Friction 10: App Runner `update-service` rejects `Port` as a number
+
+| Field                    | Value                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Attempted task**       | Update the service with `aws apprunner update-service --cli-input-json`, passing `ImageConfiguration.Port` as the integer `8001` |
+| **Steps taken**          | 1. Emit the SourceConfiguration JSON from `source_config_json` in `scripts/deploy_aws.sh`. 2. Call `update-service`. 3. Read the ParamValidation error. |
+| **Expected result**      | The port is accepted; a port is naturally an integer                                                                         |
+| **Actual result**        | `ParamValidation: Invalid type for parameter …Port, value: 8001, type: <class 'int'>, valid types: <class 'str'>` — nothing in the console or docs calls out the string requirement |
+| **Severity**             | Low — but it cost a full deploy cycle to find                                                                                |
+| **Workaround**           | Emit `"Port": "8001"` (a string) in the JSON heredoc                                                                          |
+| **Proposed improvement** | Accept the integer and coerce it, or document the string requirement next to the field.                                        |
+
+### Friction 11: App Runner rolls back a failed deploy with no signal
+
+| Field                    | Value                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Attempted task**       | Deploy a new image and poll `describe-service` for `Status == RUNNING` to declare success                                       |
+| **Steps taken**          | 1. Push the image. 2. `update-service`. 3. Poll `describe-service`. 4. (Later) cross-check `list-operations`.                 |
+| **Expected result**      | `RUNNING` means the new revision is serving                                                                                    |
+| **Actual result**        | The new image crashed on startup, App Runner rolled back to the previous image, and the service still reported `RUNNING` — the deploy "succeeded" while the *old* image kept serving. The failure appeared only in `list-operations` (`ROLLBACK_SUCCEEDED`) plus the instance logs in CloudWatch |
+| **Severity**             | High — silently serves stale code; CI reports green                                                                            |
+| **Workaround**           | `wait_for_running` in `scripts/deploy_aws.sh` polls `list-operations` in addition to `describe-service` and fails the deploy if the latest operation is `FAILED` or `ROLLBACK_*`, then runs a `/ready` warm-up probe |
+| **Proposed improvement** | Expose a deployment's rollback in `describe-service` (or a dedicated "last deployment health" field) so clients don't need to cross-check operations + logs to detect a reverted deploy. |
 
 ---
 

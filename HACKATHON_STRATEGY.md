@@ -16,9 +16,9 @@ The official rules require the Alexa+ primary track to use either a working Agen
 | Self-hosted MCP server                 | Implemented in `server/mcp_server.py`                                                                                                                                                                                       | Demonstrate `/mcp` over Streamable HTTP                                        |
 | MCP version target                     | Pinned: `mcp==2.2.0`, protocol `2025-11-25` (Python 3.13)                                                                                                                                                                   | Documented in `server/requirements.txt` and `ALEXA_PLUS_MCP_PYTHON_RUNBOOK.md` |
 | Public GitHub repository               | Done: public at `https://github.com/daggerstuff/alexa-submit` (MIT, in About) | N/A |
-| Working demo video under three minutes | `demo-v2.mp4` (problem-first, 1:42, Remotion terminal + ElevenLabs narration, deterministic 11/20 + summary + safety) | Publish on YouTube/Vimeo (see `SUBMISSION.md`) |
-| Product feedback                       | Done in `PRODUCT_FEEDBACK.md` — every tool/API/SDK + onboarding + build-again + feature requests + 8-entry friction log | N/A |
-| AWS Builder mini-challenge             | Claimed: Amazon Bedrock (Converse API persona) + Amazon ECR + AWS App Runner. Live at `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp` | N/A |
+| Working demo video under three minutes | `demo-v2.mp4` (problem-first, ≈1:20: Remotion simulator scene — the `/simulator` voice experience with rapport meter, disclosed facts, and 13/20 rubric — then the agent's terminal view, ElevenLabs narration) | Re-render from `demo-video/`, publish on YouTube/Vimeo (see `SUBMISSION.md`) |
+| Product feedback                       | Done in `PRODUCT_FEEDBACK.md` — every tool/API/SDK + onboarding + build-again + feature requests + AWS architecture; canonical friction log in `FRICTION_LOG.md` (7 rubric entries) with the deployment archive (11 entries) in `PRODUCT_FEEDBACK.md` | N/A |
+| AWS Builder mini-challenge             | Claimed: Amazon Bedrock (Converse API persona, first-in-chain when configured) + Amazon Bedrock Guardrails on every turn (guardrail provisioned in us-east-2 and verified via ApplyGuardrail) + Amazon ECR + AWS App Runner + CloudWatch. Live at `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp` and `/simulator` | Flip `INFERENCE_PROVIDER` to `bedrock,cloudflare` once Bedrock model access is enabled (console step — see SUBMISSION.md §9) |
 | Open Source mini-challenge             | Claimed via new public, MIT-licensed repo (see section below) | N/A |
 
 ## Architecture for the submission
@@ -61,7 +61,7 @@ end.
 | 0:45–1:30 | Live conversation       | Two or three practitioner turns; the patient discloses progressively and preserves state across turns.                  |
 | 1:30–2:00 | Evidence-linked coaching| `evaluate_simulation` returns the score plus the spoken `summary` ("you covered where and when; next, confirm escalation"), with matched terms as evidence. |
 | 2:00–2:25 | Safety boundary         | The learner says "go home and rest"; the response carries the dismissal `safety_note`, and the evaluation names it in `safety_flags`. |
-| 2:25–2:45 | MCP proof (compressed)  | One glance at the `/mcp` endpoint, the five-tool list, and the typed `structuredContent` — enough to satisfy the MCP requirement without dwelling. |
+| 2:25–2:45 | MCP proof (compressed)  | One glance at the `/mcp` endpoint, the six-tool list, and the typed `structuredContent` — enough to satisfy the MCP requirement without dwelling. |
 | 2:45–3:00 | Impact + feedback       | Target users, the difficulty progression (`basic` → `advanced`), and one concrete product-feedback point for the Alexa+/MCP experience. |
 
 The code repository carries the implementation details; the video must prove the
@@ -114,8 +114,8 @@ Before submitting, complete the following items:
 5. Keep the demo video under three minutes and publish it publicly on YouTube or Vimeo.
 6. ~~Explain the meaningful update made during the hackathon period if the project existed beforehand.~~ — Done: see the "Meaningful update statement" section below.
 7. ~~Provide product feedback for MCP, Alexa+, and any AWS or other tools actually used.~~ — Done: see `PRODUCT_FEEDBACK.md` (every tool/API/SDK, onboarding experience, and build-again answers).
-8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: see `PRODUCT_FEEDBACK.md` (8 entries, each with task, steps taken, expected vs. actual, severity, workaround, and suggestion).
-9. ~~Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.~~ — Done: Amazon Bedrock (Converse API LLM persona) + Amazon ECR + AWS App Runner; see `SUBMISSION.md`.
+8. ~~Add a friction log with concrete reproduction steps and recommended improvements.~~ — Done: canonical `FRICTION_LOG.md` (7 entries, each with task, steps taken, expected vs. actual, severity, workaround, and suggestion) plus the rubric-formatted deployment archive in `PRODUCT_FEEDBACK.md`.
+9. ~~Claim the AWS Builder mini-challenge only if the submission documents a qualifying AWS integration or qualifying development-tool usage.~~ — Done: Amazon Bedrock (Converse API LLM persona, first on the provider chain) + Amazon Bedrock Guardrails (blanket `guardrailConfig`, intervention-safe fallback) + Amazon ECR + AWS App Runner + CloudWatch; see `SUBMISSION.md`.
 10. ~~Claim the Open Source mini-challenge only if a qualifying public contribution is made during the hackathon window.~~ — Done: claimed via this submission as a new open-source project; see the "Open Source mini-challenge" section below.
 
 ## Meaningful update statement
@@ -126,10 +126,11 @@ This repository existed before the hackathon window as a local FastAPI clinical-
 - A stateful, scenario-constrained simulation engine with versioned, evidence-linked rubric evaluation — graded with partial credit and per-metric matched-term evidence.
 - A coaching loop: every evaluation returns concrete next-step questions for metrics not yet demonstrated.
 - Cross-session learner progress: an optional `learner_id` persists per-metric mastery, per-session improvement, and a recommended next focus across sessions, surfaced in the `end_simulation` response and via a gated `get_learner_progress` tool.
-- An optional LLM patient persona (Amazon Bedrock Converse or Cloudflare Workers AI, tried as a fallback chain) with JSON-mode responses, tolerant parsing, per-provider retry, and a deterministic fallback.
+- An LLM patient persona on a provider chain led by Amazon Bedrock Converse (with Cloudflare Workers AI as an OpenAI-compatible fallback), JSON-mode responses, tolerant parsing, per-provider retry, and a deterministic fallback — with Amazon Bedrock Guardrails attached to every Converse turn (`guardrailConfig`, pinned numbered version, `trace` disabled) and a safe, counted degradation to the deterministic persona on intervention.
+- A browser-based Alexa+ multimodal simulator served at `GET /simulator` by the same app: voice input (Web Speech API), prosody-matched read-aloud from the server's own emotion→prosody table, and a live MCP inspector pane (tool calls, rapport meter, disclosed facts, rubric).
 - Bearer/API-key auth (constant-time comparison) and proxy-safe per-IP rate limiting on the public endpoint.
 - Session lifecycle controls: idle TTL, a bounded session cache with LRU eviction, and optional SQLite persistence (WAL) so state survives process restarts.
-- Twelve authorable scenarios across `basic`/`intermediate`/`advanced` difficulty (chest pain basic + advanced, abdominal pain, depression screening, migraine, back pain, syncope, suicide-risk screening, pediatric fever, stroke FAST, medication reconciliation, alcohol screening) defined as validated JSON data, with an authoring guide (`SCENARIOS.md`).
+- Fourteen authorable scenarios across `basic`/`intermediate`/`advanced` difficulty (chest pain basic + advanced, abdominal pain, depression screening, migraine, back pain, syncope, suicide-risk screening, pediatric fever, stroke FAST, medication reconciliation, alcohol screening, panic attack, teen vaping) defined as validated JSON data, with an authoring guide (`SCENARIOS.md`).
 - Observability: structured JSON request logs, per-request IDs, and unauthenticated `/health`, `/ready`, and `/metrics` (Prometheus) endpoints.
 - A public AWS deployment (ECR + App Runner, us-east-2).
 - CI (lint + test) and an automated deploy pipeline (GitHub Actions → ECR → App Runner), a full test suite, and the submission documents (`README.md`, `TOOLS.md`, `PRODUCT_FEEDBACK.md`, demo materials).
