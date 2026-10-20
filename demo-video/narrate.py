@@ -29,20 +29,32 @@ URL = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE}"
 OUT = "/tmp/el_audio9"
 os.makedirs(OUT, exist_ok=True)
 
-PROBLEM_SECONDS = 9.5  # keep in sync with DemoVideo.tsx
-SHIFT = int(PROBLEM_SECONDS * 1000)
+PROBLEM_SECONDS = 9.5   # keep in sync with DemoVideo.tsx
+SIMULATOR_SECONDS = 38.0  # keep in sync with SimulatorScene.tsx
 
-# (text, delay_ms) — delay is the video-time offset for ffmpeg `adelay`.
+# (text, delay_ms) — delay is the absolute video-time offset for ffmpeg `adelay`.
+# Cues are locked to the beat times in DemoVideo.tsx / SimulatorScene.tsx:
+#   0s problem card · 9.5s simulator scene (voice experience, rapport, rubric)
+#   47.5s terminal scene (agent's protocol view: tools, scenarios, safety, end).
 SEGMENTS = [
+    # 0.0s — problem card
     ("Practicing a difficult patient conversation usually means doing it live — on a real patient. There is no safe way to rehearse the interview first.", 0),
-    ("Here's Clinical Conversation Coach. An M-C-P server that lets Alexa Plus run safe, repeatable clinical-conversation practice.", SHIFT + 0),
-    ("Five agent-callable tools — from scenario discovery, through evaluation.", SHIFT + 9300),
-    ("Ten authorable scenarios... from basic, through advanced.", SHIFT + 15200),
-    ("The learner hears the goal first... then the patient opens the case.", SHIFT + 20500),
-    ("Four turns: location, radiation, shortness of breath and medications — then safety.", SHIFT + 31000),
-    ("The rubric grades every turn, linking each score to the words that earned it. Eleven of twenty... with a spoken takeaway that tells the learner exactly what to ask next.", SHIFT + 63000),
-    ("And when the learner dismisses the case, the safety layer pushes back: reconsider — this may delay needed care.", SHIFT + 75500),
-    ("Alexa Plus provides the conversation. M-C-P provides the orchestration. And the coach... provides the learning outcome.", SHIFT + 83300),
+    # 9.5s — simulator scene: page, scenario, start, opening line
+    ("Practice needs a voice. This is the Alexa Plus experience: the same M-C-P server, with a multimodal simulator any learner can open in a browser. Pick a scenario... and press start.", 9500),
+    # 19.5s — the four practitioner turns, tool calls, facts, rapport meter
+    ("Every turn is a live M-C-P tool call. The patient answers with emotional inflection... while the inspector shows the protocol traffic, the facts she discloses, and a trust meter that moves with the learner's warmth.", 19500),
+    # 33.5s — evaluate_simulation + rubric checkboxes + spoken takeaway
+    ("Then the rubric: every dimension scored, linked to the words that earned each point — and a spoken takeaway for exactly what to ask next.", 33500),
+    # 41.5s — disclaimer chip + closing hold on the simulator
+    ("Educational only. A safe, repeatable rehearsal — every single time.", 41500),
+    # 47.5s — terminal scene: protocol view begins
+    ("Under the hood, the agent sees the same session as pure protocol: initialize... tool discovery... tool calls — M-C-P twenty twenty-five, over streamable H-T-T-P.", 47500),
+    # 54.0s — tools/list + scenario library
+    ("Six agent-callable tools. Fourteen authorable scenarios — basic, through advanced.", 54000),
+    # 62.5s — the dismissal safety boundary
+    ("And the runtime keeps a boundary: dismiss the case — go home and rest — and the coach pushes back. Reconsider... this may delay needed care.", 62500),
+    # 71.0s — closing line
+    ("Alexa Plus provides the conversation. M-C-P provides the orchestration. And the coach... provides the learning outcome.", 71000),
 ]
 
 for i, (text, _offset) in enumerate(SEGMENTS, 1):
@@ -79,5 +91,6 @@ for i, (_text, offset) in enumerate(SEGMENTS, 1):
 print("""\n# assemble narration track (inputs seg1..seg9 => indices 0..8):
 # ffmpeg -i seg1.mp3 ... -i seg9.mp3 \\
 #   -filter_complex "[0:a]...adelay=0:all=1[a1];[1:a]...adelay=9500:all=1[a2];...;[a1]...[a9]amix=inputs=9:duration=longest:normalize=0,apad" \\
-#   -t <total> -ar 48000 -ac 2 narration.wav
-# then: ffmpeg -i demo.mp4 -i narration.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4""")
+#   -t 80.3 -ar 48000 -ac 2 narration.wav
+# then: ffmpeg -i demo.mp4 -i narration.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4
+# (total video duration is exported by DemoVideo.tsx: PROBLEM 9.5s + SIMULATOR 38s + TERMINAL ~32.8s = ~80.3s)""")
