@@ -166,7 +166,19 @@ wait_for_running() {
 }
 
 echo "=== Creating or updating App Runner service ==="
-SERVICE_ARN=$(aws apprunner list-services --region "$REGION" --query "ServiceSummaryList[?ServiceName=='clinical-conversation-coach'].ServiceArn" --output text 2>/dev/null || echo "")
+# Look up the existing service, but fail fast on a real API error. Swallowing it
+# (the old `2>/dev/null || echo ""`) made a restricted-account error look like
+# "service does not exist" and sent the deploy into the create branch, which
+# fails with a confusing InvalidRequestException instead of the real cause.
+if ! SERVICE_ARN=$(aws apprunner list-services --region "$REGION" \
+      --query "ServiceSummaryList[?ServiceName=='clinical-conversation-coach'].ServiceArn" \
+      --output text 2>/tmp/apprunner_list_err.txt); then
+  echo "ERROR: 'aws apprunner list-services' failed — the deploy cannot proceed safely:" >&2
+  sed 's/^/  /' /tmp/apprunner_list_err.txt >&2
+  echo "  (If this mentions the account being restricted, clear the AWS account hold first.)" >&2
+  exit 1
+fi
+rm -f /tmp/apprunner_list_err.txt
 if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
   SERVICE_ARN=""
 fi
