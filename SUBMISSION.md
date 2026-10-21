@@ -293,22 +293,18 @@ Chrome/Edge recommended for the microphone).
 - MCP endpoint: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp`
 - The endpoint requires an `MCP_API_KEY` (not published in the repo).
 
-**Live-deployment status (Oct 20, 2026):** the live endpoint is currently
-serving the **pre-upgrade build (v0.3.0)** — the full MCP tool flow works
-there, but `/simulator` is not live yet. The v0.4.0 image (voice simulator,
-origin-allow-list pinning, Guardrails plumbing, post-deploy warm-up) is
-built, tested, and pushed to ECR, but the deployment is blocked by an
-**AWS account restriction** on new instance provisioning (`Account
-638175140335 is temporarily restricted` on App Runner operations; the
-container itself is verified healthy — the exact ECR image serves all
-endpoints locally, and CI passed its 152-test gate). A **control
-deployment of the exact currently-running image** also rolled back with
-the same signature (operation `906d0411…`, Oct 20, ~6-minute TCP
-health-check window), which rules the application out: under the
-restriction, App Runner cannot provision new deployment instances for the
-existing service at all, while the grandfathered instances keep serving.
-Once the account restriction is cleared (AWS console → billing/payment),
-any push to `master` redeploys automatically, or run
-`scripts/deploy_aws.sh`; `GET /health` flips to `"version": "0.4.0"` and
-`/simulator` goes live. The local path above is fully functional for
-judging and testing in the meantime.
+**Live-deployment status (updated Oct 20, 2026, 23:30 ET):** the AWS account
+holding the App Runner service is under an **AWS fraud-prevention
+suspension** (verification documents submitted; review pending). The
+restriction progressed from blocking new deployment instances (five
+deploys rolled back with the same signature, including a **control
+deployment of the exact running image** — operation `906d0411…` — which
+rules the application out) to suspending the public endpoint itself, which
+now returns 404. The v0.4.0 image (voice simulator, origin pinning,
+Guardrails plumbing) is built, tested (CI's 152-test gate is green), and
+staged in ECR; the moment the account is restored, **any push to `master`
+redeploys automatically** (or run `scripts/deploy_aws.sh`, which also
+handles the create-from-scratch case), and `GET /health` flips to
+`"version": "0.4.0"` with `/simulator` live. The **local path above is
+fully functional for judging and testing** and needs no keys or network
+services.
