@@ -110,7 +110,7 @@ Streamable HTTP.
 
 ## 6. Demonstration video
 
-- **URL:** `<!-- PASTE YOUR PUBLIC YOUTUBE/VIMEO LINK HERE -->`
+- **URL:** `https://www.youtube.com/watch?v=jCoTNWrjlMk`
 - **File:** `demo-v2.mp4` (1:20, 1080p30) — opens with the problem, then shows
   the project functioning on its intended interface **in the first 45
   seconds**: the `/simulator` voice experience (Alexa+ orb, spoken turns,
