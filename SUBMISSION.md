@@ -288,26 +288,20 @@ The simulator needs no setup: pick a scenario, press **Start**, and speak or
 type practitioner turns (voice input uses the browser's Web Speech API;
 Chrome/Edge recommended for the microphone).
 
-**Live (auth-protected):**
+**Live (auth-protected, hosted on Google Cloud Run):**
 
-- MCP endpoint: `https://9jj4zdyhu2.us-east-2.awsapprunner.com/mcp`
-- The endpoint requires an `MCP_API_KEY` (not published in the repo).
-
-**Live temporary mirror (available now):**
-
-While the App Runner account issue below clears, the same v0.4.0 image is
-hosted on a temporary mirror so judges can try everything without cloning
-anything:
-
-- **Voice simulator:** <http://134.122.26.41:8001/simulator>
-- MCP endpoint: `http://134.122.26.41:8001/mcp`
+- **Voice simulator:** <https://clinical-conversation-coach-841537788053.us-central1.run.app/simulator>
+- MCP endpoint: `https://clinical-conversation-coach-841537788053.us-central1.run.app/mcp`
+- Health check: `https://clinical-conversation-coach-841537788053.us-central1.run.app/health`
 - API key (display-only): `2574d86318156302739f1cbe4d3f8649` (send as
   `X-API-Key` header; also pre-filled in the simulator page)
-- Same container image as ECR `c2f65b8` (CI-green, 152 tests), running with
+- Same v0.4.0 image as ECR `c2f65b8` (CI-green, 152 tests), running with
   NIM inference for live persona turns — all six core tools, the browser
-  voice simulator, and `/health` are live.
+  voice simulator, and `/health` are live. Verified end-to-end Oct 23, 2026
+  (full MCP cycle: initialize → tools/list → start → NIM persona turn →
+  end).
 
-**Live-deployment status (updated Oct 20, 2026, 23:30 ET):** the AWS account
+**Live-deployment status (updated Oct 23, 2026):** the AWS account
 holding the App Runner service is under an **AWS fraud-prevention
 suspension** (verification documents submitted; review pending). The
 restriction progressed from blocking new deployment instances (five
@@ -319,7 +313,7 @@ Guardrails plumbing) is built, tested (CI's 152-test gate is green), and
 staged in ECR; the moment the account is restored, **any push to `master`
 redeploys automatically** (or run `scripts/deploy_aws.sh`, which also
 handles the create-from-scratch case), and `GET /health` flips to
-`"version": "0.4.0"` with `/simulator` live. In the meantime the **temporary
-mirror above is the live deployment for judging**, and the **local path above
+`"version": "0.4.0"` with `/simulator` live. In the meantime the **Cloud Run
+service above is the live deployment for judging**, and the **local path above
 is fully functional for judging and testing** and needs no keys or network
 services.
