@@ -507,7 +507,9 @@ if __name__ == "__main__":
     import uvicorn
 
     host = os.getenv("MCP_HOST", "127.0.0.1")
-    port = int(os.getenv("MCP_PORT", "8001"))
+    # MCP_PORT (explicit override) wins over PORT (platform-provided, e.g. Cloud Run);
+    # fall back to 8001 for local runs.
+    port = int(os.getenv("MCP_PORT", os.getenv("PORT", "8001")))
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
     uvicorn.run(create_app(), host=host, port=port, log_level=log_level.lower())

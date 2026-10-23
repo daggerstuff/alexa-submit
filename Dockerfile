@@ -12,7 +12,6 @@ RUN useradd --create-home --uid 10001 appuser \
 USER appuser
 
 ENV MCP_HOST=0.0.0.0
-ENV MCP_PORT=8001
 ENV MCP_PATH=/mcp
 ENV MCP_ALLOWED_HOSTS=0.0.0.0:*,127.0.0.1:*,localhost:*
 ENV MCP_ALLOWED_ORIGINS=http://127.0.0.1:*,http://localhost:*
