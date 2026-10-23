@@ -290,9 +290,9 @@ Chrome/Edge recommended for the microphone).
 
 **Live (auth-protected, hosted on Google Cloud Run):**
 
-- **Voice simulator:** <https://clinical-conversation-coach-841537788053.us-central1.run.app/simulator>
-- MCP endpoint: `https://clinical-conversation-coach-841537788053.us-central1.run.app/mcp`
-- Health check: `https://clinical-conversation-coach-841537788053.us-central1.run.app/health`
+- **Voice simulator:** <https://clinical-conversation-coach-100678174432.us-central1.run.app/simulator>
+- MCP endpoint: `https://clinical-conversation-coach-100678174432.us-central1.run.app/mcp`
+- Health check: `https://clinical-conversation-coach-100678174432.us-central1.run.app/health`
 - API key (display-only): `2574d86318156302739f1cbe4d3f8649` (send as
   `X-API-Key` header; also pre-filled in the simulator page)
 - Same v0.4.0 image as ECR `c2f65b8` (CI-green, 152 tests), running with
