@@ -295,7 +295,8 @@ Chrome/Edge recommended for the microphone).
 - Health check: `https://clinical-conversation-coach-100678174432.us-central1.run.app/health`
 - API key (display-only): `2574d86318156302739f1cbe4d3f8649` (send as
   `X-API-Key` header; also pre-filled in the simulator page)
-- Same v0.4.0 image as ECR `c2f65b8` (CI-green, 152 tests), running with
+- v0.4.0 codebase (CI-green, 152 tests; the live build adds a container
+  PORT-compatibility fix so standard Cloud Run deploys work), running with
   NIM inference for live persona turns — all six core tools, the browser
   voice simulator, and `/health` are live. Verified end-to-end Oct 23, 2026
   (full MCP cycle: initialize → tools/list → start → NIM persona turn →
