@@ -139,9 +139,7 @@ class LearnerStore:
 
     def get(self, learner_id: str) -> dict[str, Any] | None:
         with self._lock:
-            row = self._conn.execute(
-                "SELECT record FROM learners WHERE learner_id = ?", (learner_id,)
-            ).fetchone()
+            row = self._conn.execute("SELECT record FROM learners WHERE learner_id = ?", (learner_id,)).fetchone()
         return json.loads(row[0]) if row is not None else None
 
     def list(self) -> dict[str, dict[str, Any]]:

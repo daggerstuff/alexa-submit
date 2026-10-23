@@ -114,7 +114,9 @@ def test_version_mismatch_drops_persisted_session(tmp_path) -> None:
     conn.close()
 
     second = SimulationOrchestrator(db_path=db)
-    resp = second.handle(SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic"))
+    resp = second.handle(
+        SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic")
+    )
     session = second.sessions["s1"]
     assert resp.status == "active"
     assert session.patient_state.turn_count == 0

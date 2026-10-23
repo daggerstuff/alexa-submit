@@ -78,9 +78,7 @@ class ClinicalEvaluatorAgent:
             rule.fact_id
             for rule in scenario.disclosures
             if any(
-                matches_term(term, turn.content.lower())
-                for turn in practitioner_turns
-                for term in rule.trigger_terms
+                matches_term(term, turn.content.lower()) for turn in practitioner_turns for term in rule.trigger_terms
             )
         }
         withheld_facts = sorted(

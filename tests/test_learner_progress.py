@@ -11,7 +11,9 @@ def _orch() -> SimulationOrchestrator:
 def test_end_records_progress_for_learner() -> None:
     orch = _orch()
     orch.handle(
-        SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="alice")
+        SimulationRequest(
+            session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="alice"
+        )
     )
     resp = orch.handle(SimulationRequest(session_id="s1", action=SimulationAction.end, learner_id="alice"))
 
@@ -33,7 +35,9 @@ def test_no_progress_without_learner_id() -> None:
 def test_progress_uses_session_learner_id_at_end() -> None:
     orch = _orch()
     orch.handle(
-        SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="bob")
+        SimulationRequest(
+            session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="bob"
+        )
     )
     # End without repeating learner_id: the session remembers it from start.
     resp = orch.handle(SimulationRequest(session_id="s1", action=SimulationAction.end))
@@ -46,7 +50,9 @@ def test_second_session_detects_improvement_and_focus() -> None:
 
     # Session 1: only introduces self — every other metric stays at baseline 1.
     orch.handle(
-        SimulationRequest(session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="carol")
+        SimulationRequest(
+            session_id="s1", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="carol"
+        )
     )
     orch.handle(
         SimulationRequest(
@@ -61,7 +67,9 @@ def test_second_session_detects_improvement_and_focus() -> None:
 
     # Session 2: covers symptoms, risk, escalation, and next-step confirmation.
     orch.handle(
-        SimulationRequest(session_id="s2", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="carol")
+        SimulationRequest(
+            session_id="s2", action=SimulationAction.start, scenario_id="chest-pain-basic", learner_id="carol"
+        )
     )
     orch.handle(
         SimulationRequest(

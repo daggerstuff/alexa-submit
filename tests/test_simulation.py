@@ -103,7 +103,9 @@ def test_abdominal_pain_scenario() -> None:
 def test_depression_screening_scenario() -> None:
     session_id = "dep-test"
     start = orchestrator.handle(
-        SimulationRequest(session_id=session_id, action=SimulationAction.start, scenario_id="depression-screening-basic")
+        SimulationRequest(
+            session_id=session_id, action=SimulationAction.start, scenario_id="depression-screening-basic"
+        )
     )
     assert start.scenario_version == "1.0.0"
     content = start.patient.content.lower()
